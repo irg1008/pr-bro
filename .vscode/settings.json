@@ -1,0 +1,41 @@
+{
+	"tailwindCSS.classFunctions": ["cva", "cn"],
+
+	// Editor settings
+	"editor.formatOnSave": true,
+	"editor.defaultFormatter": "oxc.oxc-vscode",
+	"editor.codeActionsOnSave": {
+		"source.fixAll.oxc": "explicit",
+		"source.organizeImports": "explicit",
+		"source.removeUnusedImports": "explicit"
+	},
+
+	// Astro specific
+	"[astro]": {
+		"editor.defaultFormatter": "astro-build.astro-vscode"
+	},
+
+	"[typescript]": {
+		"editor.defaultFormatter": "oxc.oxc-vscode"
+	},
+
+	"workbench.colorCustomizations": {
+		"activityBar.activeBackground": "#313841",
+		"activityBar.background": "#313841",
+		"activityBar.foreground": "#e7e7e7",
+		"activityBar.inactiveForeground": "#e7e7e799",
+		"activityBarBadge.background": "#bf4078",
+		"activityBarBadge.foreground": "#e7e7e7",
+		"commandCenter.border": "#e7e7e799",
+		"sash.hoverBorder": "#313841",
+		"statusBar.background": "#1b1f24",
+		"statusBar.foreground": "#e7e7e7",
+		"statusBarItem.hoverBackground": "#313841",
+		"statusBarItem.remoteBackground": "#1b1f24",
+		"statusBarItem.remoteForeground": "#e7e7e7",
+		"titleBar.activeBackground": "#1b1f24",
+		"titleBar.activeForeground": "#e7e7e7",
+		"titleBar.inactiveBackground": "#1b1f2499",
+		"titleBar.inactiveForeground": "#e7e7e799"
+	}
+}

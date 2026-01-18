@@ -1,0 +1,4 @@
+{
+  "extends": ["github>area44/renovate-config"],
+  "automerge": false
+}

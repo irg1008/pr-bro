@@ -1,0 +1,8 @@
+User-agent: *
+Disallow: /
+
+User-agent: Googlebot
+Allow: /
+Disallow: /success
+
+Sitemap: https://site.com/sitemap-index.xml
