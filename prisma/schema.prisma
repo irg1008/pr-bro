@@ -12,3 +12,78 @@ generator client {
 datasource db {
   provider = "postgresql"
 }
+
+model RoutineGroup {
+  id          String    @id @default(cuid())
+  name        String
+  description String?
+  isActive    Boolean   @default(false)
+  routines    Routine[]
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+}
+
+model Routine {
+  id             String            @id @default(cuid())
+  name           String
+  description    String?
+  routineGroupId String
+  group          RoutineGroup      @relation(fields: [routineGroupId], references: [id])
+  exercises      RoutineExercise[]
+  logs           WorkoutLog[]
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+model Exercise {
+  id               String            @id @default(cuid())
+  name             String
+  description      String?
+  imageUrl         String?
+  category         String? // Made optional as it's not in CSV directly (though could be mapped)
+  bodyPart         String?
+  equipment        String?
+  target           String?
+  secondaryMuscles String[]
+  instructions     String[]
+  gifId            String?
+  routineExercises RoutineExercise[]
+  logEntries       WorkoutLogEntry[]
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+}
+
+model RoutineExercise {
+  id         String   @id @default(cuid())
+  routineId  String
+  exerciseId String
+  order      Int
+  routine    Routine  @relation(fields: [routineId], references: [id])
+  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+
+  @@unique([routineId, exerciseId])
+}
+
+model WorkoutLog {
+  id        String            @id @default(cuid())
+  routineId String
+  routine   Routine           @relation(fields: [routineId], references: [id])
+  date      DateTime          @default(now())
+  duration  Int? // in seconds
+  entries   WorkoutLogEntry[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
+}
+
+model WorkoutLogEntry {
+  id           String     @id @default(cuid())
+  workoutLogId String
+  exerciseId   String
+  workoutLog   WorkoutLog @relation(fields: [workoutLogId], references: [id])
+  exercise     Exercise   @relation(fields: [exerciseId], references: [id])
+  sets         Json // Stores array of { weight: number, reps: number, completed: boolean }
+  notes        String?
+  order        Int
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+}

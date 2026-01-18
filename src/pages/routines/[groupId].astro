@@ -1,0 +1,95 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { RoutineManagement } from "../../components/RoutineManagement";
+import { GET } from "../api/groups/[id]";
+
+export const prerender = false;
+
+const { groupId } = Astro.params;
+
+if (!groupId) {
+	return Astro.redirect("/routines");
+}
+
+const response = await GET({ ...Astro, params: { id: groupId } });
+
+if (response.status === 404) {
+	return Astro.redirect("/404");
+}
+
+import type { RoutineGroup, Routine, Exercise } from "prisma/generated/client";
+type RoutineGroupWithRoutines = RoutineGroup & {
+	routines: (Routine & { exercises: Exercise[] })[];
+};
+const group: RoutineGroupWithRoutines = await response.json();
+
+type RoutineWithCount = Routine & { exerciseCount: number };
+
+const routines: RoutineWithCount[] = group.routines.map((r) => ({
+	...r,
+	exerciseCount: r.exercises.length,
+}));
+---
+
+<BaseLayout title={`Manage ${group.name}`}>
+	<div class="container mx-auto py-8 px-4">
+		<div class="flex justify-between items-center mb-6">
+			<div class="space-y-1">
+				<a
+					href="/routines"
+					class="text-sm text-muted-foreground hover:underline"
+					>← Back to Groups</a
+				>
+				<div class="flex items-center gap-3">
+					<h1 class="text-3xl font-bold">{group.name}</h1>
+					{
+						group.isActive && (
+							<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
+								Active
+							</span>
+						)
+					}
+				</div>
+			</div>
+			{
+				!group.isActive && (
+					<button
+						id="set-active-btn"
+						data-group-id={group.id}
+						class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
+					>
+						Set as Active Cycle
+					</button>
+				)
+			}
+		</div>
+
+		<RoutineManagement
+			client:load
+			groupId={group.id}
+			groupName={group.name}
+			routines={routines}
+		/>
+	</div>
+
+	<script>
+		import { navigate } from "astro:transitions/client";
+
+		document.addEventListener("astro:page-load", () => {
+			const btn = document.getElementById("set-active-btn");
+			if (btn) {
+				btn.addEventListener("click", async () => {
+					const groupId = btn.dataset.groupId;
+					const res = await fetch("/api/groups/active", {
+						method: "POST",
+						body: JSON.stringify({ groupId }),
+						headers: { "Content-Type": "application/json" },
+					});
+					if (res.ok) {
+						navigate(location.pathname);
+					}
+				});
+			}
+		});
+	</script>
+</BaseLayout>

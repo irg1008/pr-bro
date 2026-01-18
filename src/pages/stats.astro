@@ -1,0 +1,65 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { GET } from "./api/stats";
+
+interface ExerciseStat {
+	id: string;
+	name: string;
+	category: string;
+	lastTrained: string;
+	maxWeight: number;
+	improvement: number;
+	hasHistory: boolean;
+}
+
+const response = await GET(Astro);
+const stats: ExerciseStat[] = await response.json();
+---
+
+<BaseLayout title="Statistics">
+	<div class="container mx-auto py-8 px-4">
+		<h1 class="text-3xl font-bold mb-8">Progress & Stats</h1>
+
+		<div class="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+			{
+				stats.map((stat: any) => (
+					<div class="rounded-lg border bg-card text-card-foreground shadow-sm p-6">
+						<div class="flex justify-between items-start mb-4">
+							<div>
+								<h3 class="font-bold text-xl">{stat.name}</h3>
+								<span class="text-xs text-muted-foreground">
+									{stat.category}
+								</span>
+							</div>
+							{stat.hasHistory && (
+								<div
+									class={`px-2 py-1 rounded text-xs font-bold ${stat.improvement > 0 ? "bg-green-100 text-green-700" : stat.improvement < 0 ? "bg-red-100 text-red-700" : "bg-gray-100 text-gray-700"}`}
+								>
+									{stat.improvement > 0 ? "+" : ""}
+									{stat.improvement} kg
+								</div>
+							)}
+						</div>
+
+						<div class="space-y-1">
+							<p class="text-sm text-muted-foreground">Last Max Weight</p>
+							<p class="text-2xl font-bold">{stat.maxWeight} kg</p>
+						</div>
+
+						<div class="mt-4 pt-4 border-t text-xs text-muted-foreground">
+							Last trained: {new Date(stat.lastTrained).toLocaleDateString()}
+						</div>
+					</div>
+				))
+			}
+
+			{
+				stats.length === 0 && (
+					<div class="col-span-full text-center py-12 text-muted-foreground">
+						No workout history yet. Go lift something!
+					</div>
+				)
+			}
+		</div>
+	</div>
+</BaseLayout>

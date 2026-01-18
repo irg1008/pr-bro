@@ -1,0 +1,57 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { RoutineDetail } from "../../../components/RoutineDetail";
+import { GET } from "../../api/routines/[id]"; // Assuming this is where it will be mapped
+
+export const prerender = false;
+
+const { groupId, routineId } = Astro.params;
+
+if (!groupId || !routineId) {
+	return Astro.redirect("/routines");
+}
+
+// Map 'routineId' param to 'id' for the API if necessary,
+// but Astro passes all params in Astro.params so GET(Astro) works if GET uses params.id
+// API expects params.id. Astro.params has routineId.
+// We might need to shim it if names mismatch.
+// The API file is [id].ts so it expects 'id'.
+// The page is [routineId].astro so Astro.params has routineId.
+// We need to construct a context or ensure params match.
+// To fix this cleanly, let's just make the API call manually orshim.
+// Or better: update the API to look for routineId?
+// No, standard is [id].
+// We can manually pass params:
+const response = await GET({ ...Astro, params: { id: routineId } });
+
+if (response.status === 404) {
+	return Astro.redirect("/404");
+}
+
+import type {
+	Exercise,
+	Routine,
+	RoutineExercise,
+} from "prisma/generated/client";
+type RoutineWithExercises = Routine & {
+	exercises: (RoutineExercise & { exercise: Exercise })[];
+};
+const routine: RoutineWithExercises = await response.json();
+---
+
+<BaseLayout title={`Edit ${routine.name}`}>
+	<div class="container mx-auto py-8 px-4">
+		<div class="mb-4">
+			<a
+				href={`/routines/${groupId}`}
+				class="text-sm text-muted-foreground hover:underline">← Back to Group</a
+			>
+		</div>
+		<RoutineDetail
+			client:load
+			routineId={routine.id}
+			routineName={routine.name}
+			initialExercises={routine.exercises}
+		/>
+	</div>
+</BaseLayout>

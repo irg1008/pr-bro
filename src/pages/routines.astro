@@ -1,0 +1,15 @@
+---
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import type { RoutineGroup } from "prisma/generated/client";
+import { RoutineGroupList } from "../components/RoutineGroupList";
+import { GET } from "./api/groups";
+
+const response = await GET(Astro);
+const groups: RoutineGroup[] = await response.json();
+---
+
+<BaseLayout title="My Routine Groups">
+	<div class="container mx-auto py-8">
+		<RoutineGroupList client:load groups={groups} />
+	</div>
+</BaseLayout>

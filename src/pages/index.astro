@@ -1,7 +1,21 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import type { Routine, RoutineGroup } from "prisma/generated/client";
+import { HomePageWrapper } from "../components/HomePageWrapper";
+import { GET } from "./api/home";
+
+const response = await GET(Astro);
+const data: { activeGroup: RoutineGroup | null; nextRoutine: Routine | null } =
+	await response.json();
+const { activeGroup, nextRoutine } = data;
 ---
 
-<BaseLayout title={""} description={""} ogImage="/imgs/fachada-rosa.jpg">
-	<div></div>
+<BaseLayout title={"Gym Tracker"}>
+	<div class="container mx-auto px-4">
+		<HomePageWrapper
+			client:load
+			activeGroupName={activeGroup?.name || null}
+			nextRoutine={nextRoutine}
+		/>
+	</div>
 </BaseLayout>
