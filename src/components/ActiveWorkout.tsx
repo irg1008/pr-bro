@@ -11,12 +11,6 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
-  Carousel,
-  CarouselContent,
-  CarouselItem,
-  type CarouselApi
-} from "@/components/ui/carousel";
-import {
   Dialog,
   DialogContent,
   DialogHeader,
@@ -38,7 +32,7 @@ import {
   X
 } from "lucide-react";
 import type { Exercise } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const CARDIO_OPTIONS = [
@@ -79,14 +73,15 @@ export const ActiveWorkout = ({
   exercises: initialExercises,
   initialSupersetStatus = {}
 }: ActiveWorkoutProps) => {
-  const [api, setApi] = useState<CarouselApi>();
-  const [current, setCurrent] = useState(0);
+  // Carousel state removed
+  // const [current, setCurrent] = useState(0); // Removed as we list all
   const [sets, setSets] = useState<Record<string, WorkoutSet[]>>({});
 
   // Dynamic Exercise State
   const [activeExercises, setActiveExercises] = useState<Exercise[]>(initialExercises);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<"add" | "replace">("add");
+  const [targetExerciseIndex, setTargetExerciseIndex] = useState<number>(-1); // For replace/delete context if needed
 
   const [cardioModalOpen, setCardioModalOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
@@ -126,54 +121,9 @@ export const ActiveWorkout = ({
     }
   }, [logId]);
 
-  const onScroll = React.useCallback((api: CarouselApi) => {
-    if (!api) return;
+  // Carousel scroll effects removed
 
-    const scrollProgress = api.scrollProgress();
-    const snapList = api.scrollSnapList();
-    const slides = api.slideNodes();
-
-    slides.forEach((slide, index) => {
-      const snap = snapList[index];
-      const diff = snap - scrollProgress;
-      const machineDistance = Math.abs(diff);
-      const slideCount = slides.length;
-      const normalizedDistance = machineDistance * (slideCount - 1);
-      const factor = Math.min(Math.max(1 - normalizedDistance, 0), 1);
-
-      const opacity = 0.3 + 0.7 * factor;
-      const scale = 0.9 + 0.1 * factor;
-      const blur = (1 - factor) * 4;
-
-      const inner = slide.querySelector(".carousel-visual-content") as HTMLElement;
-      if (inner) {
-        inner.style.opacity = opacity.toString();
-        inner.style.transform = `scale(${scale})`;
-        inner.style.filter = `blur(${blur}px)`;
-      }
-    });
-  }, []);
-
-  useEffect(() => {
-    if (!api) return;
-    setCurrent(api.selectedScrollSnap());
-    onScroll(api);
-
-    api.on("select", () => {
-      setCurrent(api.selectedScrollSnap());
-    });
-
-    api.on("scroll", () => {
-      onScroll(api);
-    });
-
-    api.on("reInit", () => {
-      onScroll(api);
-      setCurrent(api.selectedScrollSnap());
-    });
-  }, [api, onScroll]);
-
-  const currentExercise = activeExercises[current] || activeExercises[0];
+  // const currentExercise = activeExercises[current] || activeExercises[0]; // Removed
 
   const createEmptySet = (type: ExerciseType = ExerciseType.WEIGHT): WorkoutSet => {
     if (type === ExerciseType.CARDIO) {
@@ -182,42 +132,51 @@ export const ActiveWorkout = ({
     return { weight: "", reps: "", completed: false };
   };
 
-  const updateSet = (idx: number, field: keyof WorkoutSet, value: number | "") => {
-    const exId = currentExercise?.id;
-    if (!exId) return;
+  const updateSet = (
+    exerciseId: string,
+    idx: number,
+    field: keyof WorkoutSet,
+    value: number | ""
+  ) => {
+    if (!exerciseId) return;
 
-    const currentExSets = sets[exId] || [createEmptySet(currentExercise?.type as ExerciseType)];
+    const currentEx = activeExercises.find((e) => e.id === exerciseId);
+    if (!currentEx) return;
+
+    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type as ExerciseType)];
     const newSets = [...currentExSets];
     newSets[idx] = { ...newSets[idx], [field]: value };
-    setSets({ ...sets, [exId]: newSets });
+    setSets({ ...sets, [exerciseId]: newSets });
   };
 
-  const addSet = () => {
-    const exId = currentExercise?.id;
-    if (!exId) return;
+  const addSet = (exerciseId: string) => {
+    if (!exerciseId) return;
 
-    const currentExSets = sets[exId] || [createEmptySet(currentExercise?.type as ExerciseType)];
+    const currentEx = activeExercises.find((e) => e.id === exerciseId);
+    if (!currentEx) return;
+
+    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type as ExerciseType)];
     const lastSet = currentExSets[currentExSets.length - 1];
     setSets({
       ...sets,
-      [exId]: [...currentExSets, { ...lastSet, completed: false }]
+      [exerciseId]: [...currentExSets, { ...lastSet, completed: false }]
     });
   };
 
-  const removeSet = (idx: number) => {
-    const exId = currentExercise?.id;
-    if (!exId) return;
+  const removeSet = (exerciseId: string, idx: number) => {
+    if (!exerciseId) return;
 
-    const currentExSets = sets[exId] || [createEmptySet(currentExercise?.type as ExerciseType)];
+    const currentEx = activeExercises.find((e) => e.id === exerciseId);
+    if (!currentEx) return;
+
+    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type as ExerciseType)];
     if (currentExSets.length <= 1) return;
 
     const newSets = currentExSets.filter((_, i) => i !== idx);
-    setSets({ ...sets, [exId]: newSets });
+    setSets({ ...sets, [exerciseId]: newSets });
   };
 
-  const goToNext = () => {
-    api?.scrollNext();
-  };
+  // goToNext removed
 
   const validateAll = () => {
     return activeExercises.every((ex) => {
@@ -313,38 +272,22 @@ export const ActiveWorkout = ({
     setPickerOpen(true);
   };
 
-  const openReplaceExercise = () => {
+  const openReplaceExercise = (index: number) => {
+    setTargetExerciseIndex(index);
     setPickerMode("replace");
     setPickerOpen(true);
   };
-
-  // Ref to track previous exercise count for auto-scrolling
-  const prevExerciseCount = React.useRef(initialExercises.length);
-
-  useEffect(() => {
-    // If we added an exercise, scroll to it
-    if (activeExercises.length > prevExerciseCount.current && api) {
-      const newIndex = activeExercises.length - 1;
-      // Wait for next tick/re-init to ensure DOM is ready
-      setTimeout(() => {
-        api.reInit(); // Force Embla to recognize new slide dimensions
-        api.scrollTo(newIndex);
-      }, 150);
-    }
-    prevExerciseCount.current = activeExercises.length;
-  }, [activeExercises.length, api]);
 
   const handleExerciseSelect = async (exercise: Exercise) => {
     if (!exercise) return;
 
     if (pickerMode === "add") {
       setActiveExercises((prev) => [...prev, exercise]);
-      // Scroll handled by useEffect
     } else {
       const newExercises = [...activeExercises];
-      if (current >= 0 && current < newExercises.length) {
-        const oldExId = newExercises[current].id;
-        newExercises[current] = exercise;
+      if (targetExerciseIndex >= 0 && targetExerciseIndex < newExercises.length) {
+        const oldExId = newExercises[targetExerciseIndex].id;
+        newExercises[targetExerciseIndex] = exercise;
         setActiveExercises(newExercises);
 
         // Reset sets for this slot
@@ -353,6 +296,7 @@ export const ActiveWorkout = ({
       }
     }
     setPickerOpen(false);
+    setTargetExerciseIndex(-1);
   };
 
   const handleAddCardio = async (term: string) => {
@@ -396,19 +340,22 @@ export const ActiveWorkout = ({
     }
   };
 
-  const handleDeleteClick = () => {
-    if (!currentExercise) return;
+  const handleDeleteClick = (index: number) => {
+    setTargetExerciseIndex(index);
     setDeleteAlertOpen(true);
   };
 
   const confirmDeleteExercise = async () => {
     setDeleteAlertOpen(false);
-    if (!currentExercise) return;
+    if (targetExerciseIndex < 0) return;
 
-    const newExercises = activeExercises.filter((e) => e.id !== currentExercise.id);
+    const exerciseToDelete = activeExercises[targetExerciseIndex];
+    if (!exerciseToDelete) return;
+
+    const newExercises = activeExercises.filter((_, i) => i !== targetExerciseIndex);
     setActiveExercises(newExercises);
 
-    const { [currentExercise.id]: _removed, ...restSets } = sets;
+    const { [exerciseToDelete.id]: _removed, ...restSets } = sets;
     setSets(restSets);
 
     await fetch(`/api/workout-logs/${logId}`, {
@@ -417,10 +364,7 @@ export const ActiveWorkout = ({
       headers: { "Content-Type": "application/json" }
     });
 
-    // No scroll adjustment needed usually, but could check current index
-    if (current >= newExercises.length && newExercises.length > 0) {
-      // api?.scrollTo(newExercises.length - 1);
-    }
+    setTargetExerciseIndex(-1);
   };
 
   const startTimeDisplay = new Date(initialStartTime).toLocaleString(undefined, {
@@ -432,282 +376,257 @@ export const ActiveWorkout = ({
   });
 
   return (
-    <div className="mx-auto flex h-full min-h-0 max-w-md flex-col">
+    <div className="mx-auto flex max-w-md px-4 flex-col gap-6 py-6">
       {/* Header */}
-      <div className="flex shrink-0 items-center justify-between px-2 py-4 lg:px-0">
+      <div className="flex shrink-0 items-center justify-between lg:px-0">
         <div className="flex items-center gap-2">
           <div className="text-muted-foreground bg-muted/50 rounded-full border px-3 py-1 text-sm font-medium">
             Started: {startTimeDisplay}
           </div>
         </div>
-
-        <div className="flex items-center gap-2">
-          <div className="bg-muted rounded px-2 py-1 text-sm font-medium">
-            {`${current + 1} / ${activeExercises.length + 1}`}
-          </div>
-        </div>
       </div>
 
-      {/* Main Content - Carousel */}
-      <div className="min-h-0">
-        <Carousel setApi={setApi} className="w-full">
-          <CarouselContent>
-            {activeExercises.map((ex, index) => (
-              <CarouselItem key={`${ex.id}-${index}`} className="h-full overflow-y-auto px-4">
-                <div className="carousel-visual-content bg-card mb-4 h-full overflow-hidden rounded-xl shadow-lg transition-none will-change-transform">
-                  {ex.imageUrl && (
-                    <div className="bg-muted h-56 w-full shrink-0">
-                      <img
-                        src={ex.imageUrl}
-                        alt={ex.name}
-                        onClick={() => {}}
-                        className="h-full w-full object-contain"
-                      />
-                    </div>
-                  )}
+      {/* Main Content - Scroll List */}
+      <div className="flex flex-col gap-6">
+        {activeExercises.map((ex, index) => (
+          <div
+            key={`${ex.id}-${index}`}
+            className="carousel-visual-content bg-card overflow-hidden rounded-xl shadow-sm transition-none will-change-transform border"
+          >
+            {ex.imageUrl && (
+              <div className="bg-muted h-48 w-full shrink-0">
+                <img
+                  src={ex.imageUrl}
+                  alt={ex.name}
+                  onClick={() => {}}
+                  className="h-full w-full object-contain"
+                />
+              </div>
+            )}
 
-                  <div className="p-3">
-                    <div className="flex items-start justify-between">
-                      <div className="flex flex-col">
-                        <h2 className="pr-2 text-lg font-bold capitalize">{ex.name}</h2>
-                        <div className="mt-1 flex flex-wrap items-center gap-2">
-                          <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs font-medium capitalize">
-                            {ex.category?.toLowerCase() || "other"}
-                          </span>
-                          {ex.target && ex.target !== ex.category && (
-                            <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs font-medium capitalize">
-                              {ex.target.toLowerCase()}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <div
-                          className={`cursor-pointer rounded border px-2 py-0.5 text-xs transition-colors select-none ${
-                            supersetStatus[ex.id]
-                              ? "border-amber-400 bg-amber-400 font-semibold text-white"
-                              : "border-muted-foreground/30 text-muted-foreground hover:bg-muted bg-transparent"
-                          }`}
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            setSupersetStatus((prev) => ({ ...prev, [ex.id]: !prev[ex.id] }));
-                          }}
-                          title="Toggle Superset"
-                        >
-                          Superset
-                        </div>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground hover:text-foreground hover:bg-muted h-8 w-8"
-                          onClick={handleDeleteClick}
-                          title="Remove Exercise"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="text-muted-foreground hover:text-foreground h-8 gap-2"
-                          onClick={openReplaceExercise}
-                        >
-                          <ArrowLeftRight className="h-4 w-4" />
-                          <span className="text-xs">Replace</span>
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-
-                  <div className="space-y-3 p-4">
-                    {ex.type === ExerciseType.CARDIO ? (
-                      <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 text-sm font-medium">
-                        <div>Set</div>
-                        <div>Minutes</div>
-                        <div>Km</div>
-                        <div>Calories</div>
-                        <div></div>
-                      </div>
-                    ) : (
-                      <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-sm font-medium">
-                        <div>Set</div>
-                        <div>kg</div>
-                        <div>Reps</div>
-                        <div></div>
-                      </div>
+            <div className="p-3">
+              <div className="flex items-start justify-between">
+                <div className="flex flex-col">
+                  <h2 className="pr-2 text-lg font-bold capitalize">{ex.name}</h2>
+                  <div className="mt-1 flex flex-wrap items-center gap-2">
+                    <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs font-medium capitalize">
+                      {ex.category?.toLowerCase() || "other"}
+                    </span>
+                    {ex.target && ex.target !== ex.category && (
+                      <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs font-medium capitalize">
+                        {ex.target.toLowerCase()}
+                      </span>
                     )}
-
-                    {(sets[ex.id] || [createEmptySet(ex.type as ExerciseType)]).map((set, idx) => (
-                      <div
-                        key={idx}
-                        className={`grid items-center gap-2 ${ex.type === ExerciseType.CARDIO ? "grid-cols-[auto_1fr_1fr_1fr_auto]" : "grid-cols-[auto_1fr_1fr_auto]"}`}
-                      >
-                        <div className="bg-muted rounded px-3 py-2 text-center font-bold">
-                          {idx + 1}
-                        </div>
-
-                        {ex.type === ExerciseType.CARDIO ? (
-                          <>
-                            <Input
-                              type="number"
-                              value={set.duration === "" ? "" : set.duration}
-                              onChange={(e) =>
-                                updateSet(
-                                  idx,
-                                  "duration",
-                                  e.target.value === "" ? "" : Number(e.target.value)
-                                )
-                              }
-                              className="px-1 text-center"
-                              placeholder="0"
-                            />
-                            <Input
-                              type="number"
-                              value={set.distance === "" ? "" : set.distance}
-                              onChange={(e) =>
-                                updateSet(
-                                  idx,
-                                  "distance",
-                                  e.target.value === "" ? "" : Number(e.target.value)
-                                )
-                              }
-                              className="px-1 text-center"
-                              placeholder="0"
-                            />
-                            <Input
-                              type="number"
-                              value={set.calories === "" ? "" : set.calories}
-                              onChange={(e) =>
-                                updateSet(
-                                  idx,
-                                  "calories",
-                                  e.target.value === "" ? "" : Number(e.target.value)
-                                )
-                              }
-                              className="px-1 text-center"
-                              placeholder="0"
-                            />
-                          </>
-                        ) : (
-                          <>
-                            <Input
-                              type="number"
-                              value={set.weight === "" ? "" : set.weight}
-                              onChange={(e) =>
-                                updateSet(
-                                  idx,
-                                  "weight",
-                                  e.target.value === "" ? "" : Number(e.target.value)
-                                )
-                              }
-                              className="text-center"
-                              placeholder="0"
-                            />
-                            <Input
-                              type="number"
-                              value={set.reps === "" ? "" : set.reps}
-                              onChange={(e) =>
-                                updateSet(
-                                  idx,
-                                  "reps",
-                                  e.target.value === "" ? "" : Number(e.target.value)
-                                )
-                              }
-                              className="text-center"
-                              placeholder="0"
-                            />
-                          </>
-                        )}
-
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-muted-foreground hover:text-destructive h-8 w-8"
-                          onClick={() => removeSet(idx)}
-                          disabled={(sets[ex.id] || []).length <= 1}
-                        >
-                          <X className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    ))}
-
-                    <Button variant="outline" className="w-full" onClick={addSet}>
-                      + Add Set
-                    </Button>
                   </div>
                 </div>
-              </CarouselItem>
-            ))}
-
-            {/* Add New Exercise Slide */}
-            <CarouselItem className="h-full px-4" key="add-new-slide">
-              <div className="carousel-visual-content bg-card mb-8 flex h-full flex-col items-center justify-center gap-6 rounded-xl py-8 shadow-lg">
-                <Button size="lg" className="h-12 w-48 gap-2 text-base" onClick={openAddExercise}>
-                  <Plus className="h-5 w-5" />
-                  Add Exercise
-                </Button>
-
-                <Dialog open={cardioModalOpen} onOpenChange={setCardioModalOpen}>
-                  <DialogTrigger asChild>
-                    <Button variant="outline" size="lg" className="h-12 w-48 gap-2 text-base">
-                      <Activity className="h-5 w-5" />
-                      Add Cardio
-                    </Button>
-                  </DialogTrigger>
-                  <DialogContent
-                    className="sm:max-w-md"
-                    onCloseAutoFocus={(e) => e.preventDefault()}
+                <div className="flex items-center gap-2">
+                  <div
+                    className={`cursor-pointer rounded border px-2 py-0.5 text-xs transition-colors select-none ${
+                      supersetStatus[ex.id]
+                        ? "border-amber-400 bg-amber-400 font-semibold text-white"
+                        : "border-muted-foreground/30 text-muted-foreground hover:bg-muted bg-transparent"
+                    }`}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setSupersetStatus((prev) => ({ ...prev, [ex.id]: !prev[ex.id] }));
+                    }}
+                    title="Toggle Superset"
                   >
-                    <DialogHeader>
-                      <DialogTitle>Choose Cardio Type</DialogTitle>
-                    </DialogHeader>
-                    <div className="grid grid-cols-2 gap-4 py-4">
-                      {CARDIO_OPTIONS.map((option) => (
-                        <Button
-                          key={option.name}
-                          variant="outline"
-                          className="hover:bg-muted/50 hover:border-primary/50 flex h-24 flex-col gap-2 transition-all"
-                          onClick={() => handleAddCardio(option.name)}
-                        >
-                          <option.icon className="h-8 w-8 opacity-70" />
-                          <span className="font-semibold">{option.name}</span>
-                        </Button>
-                      ))}
-                    </div>
-                  </DialogContent>
-                </Dialog>
+                    Superset
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground hover:bg-muted h-8 w-8"
+                    onClick={() => handleDeleteClick(index)}
+                    title="Remove Exercise"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-muted-foreground hover:text-foreground h-8 gap-2"
+                    onClick={() => openReplaceExercise(index)}
+                  >
+                    <ArrowLeftRight className="h-4 w-4" />
+                    <span className="text-xs">Replace</span>
+                  </Button>
+                </div>
               </div>
-            </CarouselItem>
-          </CarouselContent>
-        </Carousel>
+            </div>
+
+            <div className="space-y-3 p-4">
+              {ex.type === ExerciseType.CARDIO ? (
+                <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 text-sm font-medium">
+                  <div>Set</div>
+                  <div>Minutes</div>
+                  <div>Km</div>
+                  <div>Calories</div>
+                  <div></div>
+                </div>
+              ) : (
+                <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-sm font-medium">
+                  <div>Set</div>
+                  <div>kg</div>
+                  <div>Reps</div>
+                  <div></div>
+                </div>
+              )}
+
+              {(sets[ex.id] || [createEmptySet(ex.type as ExerciseType)]).map((set, idx) => (
+                <div
+                  key={idx}
+                  className={`grid items-center gap-2 ${ex.type === ExerciseType.CARDIO ? "grid-cols-[auto_1fr_1fr_1fr_auto]" : "grid-cols-[auto_1fr_1fr_auto]"}`}
+                >
+                  <div className="bg-muted rounded px-3 py-2 text-center font-bold">{idx + 1}</div>
+
+                  {ex.type === ExerciseType.CARDIO ? (
+                    <>
+                      <Input
+                        type="number"
+                        value={set.duration === "" ? "" : set.duration}
+                        onChange={(e) =>
+                          updateSet(
+                            ex.id,
+                            idx,
+                            "duration",
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
+                        }
+                        className="px-1 text-center"
+                        placeholder="0"
+                      />
+                      <Input
+                        type="number"
+                        value={set.distance === "" ? "" : set.distance}
+                        onChange={(e) =>
+                          updateSet(
+                            ex.id,
+                            idx,
+                            "distance",
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
+                        }
+                        className="px-1 text-center"
+                        placeholder="0"
+                      />
+                      <Input
+                        type="number"
+                        value={set.calories === "" ? "" : set.calories}
+                        onChange={(e) =>
+                          updateSet(
+                            ex.id,
+                            idx,
+                            "calories",
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
+                        }
+                        className="px-1 text-center"
+                        placeholder="0"
+                      />
+                    </>
+                  ) : (
+                    <>
+                      <Input
+                        type="number"
+                        value={set.weight === "" ? "" : set.weight}
+                        onChange={(e) =>
+                          updateSet(
+                            ex.id,
+                            idx,
+                            "weight",
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
+                        }
+                        className="text-center"
+                        placeholder="0"
+                      />
+                      <Input
+                        type="number"
+                        value={set.reps === "" ? "" : set.reps}
+                        onChange={(e) =>
+                          updateSet(
+                            ex.id,
+                            idx,
+                            "reps",
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
+                        }
+                        className="text-center"
+                        placeholder="0"
+                      />
+                    </>
+                  )}
+
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="text-muted-foreground hover:text-destructive h-8 w-8"
+                    onClick={() => removeSet(ex.id, idx)}
+                    disabled={(sets[ex.id] || []).length <= 1}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                </div>
+              ))}
+
+              <Button variant="outline" className="w-full" onClick={() => addSet(ex.id)}>
+                + Add Set
+              </Button>
+            </div>
+          </div>
+        ))}
+
+        <div className="flex flex-col items-center justify-center gap-6 rounded-xl border-2 border-dashed py-8">
+          <Button size="lg" className="h-12 w-48 gap-2 text-base" onClick={openAddExercise}>
+            <Plus className="h-5 w-5" />
+            Add Exercise
+          </Button>
+
+          <Dialog open={cardioModalOpen} onOpenChange={setCardioModalOpen}>
+            <DialogTrigger asChild>
+              <Button variant="outline" size="lg" className="h-12 w-48 gap-2 text-base">
+                <Activity className="h-5 w-5" />
+                Add Cardio
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-md" onCloseAutoFocus={(e) => e.preventDefault()}>
+              <DialogHeader>
+                <DialogTitle>Choose Cardio Type</DialogTitle>
+              </DialogHeader>
+              <div className="grid grid-cols-2 gap-4 py-4">
+                {CARDIO_OPTIONS.map((option) => (
+                  <Button
+                    key={option.name}
+                    variant="outline"
+                    className="hover:bg-muted/50 hover:border-primary/50 flex h-24 flex-col gap-2 transition-all"
+                    onClick={() => handleAddCardio(option.name)}
+                  >
+                    <option.icon className="h-8 w-8 opacity-70" />
+                    <span className="font-semibold">{option.name}</span>
+                  </Button>
+                ))}
+              </div>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       {/* Footer Actions */}
-      <div className="bg-background flex shrink-0 flex-col gap-2 pt-2">
-        <div className="flex gap-2">
-          <Button
-            disabled={current >= activeExercises.length}
-            className="flex-1"
-            variant="secondary"
-            onClick={goToNext}
-          >
-            Next
-          </Button>
-          <Button
-            className="flex-1 bg-green-600 text-white hover:bg-green-700"
-            onClick={handleSave}
-          >
-            Save
-          </Button>
-          <Button
-            className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
-            onClick={handleFinish}
-            disabled={!isFormValid}
-          >
-            Finish
-          </Button>
-        </div>
-        <Button variant="ghost" onClick={handleCancel} title="Cancel and Return">
-          Cancel Workout
+      <div className="flex shadow-md">
+        <Button
+          className="flex-1 bg-green-600 text-white hover:bg-green-700 mr-2"
+          onClick={handleSave}
+        >
+          Save
+        </Button>
+        <Button
+          className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
+          onClick={handleFinish}
+          disabled={!isFormValid}
+        >
+          Finish
         </Button>
       </div>
 
@@ -728,8 +647,10 @@ export const ActiveWorkout = ({
             <AlertDialogTitle>Remove Exercise?</AlertDialogTitle>
             <AlertDialogDescription>
               This will remove{" "}
-              <span className="text-foreground font-semibold">{currentExercise?.name}</span> and all
-              its sets from your current workout.
+              <span className="text-foreground font-semibold">
+                {targetExerciseIndex >= 0 && activeExercises[targetExerciseIndex]?.name}
+              </span>{" "}
+              and all its sets from your current workout.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
