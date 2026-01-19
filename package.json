@@ -11,7 +11,7 @@
     "dev": "astro dev ",
     "preview": "astro preview",
     "start": "astro dev",
-    "start:prod": "pnpm db:deploy && && pnpm db:seed && node ./dist/server/entry.mjs",
+    "start:prod": "pnpm db:deploy && pnpm db:seed && node ./dist/server/entry.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
     "format": "oxfmt",
