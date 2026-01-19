@@ -115,7 +115,8 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
         </p>
       </div>
 
-      <Card className="overflow-hidden border shadow-sm">
+      <Card className="border shadow-sm overflow-hidden relative group/card hover:shadow-md transition-all duration-300 ring-1 ring-primary/5 hover:ring-primary/20">
+        <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none" />
         <CardHeader className="border-b pb-3">
           <div className="space-y-1">
             <CardTitle className="text-foreground text-lg font-semibold tracking-tight capitalize">

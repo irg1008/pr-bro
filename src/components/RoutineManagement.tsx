@@ -194,14 +194,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         <div>
           <div className="mb-1 flex items-center gap-3">
             <h2 className="text-2xl font-bold tracking-tight capitalize">{groupName}</h2>
-            {isActive && (
-              <Badge
-                variant="secondary"
-                className="border-0 bg-green-100 text-green-800 hover:bg-green-100"
-              >
-                Active
-              </Badge>
-            )}
+            {isActive && <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>}
             <Button
               variant="ghost"
               size="icon"
