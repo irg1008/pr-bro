@@ -325,10 +325,11 @@ export const ActiveWorkout = ({
     // If we added an exercise, scroll to it
     if (activeExercises.length > prevExerciseCount.current && api) {
       const newIndex = activeExercises.length - 1;
-      // Wait for next tick/re-init
+      // Wait for next tick/re-init to ensure DOM is ready
       setTimeout(() => {
+        api.reInit(); // Force Embla to recognize new slide dimensions
         api.scrollTo(newIndex);
-      }, 100);
+      }, 150);
     }
     prevExerciseCount.current = activeExercises.length;
   }, [activeExercises.length, api]);
@@ -652,7 +653,10 @@ export const ActiveWorkout = ({
                       Add Cardio
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="sm:max-w-md">
+                  <DialogContent
+                    className="sm:max-w-md"
+                    onCloseAutoFocus={(e) => e.preventDefault()}
+                  >
                     <DialogHeader>
                       <DialogTitle>Choose Cardio Type</DialogTitle>
                     </DialogHeader>
