@@ -96,7 +96,8 @@ async function main() {
       { name: "Walking", equipment: "None" },
       { name: "Cycling", equipment: "Bike" },
       { name: "Swimming", equipment: "Pool" },
-      { name: "HIIT", equipment: "None" }
+      { name: "HIIT", equipment: "None" },
+      { name: "Other", equipment: "None" }
     ];
 
     for (const ex of cardioExercises) {
