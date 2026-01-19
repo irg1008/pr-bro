@@ -118,8 +118,8 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
 
       <ThreeBackground />
 
-      <Card className="border shadow-sm overflow-hidden relative group/card hover:shadow-md transition-all duration-300 ring-1 ring-primary/5 hover:ring-primary/20">
-        <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none" />
+      <Card className="group/card ring-primary/5 hover:ring-primary/20 relative overflow-hidden border shadow-sm ring-1 transition-all duration-300 hover:shadow-md">
+        <div className="from-primary/5 pointer-events-none absolute inset-0 bg-linear-to-br via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover/card:opacity-100" />
         <CardHeader className="border-b pb-3">
           <div className="space-y-1">
             <CardTitle className="text-foreground text-lg font-semibold tracking-tight capitalize">
