@@ -1,0 +1,106 @@
+---
+import Layout from "@/layouts/BaseLayout.astro";
+import { db as prisma } from "@/lib/db";
+import { fade } from "astro:transitions";
+import { ActiveWorkout } from "../components/ActiveWorkout";
+
+export const prerender = false;
+
+const { searchParams } = Astro.url;
+const logId = searchParams.get("id");
+
+let workoutData = null;
+let error = null;
+
+if (logId) {
+	try {
+		const log = await prisma.workoutLog.findUnique({
+			where: { id: logId },
+			include: {
+				entries: {
+					include: { exercise: true },
+					orderBy: { order: "asc" },
+				},
+			},
+		});
+
+		if (log) {
+			const routine = await prisma.routine.findUnique({
+				where: { id: log.routineId },
+				include: {
+					exercises: {
+						include: { exercise: true },
+						orderBy: { order: "asc" },
+					},
+				},
+			});
+
+			if (routine) {
+				// Use logged exercises if session started/modified, else routine defaults
+				const exercises =
+					log.entries.length > 0
+						? log.entries.map((e) => e.exercise)
+						: routine.exercises.map((e) => e.exercise);
+
+				const initialSupersetStatus: Record<string, boolean> = {};
+				if (log.entries.length > 0) {
+					log.entries.forEach((e) => {
+						if (e.isSuperset) initialSupersetStatus[e.exerciseId] = true;
+					});
+				} else {
+					routine.exercises.forEach((e) => {
+						if ((e as any).isSuperset)
+							initialSupersetStatus[e.exerciseId] = true;
+					});
+				}
+
+				workoutData = {
+					logId: log.id,
+					initialStartTime: log.createdAt.toISOString(),
+					// Use the routine name, or "Workout" if mostly dynamic
+					routineName: routine.name,
+					// Map routine exercises to Exercise objects
+					exercises,
+					initialSupersetStatus,
+				};
+			}
+		}
+	} catch (e) {
+		error = "Failed to load workout";
+		console.error(e);
+	}
+}
+
+if (!logId) {
+	return Astro.redirect("/");
+}
+---
+
+<Layout title="Active Workout">
+	<div
+		class="h-dvh bg-background"
+		transition:animate={fade({ duration: "0.3s" })}
+	>
+		{
+			workoutData ? (
+				<ActiveWorkout
+					client:only="react"
+					logId={workoutData.logId}
+					initialStartTime={workoutData.initialStartTime}
+					routineName={workoutData.routineName}
+					exercises={workoutData.exercises}
+					initialSupersetStatus={workoutData.initialSupersetStatus}
+				/>
+			) : (
+				<div class="flex flex-col items-center justify-center h-full p-8 gap-4">
+					<p class="text-destructive text-lg font-semibold">
+						{error || "Workout not found"}
+					</p>
+					<a href="/" class="text-primary hover:underline">
+						Return Home
+					</a>
+				</div>
+			)
+		}
+	</div>
+</Layout>

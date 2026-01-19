@@ -1,13 +1,11 @@
 // @ts-check
+import node from "@astrojs/node";
 import partytown from "@astrojs/partytown";
 import react from "@astrojs/react";
+import sitemap from "@astrojs/sitemap";
 import tailwindcss from "@tailwindcss/vite";
 import tunnel from "astro-tunnel";
 import { defineConfig, envField } from "astro/config";
-
-import node from "@astrojs/node";
-
-import sitemap from "@astrojs/sitemap";
 
 // https://astro.build/config
 export default defineConfig({

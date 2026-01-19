@@ -29,11 +29,17 @@ export const GET: APIRoute = async () => {
     if (!lastLog) {
       nextRoutine = activeGroup.routines[0];
     } else {
-      const lastRoutineIndex = activeGroup.routines.findIndex((r) => r.id === lastLog.routineId);
-      if (lastRoutineIndex === -1) {
-        nextRoutine = activeGroup.routines[0];
+      // If the last log is active, stay on it. Otherwise rotate.
+      if (!lastLog.finishedAt) {
+        nextRoutine =
+          activeGroup.routines.find((r) => r.id === lastLog.routineId) || activeGroup.routines[0];
       } else {
-        nextRoutine = activeGroup.routines[(lastRoutineIndex + 1) % activeGroup.routines.length];
+        const lastRoutineIndex = activeGroup.routines.findIndex((r) => r.id === lastLog.routineId);
+        if (lastRoutineIndex === -1) {
+          nextRoutine = activeGroup.routines[0];
+        } else {
+          nextRoutine = activeGroup.routines[(lastRoutineIndex + 1) % activeGroup.routines.length];
+        }
       }
     }
   }

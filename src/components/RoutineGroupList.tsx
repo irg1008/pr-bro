@@ -150,7 +150,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
           >
             <div className="flex flex-col space-y-1.5 p-6">
               <div className="flex justify-between items-start">
-                <h3 className="text-2xl font-semibold leading-none tracking-tight">{group.name}</h3>
+                <h3 className="text-md md:text-xl font-semibold leading-none tracking-tight">{group.name}</h3>
                 <div className="absolute top-4 right-4 flex gap-1">
                   <Button
                     variant="ghost"
@@ -161,7 +161,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
                     <Pencil className="h-4 w-4" />
                   </Button>
                   <AlertDialog>
-                    <AlertDialogTrigger>
+                    <AlertDialogTrigger render={
                       <Button
                         variant="ghost"
                         size="icon"
@@ -170,7 +170,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
-                    </AlertDialogTrigger>
+                    } />
                     <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                       <AlertDialogHeader>
                         <AlertDialogTitle>Delete Group?</AlertDialogTitle>

@@ -1,9 +1,9 @@
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { navigate } from "astro:transitions/client";
 import type { Exercise, Routine, RoutineExercise } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
 import React, { useEffect, useState } from 'react';
-import { ActiveWorkout } from './ActiveWorkout';
 
 // Define the composite type for the joined query result
 export type RoutineWithExercises = Routine & {
@@ -22,7 +22,6 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
   nextRoutine
 }) => {
   const [activeLogId, setActiveLogId] = useState<string | null>(null);
-  const [startTime, setStartTime] = useState<string | null>(null);
 
   useEffect(() => {
     if (!nextRoutine) return;
@@ -40,7 +39,6 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
 
           if (activeLog) {
             setActiveLogId(activeLog.id);
-            setStartTime(activeLog.createdAt);
           }
         }
       } catch (e) {
@@ -67,12 +65,17 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
 
       if (res.ok) {
         const log = await res.json();
-        setActiveLogId(log.id);
-        setStartTime(now);
+        navigate(`/workout?id=${log.id}`);
       }
     } catch (e) {
       console.error("Failed to start workout", e);
       alert("Failed to start workout. Please try again.");
+    }
+  };
+
+  const handleResumeWorkout = () => {
+    if (activeLogId) {
+      navigate(`/workout?id=${activeLogId}`);
     }
   };
 
@@ -100,59 +103,58 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
     );
   }
 
-  if (activeLogId && startTime) {
-    return (
-      <ActiveWorkout
-        logId={activeLogId}
-        initialStartTime={startTime}
-        routineName={nextRoutine.name}
-        exercises={nextRoutine.exercises.map((e: any) => e.exercise)} // Flatten relation
-        onCancel={() => setActiveLogId(null)}
-        onCompleteWorkout={() => {
-          navigate(location.pathname);
-        }}
-      />
-    );
-  }
-
   return (
-    <div className="space-y-8 py-8">
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="text-3xl font-bold">Today's Workout</h1>
-          <p className="text-muted-foreground capitalize">Cycle: {activeGroupName}</p>
-        </div>
+    <div className="space-y-6 py-8 max-w-2xl mx-auto">
+      <div className="flex flex-col gap-1">
+        <h1 className="text-xl font-semibold tracking-tight">Today's Workout</h1>
+        <p className="text-muted-foreground text-sm font-medium flex items-center gap-2">
+          Cycle: <Badge variant="outline" className="font-normal capitalize">{activeGroupName}</Badge>
+        </p>
       </div>
 
-      <Card className="border-2 border-primary/20">
-        <CardHeader>
-          <CardTitle className="text-4xl text-primary capitalize">{nextRoutine.name}</CardTitle>
-          <p className="text-lg text-muted-foreground">{nextRoutine.description || "Time to lift heavy things."}</p>
+      <Card className="border shadow-sm overflow-hidden">
+        <CardHeader className="pb-3 border-b">
+          <div className="space-y-1">
+            <CardTitle className="text-lg font-semibold tracking-tight text-foreground capitalize">
+              {nextRoutine.name}
+            </CardTitle>
+            <p className="text-sm text-muted-foreground">
+              {nextRoutine.description || "Time to lift heavy things."}
+            </p>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-2 mb-8">
-            <h3 className="font-semibold mb-2">Exercises:</h3>
-            <ul className="list-disc list-inside text-muted-foreground">
+          <div className="space-y-3 mb-6">
+            <h3 className="font-medium text-xs uppercase text-muted-foreground">Workout Plan</h3>
+            <div className="grid gap-2">
               {nextRoutine.exercises.map((ex: any) => (
-                <li key={ex.id} className="capitalize">{ex.exercise.name} <span className="text-xs text-muted-foreground ml-2">{ex.exercise.category}</span></li>
+                <div key={ex.id} className="flex items-center justify-between p-2 bg-muted/20 rounded-md border hover:bg-muted/40 transition-colors">
+                  <span className="font-medium text-sm capitalize text-foreground">{ex.exercise.name}</span>
+                  <Badge variant="secondary" className="text-[10px] font-normal capitalize shrink-0 px-1.5 h-5">
+                    {ex.exercise.category.toLowerCase()}
+                  </Badge>
+                </div>
               ))}
-            </ul>
+            </div>
           </div>
           <Button
-            size="lg"
-            className="w-full text-lg h-16"
-            onClick={handleStartWorkout}
+            size="default"
+            className="w-full text-sm font-semibold shadow-none"
+            onClick={activeLogId ? handleResumeWorkout : handleStartWorkout}
             disabled={!nextRoutine.exercises || nextRoutine.exercises.length === 0}
+            variant={activeLogId ? "default" : "default"}
           >
             {(!nextRoutine.exercises || nextRoutine.exercises.length === 0)
               ? "Add exercises to start"
-              : "Start Workout"}
+              : activeLogId ? "Resume Workout" : "Start Workout"}
           </Button>
         </CardContent>
       </Card>
 
       <div className="text-center">
-        <a href="/routines" className="text-sm text-muted-foreground hover:underline">Change Routine Group</a>
+        <a href="/routines" className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors">
+          Switch Routine Group
+        </a>
       </div>
     </div>
   );

@@ -1,4 +1,14 @@
 import { ExerciseSelector } from "@/components/ExerciseSelector";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -36,6 +46,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
   const [newName, setNewName] = useState(routineName);
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(focusedParts);
+  const [deleteAlert, setDeleteAlert] = useState<{ open: boolean; id: string | null }>({ open: false, id: null });
 
   useEffect(() => {
     fetch('/api/categories')
@@ -131,15 +142,35 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     }
   };
 
-  const handleRemove = async (id: string) => {
-    if (!confirm("Remove this exercise?")) return;
+  const toggleSuperset = async (id: string, currentStatus: boolean) => {
+    const newExercises = exercises.map(e => e.id === id ? { ...e, isSuperset: !currentStatus } : e);
+    setExercises(newExercises);
     try {
-      await fetch(`/api/routine-exercises?id=${id}`, {
+      await fetch(`/api/routine-exercises`, {
+        method: "PATCH",
+        body: JSON.stringify({ id, isSuperset: !currentStatus }),
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      console.error("Failed to toggle superset", e);
+    }
+  };
+
+  const handleRemove = (id: string) => {
+    setDeleteAlert({ open: true, id });
+  };
+
+  const confirmRemove = async () => {
+    if (!deleteAlert.id) return;
+    try {
+      await fetch(`/api/routine-exercises?id=${deleteAlert.id}`, {
         method: "DELETE",
       });
       navigate(location.pathname);
     } catch (error) {
       console.error("Failed to remove exercise", error);
+    } finally {
+      setDeleteAlert({ open: false, id: null });
     }
   };
 
@@ -188,10 +219,28 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                 )}
                 <div>
                   <h3 className="font-bold line-clamp-1 capitalize">{re.exercise.name}</h3>
-                  <span className="text-xs text-muted-foreground capitalize">{re.exercise.category}</span>
+                  <div className="flex gap-1 items-center mt-0.5 flex-wrap">
+                    <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded capitalize">
+                      {re.exercise.category?.toLowerCase() || 'other'}
+                    </span>
+                    {re.exercise.target && re.exercise.target !== re.exercise.category && (
+                      <span className="text-xs text-muted-foreground bg-secondary px-2 py-0.5 rounded capitalize">
+                        {re.exercise.target.toLowerCase()}
+                      </span>
+                    )}
+                  </div>
                 </div>
               </div>
               <div className="flex items-center gap-1">
+                <div
+                  className={`text-xs px-2 py-0.5 rounded cursor-pointer select-none transition-colors border mr-2 ${(re as any).isSuperset
+                      ? "bg-amber-400 border-amber-400 text-white font-semibold"
+                      : "bg-transparent border-muted-foreground/30 text-muted-foreground hover:bg-muted"
+                    }`}
+                  onClick={() => toggleSuperset(re.id, (re as any).isSuperset)}
+                >
+                  Superset
+                </div>
                 <div className="flex flex-col mr-2">
                   <Button
                     variant="ghost"
@@ -280,6 +329,19 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={deleteAlert.open} onOpenChange={(open) => !open && setDeleteAlert(prev => ({ ...prev, open: false }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Exercise?</AlertDialogTitle>
+            <AlertDialogDescription>Are you sure you want to remove this exercise from the routine?</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmRemove} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Remove</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };

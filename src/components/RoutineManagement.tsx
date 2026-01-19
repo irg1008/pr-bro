@@ -166,10 +166,10 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-4">
         <div>
           <div className="flex items-center gap-3 mb-1">
-            <h2 className="text-3xl font-bold tracking-tight capitalize">{groupName}</h2>
+            <h2 className="text-2xl font-bold tracking-tight capitalize">{groupName}</h2>
             {isActive && (
               <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 border-0">
                 Active

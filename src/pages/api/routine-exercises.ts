@@ -45,3 +45,19 @@ export const DELETE: APIRoute = async ({ request }) => {
 
   return new Response(null, { status: 204 });
 };
+
+export const PATCH: APIRoute = async ({ request }) => {
+  const data = await request.json();
+  const { id, isSuperset } = data;
+
+  if (!id) return new Response("ID required", { status: 400 });
+
+  console.log(data);
+
+  await prisma.routineExercise.update({
+    where: { id },
+    data: { isSuperset }
+  });
+
+  return new Response(null, { status: 200 });
+};

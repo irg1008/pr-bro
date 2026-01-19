@@ -132,46 +132,47 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex flex-col gap-4 flex-1 overflow-hidden">
-          {/* Controls */}
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-              <Input
-                placeholder="Search by name..."
-                className="pl-8"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
-            {/* Preferred Categories Filter */}
-            {preferredCategories.length > 0 && (
-              <div className="flex gap-2 overflow-x-auto pb-2 sm:pb-0 items-center">
-                <span className="text-xs font-semibold whitespace-nowrap text-muted-foreground">Focus:</span>
-                {preferredCategories.map(cat => (
-                  <Badge
-                    key={cat}
-                    variant={activeCategory === cat ? "default" : "outline"}
-                    className="cursor-pointer"
-                    onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
-                  >
-                    {cat}
-                  </Badge>
-                ))}
-                <Badge
-                  variant={activeCategory === null ? "secondary" : "ghost"}
-                  className="cursor-pointer"
-                  onClick={() => setActiveCategory(null)}
-                >
-                  All
-                </Badge>
-              </div>
-            )}
+        <div className="flex flex-col gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name..."
+              className="pl-8"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
           </div>
+          {/* Preferred Categories Filter */}
+          {preferredCategories.length > 0 && (
+            <div className="flex gap-2 flex-wrap items-center">
+              <span className="text-xs font-semibold whitespace-nowrap text-muted-foreground">Focus:</span>
+              {preferredCategories.map(cat => (
+                <Badge
+                  key={cat}
+                  variant={activeCategory === cat ? "default" : "outline"}
+                  className="cursor-pointer"
+                  onClick={() => setActiveCategory(activeCategory === cat ? null : cat)}
+                >
+                  {cat}
+                </Badge>
+              ))}
+              <Badge
+                variant={activeCategory === null ? "secondary" : "ghost"}
+                className="cursor-pointer"
+                onClick={() => setActiveCategory(null)}
+              >
+                All
+              </Badge>
+            </div>
+          )}
+        </div>
+
+
+        <div className="flex flex-col gap-4 flex-1 overflow-y-auto">
+          {/* Controls */}
 
           {/* Grid */}
-          {/* Grid */}
-          <div className="flex-1 overflow-y-auto min-h-0 px-2">
+          <div className="flex-1 min-h-0 px-2">
             <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 pb-4">
               {exercises.map((ex, index) => {
                 const isSelected = selectedExerciseIds.includes(ex.id);
@@ -204,10 +205,15 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                         </div>
                       )}
                     </div>
-                    <div className="p-3 flex flex-col gap-1">
+                    <div className="p-3 flex flex-col gap-1 grow">
                       <h4 className="font-semibold text-sm capitalize leading-tight" title={ex.name}>{ex.name}</h4>
-                      <div className="flex gap-1 flex-wrap">
-                        <Badge variant="secondary" className="text-[10px] h-fit py-0.5 px-1.5 whitespace-normal text-center capitalize">{ex.category}</Badge>
+                      <div className="flex gap-1 flex-wrap mt-auto pt-2">
+                        <Badge variant="secondary" className="text-[10px] h-fit py-0.5 px-1.5 whitespace-normal text-center capitalize">{ex.category?.toLowerCase() || 'other'}</Badge>
+                        {ex.target && ex.target !== ex.category && (
+                          <Badge variant="secondary" className="text-[10px] h-fit py-0.5 px-1.5 whitespace-normal text-center capitalize">
+                            {ex.target.toLowerCase()}
+                          </Badge>
+                        )}
                       </div>
                     </div>
                   </div>

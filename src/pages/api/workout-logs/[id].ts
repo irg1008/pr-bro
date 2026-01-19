@@ -31,7 +31,7 @@ export const PUT: APIRoute = async ({ request, params }) => {
   if (!id) return new Response("ID required", { status: 400 });
 
   const data = await request.json();
-  const { entries, finishedAt } = data;
+  const { entries, supersetStatus, finishedAt } = data;
 
   if (finishedAt) {
     await prisma.workoutLog.update({
@@ -52,6 +52,7 @@ export const PUT: APIRoute = async ({ request, params }) => {
         workoutLogId: id,
         exerciseId,
         sets: sets,
+        isSuperset: supersetStatus?.[exerciseId] || false,
         order: index
       })
     );

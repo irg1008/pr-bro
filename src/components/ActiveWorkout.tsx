@@ -1,4 +1,14 @@
 import { ExerciseSelector } from "@/components/ExerciseSelector";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
   Carousel,
@@ -6,13 +16,22 @@ import {
   CarouselItem,
   type CarouselApi
 } from "@/components/ui/carousel";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { ArrowLeftRight, Trash2, X } from "lucide-react";
-// Ensure we only import TYPE from prisma, not values.
-import type { Exercise } from "prisma/generated/client";
+import { navigate } from "astro:transitions/client";
+import { Activity, ArrowLeftRight, Bike, Dumbbell, Footprints, Plus, Timer, Trash2, Waves, X } from "lucide-react";
+import type { Exercise } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
 import React, { useEffect, useState } from 'react';
 
-// Define ExerciseType locally to avoid importing Prisma runtime code in client component
+const CARDIO_OPTIONS = [
+  { name: "Running", icon: Footprints },
+  { name: "Walking", icon: Activity },
+  { name: "Cycling", icon: Bike },
+  { name: "Swimming", icon: Waves },
+  { name: "HIIT", icon: Timer },
+  { name: "Other", icon: Dumbbell },
+];
+
 export const ExerciseType = {
   WEIGHT: 'WEIGHT',
   CARDIO: 'CARDIO'
@@ -33,8 +52,7 @@ export interface ActiveWorkoutProps {
   initialStartTime: string;
   routineName: string;
   exercises: Exercise[];
-  onCancel: () => void;
-  onCompleteWorkout: () => void;
+  initialSupersetStatus?: Record<string, boolean>;
 }
 
 export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
@@ -42,8 +60,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   initialStartTime,
   routineName,
   exercises: initialExercises,
-  onCancel,
-  onCompleteWorkout
+  initialSupersetStatus = {}
 }) => {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
@@ -54,6 +71,11 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<'add' | 'replace'>('add');
 
+  const [cardioModalOpen, setCardioModalOpen] = useState(false);
+  const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [infoAlert, setInfoAlert] = useState<{ open: boolean; title: string; message: string }>({ open: false, title: '', message: '' });
+  const [supersetStatus, setSupersetStatus] = useState<Record<string, boolean>>(initialSupersetStatus);
+
   // Fetch existing log data on mount (resume support)
   useEffect(() => {
     const loadLog = async () => {
@@ -63,22 +85,13 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
           const data = await res.json();
           if (data.entries && data.entries.length > 0) {
             const loadedSets: Record<string, WorkoutSet[]> = {};
-            // Assuming entries includes relation to set data which we need to parse
-            // The API returns entries as object directly if stored as Json?
-            // Let's assume the API structure returns { entries: { [exId]: sets[] } } or similar
-            // Adjust based on typical API response. 
-            // Actually API returns log object. entries field is Json.
-            if (typeof data.entries === 'object' && !Array.isArray(data.entries)) {
-              // It's likely the Record<string, WorkoutSet[]> map itself if stored that way
-              setSets(data.entries);
-            } else if (Array.isArray(data.entries)) {
-              // Legacy or array format? 
-              // If we store entire sets map as one JSON field called 'entries':
-              // The backend implementation of PUT accepts `entries`.
-              // So we should be able to load it back.
-              // We'll trust `data.entries` is the Record.
-              setSets(data.entries);
-            }
+            const loadedSupersets: Record<string, boolean> = {};
+            data.entries.forEach((e: any) => {
+              loadedSets[e.exerciseId] = e.sets;
+              if (e.isSuperset) loadedSupersets[e.exerciseId] = true;
+            });
+            setSets(loadedSets);
+            setSupersetStatus(loadedSupersets);
           }
         }
       } catch (e) {
@@ -151,7 +164,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     const exId = currentExercise?.id;
     if (!exId) return;
 
-    const currentExSets = sets[exId] || [createEmptySet(currentExercise?.type)];
+    const currentExSets = sets[exId] || [createEmptySet(currentExercise?.type as ExerciseType)];
     const newSets = [...currentExSets];
     newSets[idx] = { ...newSets[idx], [field]: value };
     setSets({ ...sets, [exId]: newSets });
@@ -161,7 +174,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     const exId = currentExercise?.id;
     if (!exId) return;
 
-    const currentExSets = sets[exId] || [createEmptySet(currentExercise?.type)];
+    const currentExSets = sets[exId] || [createEmptySet(currentExercise?.type as ExerciseType)];
     const lastSet = currentExSets[currentExSets.length - 1];
     setSets({
       ...sets,
@@ -173,7 +186,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     const exId = currentExercise?.id;
     if (!exId) return;
 
-    const currentExSets = sets[exId] || [createEmptySet(currentExercise?.type)];
+    const currentExSets = sets[exId] || [createEmptySet(currentExercise?.type as ExerciseType)];
     if (currentExSets.length <= 1) return;
 
     const newSets = currentExSets.filter((_, i) => i !== idx);
@@ -186,11 +199,11 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
 
   const validateAll = () => {
     return activeExercises.every(ex => {
-      const exSets = sets[ex.id] || [createEmptySet(ex.type)];
+      const exSets = sets[ex.id] || [createEmptySet(ex.type as ExerciseType)];
       return exSets.every(s => {
         if (ex.type === ExerciseType.CARDIO) {
-          // Require Duration OR Distance
-          return s.duration !== '' || s.distance !== '';
+          // User request: Minutes and Calories are required
+          return s.duration !== '' && s.calories !== '';
         } else {
           return s.weight !== '' && s.reps !== '';
         }
@@ -200,22 +213,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
 
   const isFormValid = validateAll();
 
-  const handleSave = async () => {
-    // Save regardless of validity (save partial progress)
-    // But maybe we only auto-save if something is there?
-    // Let's just save.
-    try {
-      await fetch(`/api/workout-logs/${logId}`, {
-        method: 'PUT',
-        body: JSON.stringify({
-          entries: sets
-        }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-    } catch (e) {
-      console.error("Save failed", e);
-    }
-  };
+
 
   const handleFinish = async () => {
     if (!isFormValid) return;
@@ -224,7 +222,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
     // Ensure data exists for all
     activeExercises.forEach(ex => {
       if (!completeSets[ex.id]) {
-        completeSets[ex.id] = [createEmptySet(ex.type)];
+        completeSets[ex.id] = [createEmptySet(ex.type as ExerciseType)];
       }
     });
 
@@ -233,20 +231,19 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         method: 'PUT',
         body: JSON.stringify({
           entries: completeSets,
+          supersetStatus,
           finishedAt: new Date().toISOString()
         }),
         headers: { 'Content-Type': 'application/json' }
       });
-      onCompleteWorkout();
+      navigate("/");
     } catch (e) {
       console.error("Finish failed", e);
     }
   };
 
-  const handleCancel = async () => {
-    // Auto-save on cancel
-    await handleSave();
-    onCancel();
+  const handleCancel = () => {
+    navigate("/");
   };
 
   const openAddExercise = () => {
@@ -275,45 +272,76 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
 
         // Reset sets for this slot
         const { [oldExId]: _removed, ...restSets } = sets;
-        setSets({ ...restSets, [exercise.id]: [createEmptySet(exercise.type)] });
+        setSets({ ...restSets, [exercise.id]: [createEmptySet(exercise.type as ExerciseType)] });
       }
     }
     setPickerOpen(false);
   };
 
-  const handleQuickCardio = async () => {
+  const handleAddCardio = async (term: string) => {
+    setCardioModalOpen(false);
     try {
-      const res = await fetch('/api/exercises?search=Cardio&limit=1');
-      const data = await res.json();
-      if (data.data && data.data.length > 0) {
-        await handleExerciseSelect(data.data[0]);
-        setTimeout(() => api?.scrollTo(activeExercises.length), 100);
-      } else {
-        openAddExercise();
+      // Find generic cardio or specific term (Running, Walking, etc)
+      // Note: These must be seeded or created on command if we want specific types
+      // Use uppercase CARDIO to match seed
+      const res = await fetch(`/api/exercises?search=${encodeURIComponent(term)}&category=CARDIO&limit=1`);
+
+      let found: Exercise | null = null;
+      if (res.ok) {
+        const data = await res.json();
+        // Adjust based on API structure
+        found = data.exercises?.[0] || data.data?.[0];
       }
+
+      if (found) {
+        // Enforce CARDIO type to ensure UI renders correctly
+        handleExerciseSelect({ ...found, type: ExerciseType.CARDIO });
+        return;
+      }
+
+      // If not found, we could prompt to create it, or fallback.
+      // For now, let's just create it on the fly if backend supports it?
+      // Or just open picker. 
+      // The user requested seeding, so we assume they will exist.
+      setInfoAlert({
+        open: true,
+        title: "Exercise Not Found",
+        message: `Could not find "${term}". Please ensure database is seeded.`
+      });
+      setPickerMode('add');
+      setPickerOpen(true);
+
     } catch (e) {
-      console.error("Quick cardio failed", e);
-      openAddExercise();
+      console.error("Failed to quick add cardio", e);
+      setPickerMode('add');
+      setPickerOpen(true);
     }
   };
 
-  const handleDeleteExercise = async () => {
+  const handleDeleteClick = () => {
     if (!currentExercise) return;
-    if (confirm("Remove this exercise from the workout?")) {
-      const newExercises = activeExercises.filter(e => e.id !== currentExercise.id);
-      setActiveExercises(newExercises);
+    setDeleteAlertOpen(true);
+  };
 
-      const { [currentExercise.id]: _removed, ...restSets } = sets;
-      setSets(restSets);
+  const confirmDeleteExercise = async () => {
+    setDeleteAlertOpen(false);
+    if (!currentExercise) return;
 
-      // Save changes immediately
-      try {
-        await fetch(`/api/workout-logs/${logId}`, {
-          method: 'PUT',
-          body: JSON.stringify({ entries: restSets }),
-          headers: { 'Content-Type': 'application/json' }
-        });
-      } catch (e) { console.error("Save failed", e); }
+    const newExercises = activeExercises.filter(e => e.id !== currentExercise.id);
+    setActiveExercises(newExercises);
+
+    const { [currentExercise.id]: _removed, ...restSets } = sets;
+    setSets(restSets);
+
+    await fetch(`/api/workout-logs/${logId}`, {
+      method: 'PUT',
+      body: JSON.stringify({ entries: restSets, supersetStatus }),
+      headers: { 'Content-Type': 'application/json' }
+    });
+
+    // No scroll adjustment needed usually, but could check current index
+    if (current >= newExercises.length && newExercises.length > 0) {
+      // api?.scrollTo(newExercises.length - 1);
     }
   };
 
@@ -337,15 +365,15 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
 
         <div className="flex items-center gap-2">
           <div className="text-sm font-medium bg-muted px-2 py-1 rounded">
-            {current < activeExercises.length ? `${current + 1} / ${activeExercises.length}` : '+'}
+            {`${current + 1} / ${activeExercises.length + 1}`}
           </div>
         </div>
       </div>
 
       {/* Main Content - Carousel */}
-      <div className="flex-1 min-h-0 -mx-4">
-        <Carousel setApi={setApi} className="w-full h-full">
-          <CarouselContent className="h-full">
+      <div className="min-h-0 -mx-4">
+        <Carousel setApi={setApi} className="w-full">
+          <CarouselContent>
             {activeExercises.map((ex, index) => (
               <CarouselItem key={`${ex.id}-${index}`} className="h-full px-4 overflow-y-auto">
                 <div
@@ -356,7 +384,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
                       <img
                         src={ex.imageUrl}
                         alt={ex.name}
-                        onClick={() => { }} // dummy click to capture events if needed
+                        onClick={() => { }}
                         className="w-full h-full object-contain"
                       />
                     </div>
@@ -366,10 +394,32 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
                     <div className="flex justify-between items-start">
                       <div className="flex flex-col">
                         <h2 className="text-xl font-bold capitalize pr-2">{ex.name}</h2>
-                        {ex.type === ExerciseType.CARDIO && <span className="text-xs font-semibold text-blue-500">CARDIO</span>}
+                        <div className="flex gap-2 items-center mt-1 flex-wrap">
+                          <span className="text-xs font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded capitalize">
+                            {ex.category?.toLowerCase() || 'other'}
+                          </span>
+                          {ex.target && ex.target !== ex.category && (
+                            <span className="text-xs font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded capitalize">
+                              {ex.target.toLowerCase()}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      <div className="flex gap-1">
-                        <Button variant="ghost" size="sm" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted" onClick={handleDeleteExercise} title="Remove Exercise">
+                      <div className="flex gap-2 items-center">
+                        <div
+                          className={`text-xs px-2 py-0.5 rounded cursor-pointer select-none transition-colors border ${supersetStatus[ex.id]
+                            ? "bg-amber-400 border-amber-400 text-white font-semibold"
+                            : "bg-transparent border-muted-foreground/30 text-muted-foreground hover:bg-muted"
+                            }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setSupersetStatus(prev => ({ ...prev, [ex.id]: !prev[ex.id] }));
+                          }}
+                          title="Toggle Superset"
+                        >
+                          Superset
+                        </div>
+                        <Button variant="ghost" size="sm" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted" onClick={handleDeleteClick} title="Remove Exercise">
                           <Trash2 className="h-4 w-4" />
                         </Button>
                         <Button variant="ghost" size="sm" className="h-8 gap-2 text-muted-foreground hover:text-foreground" onClick={openReplaceExercise}>
@@ -384,9 +434,9 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
                     {ex.type === ExerciseType.CARDIO ? (
                       <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 text-sm font-medium text-muted-foreground">
                         <div>Set</div>
-                        <div>Min</div>
+                        <div>Minutes</div>
                         <div>Km</div>
-                        <div>Kcal</div>
+                        <div>Calories</div>
                         <div></div>
                       </div>
                     ) : (
@@ -398,7 +448,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
                       </div>
                     )}
 
-                    {(sets[ex.id] || [createEmptySet(ex.type)]).map((set, idx) => (
+                    {(sets[ex.id] || [createEmptySet(ex.type as ExerciseType)]).map((set, idx) => (
                       <div key={idx} className={`grid gap-2 items-center ${ex.type === ExerciseType.CARDIO ? 'grid-cols-[auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_1fr_1fr_auto]'}`}>
                         <div className="text-center font-bold bg-muted rounded py-2 px-3">{idx + 1}</div>
 
@@ -470,12 +520,37 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
               <div
                 className="carousel-visual-content bg-card rounded-xl shadow-lg flex flex-col items-center justify-center gap-6 h-full mb-8 py-8"
               >
-                <Button size="lg" className="w-48 h-12 text-base" onClick={openAddExercise}>
+                <Button size="lg" className="w-48 h-12 text-base gap-2" onClick={openAddExercise}>
+                  <Plus className="w-5 h-5" />
                   Add Exercise
                 </Button>
-                <Button variant="outline" size="lg" className="w-48 h-12 text-base" onClick={handleQuickCardio}>
-                  Quick Cardio
-                </Button>
+
+                <Dialog open={cardioModalOpen} onOpenChange={setCardioModalOpen}>
+                  <DialogTrigger asChild>
+                    <Button variant="outline" size="lg" className="w-48 h-12 text-base gap-2">
+                      <Activity className="w-5 h-5" />
+                      Add Cardio
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Choose Cardio Type</DialogTitle>
+                    </DialogHeader>
+                    <div className="grid grid-cols-2 gap-4 py-4">
+                      {CARDIO_OPTIONS.map((option) => (
+                        <Button
+                          key={option.name}
+                          variant="outline"
+                          className="h-24 flex flex-col gap-2 hover:bg-muted/50 hover:border-primary/50 transition-all"
+                          onClick={() => handleAddCardio(option.name)}
+                        >
+                          <option.icon className="w-8 h-8 opacity-70" />
+                          <span className="font-semibold">{option.name}</span>
+                        </Button>
+                      ))}
+                    </div>
+                  </DialogContent>
+                </Dialog>
               </div>
             </CarouselItem>
           </CarouselContent>
@@ -483,24 +558,20 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       </div>
 
       {/* Footer Actions */}
-      <div className="py-4 bg-background border-t shrink-0 flex gap-2">
-        <Button variant="outline" onClick={handleCancel}>Cancel</Button>
-        {current >= activeExercises.length ? (
-          // On Add Slide
-          <Button className="flex-1" size="lg" onClick={handleFinish} disabled={!isFormValid}>
-            Finish Workout
+      <div className="bg-background shrink-0 flex gap-2">
+        <Button variant="outline" onClick={handleCancel} title="Cancel and Auto-save">Cancel</Button>
+        <div className="flex-1 flex gap-2">
+          <Button disabled={current >= activeExercises.length} className="flex-1" variant="secondary" onClick={goToNext}>
+            Next
           </Button>
-        ) : (
-          <div className="flex-1 flex gap-2">
-            <Button className="flex-1" variant="secondary" onClick={goToNext}>
-              Next
-            </Button>
-            {/* Show Finish on last exercise too, in case they don't want to add more */}
-            {current === activeExercises.length - 1 && (
-              <Button variant="outline" onClick={handleFinish} disabled={!isFormValid}>Finish</Button>
-            )}
-          </div>
-        )}
+          <Button
+            className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+            onClick={handleFinish}
+            disabled={!isFormValid}
+          >
+            Finish
+          </Button>
+        </div>
       </div>
 
       <ExerciseSelector
@@ -511,6 +582,37 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
         preferredCategories={Array.from(new Set(activeExercises.map(e => e.category).filter(Boolean))) as string[]}
         trigger={<div className="hidden" />}
       />
+
+      <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove Exercise?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will remove <span className="font-semibold text-foreground">{currentExercise?.name}</span> and all its sets from your current workout.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteExercise} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Remove
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={infoAlert.open} onOpenChange={(open) => setInfoAlert(prev => ({ ...prev, open }))}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{infoAlert.title}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {infoAlert.message}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setInfoAlert(prev => ({ ...prev, open: false }))}>OK</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div >
   );
 };

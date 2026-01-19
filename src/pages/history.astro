@@ -11,7 +11,8 @@ const response = await GET(Astro);
 type WorkoutLogWithRoutine = WorkoutLog & {
 	routine: Routine & { group: RoutineGroup };
 };
-const logs: WorkoutLogWithRoutine[] = await response.json();
+const allLogs: WorkoutLogWithRoutine[] = await response.json();
+const logs = allLogs.filter((log) => log.finishedAt);
 ---
 
 <BaseLayout title="Workout History">
@@ -73,9 +74,10 @@ const logs: WorkoutLogWithRoutine[] = await response.json();
 				))
 			}
 			{
-				logs.length === 0 && (
-					<div class="text-center py-12 text-muted-foreground">
-						No history found.
+				(
+					<div class="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/20">
+						<p class="text-lg mb-2 font-medium">No history available yet</p>
+						<p class="text-sm">Complete your first workout to see it here!</p>
 					</div>
 				)
 			}

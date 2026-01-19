@@ -65,6 +65,7 @@ model RoutineExercise {
   routineId  String
   exerciseId String
   order      Int
+  isSuperset Boolean  @default(false)
   routine    Routine  @relation(fields: [routineId], references: [id])
   exercise   Exercise @relation(fields: [exerciseId], references: [id])
 
@@ -90,6 +91,7 @@ model WorkoutLogEntry {
   exercise     Exercise   @relation(fields: [exerciseId], references: [id])
   sets         Json // Stores array of { weight: number, reps: number, completed: boolean }
   notes        String?
+  isSuperset   Boolean    @default(false)
   order        Int
   createdAt    DateTime   @default(now())
   updatedAt    DateTime   @updatedAt
