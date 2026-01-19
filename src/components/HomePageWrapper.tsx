@@ -1,3 +1,4 @@
+import { ThreeBackground } from "@/components/ThreeBackground";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -104,7 +105,7 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
   }
 
   return (
-    <div className="mx-auto max-w-2xl space-y-6 py-8">
+    <div className="relative z-10 mx-auto max-w-2xl space-y-6 py-8">
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold tracking-tight">Today's Workout</h1>
         <p className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
@@ -114,6 +115,8 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
           </Badge>
         </p>
       </div>
+
+      <ThreeBackground />
 
       <Card className="border shadow-sm overflow-hidden relative group/card hover:shadow-md transition-all duration-300 ring-1 ring-primary/5 hover:ring-primary/20">
         <div className="absolute inset-0 bg-linear-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover/card:opacity-100 transition-opacity duration-500 pointer-events-none" />
