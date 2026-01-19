@@ -1,7 +1,7 @@
 "use client";
 
 import { Environment, useGLTF } from "@react-three/drei";
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Suspense, useEffect, useRef } from "react";
 import * as THREE from "three";
 
@@ -18,37 +18,57 @@ function Model({
   const { scene } = useGLTF(url);
   const meshRef = useRef<THREE.Group>(null);
 
+  const { viewport } = useThree();
+  const isMobile = viewport.width < 5; // Approximate threshold for mobile in Three.js units (usually ~ 3-4 on phone)
+
   useFrame((state) => {
     if (!meshRef.current) return;
 
     // Smooth rotation based on mouse/gyro values
-    const targetX = mouse.current.y * 0.1; // Reduced movement
+    const targetX = mouse.current.y * 0.1;
     const targetY = mouse.current.x * 0.1;
+
+    // Responsive Configuration
+    let targetRotationX = 0.1;
+    let targetRotationY = -0.8;
+    let targetPosX = 3.5;
+    let targetPosY = -0.5;
+
+    if (isMobile) {
+      // Mobile: Center, Bottom, Looking slightly up
+      targetRotationX = -0.2; // Look up
+      targetRotationY = 0; // Face forward
+      targetPosX = 0; // Centered
+      targetPosY = -2.0; // Bottom of screen
+    }
 
     // Lerp current rotation to target
     meshRef.current.rotation.x = THREE.MathUtils.lerp(
       meshRef.current.rotation.x,
-      0.1 + targetX,
+      targetRotationX + targetX,
       0.05
     );
-    // Rotate to face more left (towards content) since it's on the right
     meshRef.current.rotation.y = THREE.MathUtils.lerp(
       meshRef.current.rotation.y,
-      -0.8 + targetY,
+      targetRotationY + targetY,
       0.05
     );
 
-    // Floating animation
-    meshRef.current.position.y = -0.5 + Math.sin(state.clock.elapsedTime * 0.3) * 0.1;
+    // Lerp position for smooth responsive transition (optional but nice)
+    meshRef.current.position.x = THREE.MathUtils.lerp(meshRef.current.position.x, targetPosX, 0.1);
+    meshRef.current.position.y = THREE.MathUtils.lerp(
+      meshRef.current.position.y,
+      targetPosY + Math.sin(state.clock.elapsedTime * 0.3) * 0.1,
+      0.1
+    );
   });
 
   return (
     <primitive
       ref={meshRef}
       object={scene}
-      position={[3.5, -0.5, 0]} // HARD RIGHT position
-      scale={4.0}
-      rotation={[0, -0.8, 0]}
+      scale={isMobile ? 2.8 : 4.0} // Smaller on mobile
+      rotation={[0, 0, 0]} // Controlled in useFrame
     />
   );
 }
