@@ -12,7 +12,7 @@ export const GET: APIRoute = async () => {
             orderBy: { order: "asc" }
           }
         },
-        orderBy: { createdAt: "asc" }
+        orderBy: [{ order: "asc" }, { createdAt: "asc" }]
       }
     }
   });

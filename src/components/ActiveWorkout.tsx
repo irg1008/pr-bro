@@ -55,13 +55,12 @@ export interface ActiveWorkoutProps {
   initialSupersetStatus?: Record<string, boolean>;
 }
 
-export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
+export const ActiveWorkout = ({
   logId,
   initialStartTime,
-  routineName,
   exercises: initialExercises,
   initialSupersetStatus = {}
-}) => {
+}: ActiveWorkoutProps) => {
   const [api, setApi] = useState<CarouselApi>();
   const [current, setCurrent] = useState(0);
   const [sets, setSets] = useState<Record<string, WorkoutSet[]>>({});
@@ -73,6 +72,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
 
   const [cardioModalOpen, setCardioModalOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [saveSuccessOpen, setSaveSuccessOpen] = useState(false);
   const [infoAlert, setInfoAlert] = useState<{ open: boolean; title: string; message: string }>({ open: false, title: '', message: '' });
   const [supersetStatus, setSupersetStatus] = useState<Record<string, boolean>>(initialSupersetStatus);
 
@@ -215,16 +215,53 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
 
 
 
-  const handleFinish = async () => {
-    if (!isFormValid) return;
-    const completeSets = { ...sets };
+  const sanitizeSets = () => {
+    const completeSets: Record<string, WorkoutSet[]> = {};
+    const validExerciseIds = new Set(activeExercises.map(e => e.id));
 
-    // Ensure data exists for all
+    // Only include sets for currently active exercises
+    Object.keys(sets).forEach(key => {
+      if (validExerciseIds.has(key)) {
+        completeSets[key] = sets[key];
+      }
+    });
+
+    // Ensure data exists for all active exercises
     activeExercises.forEach(ex => {
       if (!completeSets[ex.id]) {
         completeSets[ex.id] = [createEmptySet(ex.type as ExerciseType)];
       }
     });
+    return completeSets;
+  };
+
+  const handleSave = async () => {
+    const completeSets = sanitizeSets();
+    try {
+      await fetch(`/api/workout-logs/${logId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          entries: completeSets,
+          supersetStatus,
+          // No finishedAt for save
+        }),
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      setSaveSuccessOpen(true);
+    } catch (e) {
+      console.error("Save failed", e);
+      setInfoAlert({
+        open: true,
+        title: "Save Failed",
+        message: "There was an error saving your progress. Please try again."
+      });
+    }
+  };
+
+  const handleFinish = async () => {
+    if (!isFormValid) return;
+    const completeSets = sanitizeSets();
 
     try {
       await fetch(`/api/workout-logs/${logId}`, {
@@ -558,11 +595,21 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
       </div>
 
       {/* Footer Actions */}
-      <div className="bg-background shrink-0 flex gap-2">
-        <Button variant="outline" onClick={handleCancel} title="Cancel and Auto-save">Cancel</Button>
-        <div className="flex-1 flex gap-2">
-          <Button disabled={current >= activeExercises.length} className="flex-1" variant="secondary" onClick={goToNext}>
+      <div className="bg-background shrink-0 flex flex-col gap-2 pt-2">
+        <div className="flex gap-2">
+          <Button
+            disabled={current >= activeExercises.length}
+            className="flex-1"
+            variant="secondary"
+            onClick={goToNext}
+          >
             Next
+          </Button>
+          <Button
+            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+            onClick={handleSave}
+          >
+            Save
           </Button>
           <Button
             className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
@@ -572,6 +619,7 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
             Finish
           </Button>
         </div>
+        <Button variant="ghost" onClick={handleCancel} title="Cancel and Return">Cancel Workout</Button>
       </div>
 
       <ExerciseSelector
@@ -596,6 +644,21 @@ export const ActiveWorkout: React.FC<ActiveWorkoutProps> = ({
             <AlertDialogAction onClick={confirmDeleteExercise} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Remove
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={saveSuccessOpen} onOpenChange={setSaveSuccessOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Progress Saved</AlertDialogTitle>
+            <AlertDialogDescription>
+              Your workout has been saved successfully. Would you like to exit to the home screen or continue working out?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setSaveSuccessOpen(false)}>Continue Here</AlertDialogCancel>
+            <AlertDialogAction onClick={() => navigate("/")}>Exit</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

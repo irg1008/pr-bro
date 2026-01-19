@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { navigate } from "astro:transitions/client";
-import { Pencil, Trash2 } from "lucide-react";
+import { ArrowLeft, ArrowRight, Pencil, Trash2 } from "lucide-react";
 import type { Routine } from "prisma/generated/client";
 import React, { useEffect, useState } from 'react';
 import { Badge } from "./ui/badge";
@@ -35,8 +35,9 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
   groupName,
   groupDescription,
   isActive = false,
-  routines = [],
+  routines: initialRoutines = [],
 }) => {
+  const [routines, setRoutines] = useState<RoutineWithCount[]>(initialRoutines);
   const [isCreating, setIsCreating] = useState(false);
   const [newName, setNewName] = useState('');
   const [newDesc, setNewDesc] = useState('');
@@ -101,6 +102,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
           setNewDesc('');
           setSelectedCategories([]);
           setIsCreating(false);
+          // Optimistically add or just reload
           navigate(location.pathname);
         }
       } catch (error) {
@@ -162,6 +164,30 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         ? current.filter(c => c !== category)
         : [...current, category]
     );
+  };
+
+  const handleMove = async (index: number, direction: 'up' | 'down', e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === routines.length - 1) return;
+
+    const newRoutines = [...routines];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+    // Swap
+    [newRoutines[index], newRoutines[targetIndex]] = [newRoutines[targetIndex], newRoutines[index]];
+
+    setRoutines(newRoutines);
+
+    try {
+      await fetch(`/api/routines/reorder`, {
+        method: "POST",
+        body: JSON.stringify({ routineIds: newRoutines.map(r => r.id) }),
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      console.error("Failed to reorder", e);
+    }
   };
 
   return (
@@ -256,7 +282,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
       )}
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        {routines.map((routine) => (
+        {routines.map((routine, index) => (
           <Card
             key={routine.id}
             className="cursor-pointer hover:bg-accent/50 transition-colors relative group"
@@ -264,44 +290,68 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xl font-bold capitalize">{routine.name}</CardTitle>
-              <AlertDialog>
-                <div className="absolute top-4 right-4 flex gap-1 items-center">
+              <div className="flex gap-1 items-center">
+                <div className="flex mr-1 gap-0.5">
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="h-8 w-8 text-muted-foreground hover:text-primary z-10"
-                    onClick={(e) => openEdit(routine, e)}
+                    className="h-8 w-8"
+                    disabled={index === 0}
+                    onClick={(e) => handleMove(index, 'up', e)}
+                    title="Move Previous"
                   >
-                    <Pencil className="h-4 w-4" />
+                    <ArrowLeft className="w-4 h-4" />
                   </Button>
-                  <AlertDialogTrigger render={
-
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={index === routines.length - 1}
+                    onClick={(e) => handleMove(index, 'down', e)}
+                    title="Move Next"
+                  >
+                    <ArrowRight className="w-4 h-4" />
+                  </Button>
+                </div>
+                <AlertDialog>
+                  <div className="flex gap-1 items-center">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-destructive z-10"
-                      onClick={(e) => e.stopPropagation()}
+                      className="h-8 w-8 text-muted-foreground hover:text-primary z-10"
+                      onClick={(e) => openEdit(routine, e)}
                     >
-                      <Trash2 className="h-4 w-4" />
+                      <Pencil className="h-4 w-4" />
                     </Button>
-                  } />
-                </div>
-                <AlertDialogContent onClick={(e) => e.stopPropagation()}>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This action cannot be undone. This will permanently delete the routine
-                      "{routine.name}" and all associated workout history.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction onClick={() => handleDelete(routine.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-                      Delete
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                    <AlertDialogTrigger render={
+
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-muted-foreground hover:text-destructive z-10"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
+                    } />
+                  </div>
+                  <AlertDialogContent onClick={(e) => e.stopPropagation()}>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This action cannot be undone. This will permanently delete the routine
+                        "{routine.name}" and all associated workout history.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction onClick={() => handleDelete(routine.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                        Delete
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
+              </div>
             </CardHeader>
             <CardContent>
               <p className="text-sm text-muted-foreground line-clamp-2">

@@ -41,26 +41,37 @@ export const PUT: APIRoute = async ({ request, params }) => {
   }
 
   if (entries) {
-    // Sync entries: Delete all existing and recreate to handle dynamic changes (add/remove/replace)
-    await prisma.workoutLogEntry.deleteMany({
-      where: { workoutLogId: id }
-    });
+    // Use transaction to ensure atomicity (delete + create)
+    await prisma.$transaction(async (tx) => {
+      // Sync entries: Delete all existing and recreate
+      await tx.workoutLogEntry.deleteMany({
+        where: { workoutLogId: id }
+      });
 
-    // Entries is Record<exerciseId, sets[]>
-    const entryCreates = Object.entries(entries).map(
-      ([exerciseId, sets]: [string, any], index) => ({
-        workoutLogId: id,
-        exerciseId,
-        sets: sets,
-        isSuperset: supersetStatus?.[exerciseId] || false,
-        order: index
-      })
-    );
+      // Entries is Record<exerciseId, sets[]>
+      const allExerciseIds = Object.keys(entries);
+      // Validate exercises to prevent FK violations
+      const validExercises = await prisma.exercise.findMany({
+        where: { id: { in: allExerciseIds } },
+        select: { id: true }
+      });
+      const validIdsSet = new Set(validExercises.map((e) => e.id));
 
-    // Create many not supported in nested create easily unless createMany
-    // But we are at root, so createMany works.
-    await prisma.workoutLogEntry.createMany({
-      data: entryCreates
+      const entryCreates = Object.entries(entries)
+        .filter(([exerciseId]) => validIdsSet.has(exerciseId))
+        .map(([exerciseId, sets]: [string, any], index) => ({
+          workoutLogId: id,
+          exerciseId,
+          sets: sets,
+          isSuperset: supersetStatus?.[exerciseId] || false,
+          order: index
+        }));
+
+      if (entryCreates.length > 0) {
+        await tx.workoutLogEntry.createMany({
+          data: entryCreates
+        });
+      }
     });
   }
 

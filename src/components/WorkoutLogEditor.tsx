@@ -44,9 +44,16 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
   };
 
   const handleSave = async () => {
+    // Transform array back to Record<exerciseId, sets[]> for backend consistency
+    const entriesPayload: Record<string, any> = {};
+
+    entries.forEach(entry => {
+      entriesPayload[entry.exerciseId] = entry.sets;
+    });
+
     await fetch(`/api/workout-logs/${logId}`, {
       method: "PUT",
-      body: JSON.stringify({ entries }),
+      body: JSON.stringify({ entries: entriesPayload }),
       headers: { "Content-Type": "application/json" },
     });
     navigate("/history");
@@ -92,27 +99,68 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
             <CardTitle className="capitalize">{entry.exercise.name}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-sm font-medium text-muted-foreground">
-              <div>Set</div>
-              <div>kg</div>
-              <div>Reps</div>
-              <div></div>
-            </div>
+            {entry.exercise.type === 'CARDIO' ? (
+              <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 text-sm font-medium text-muted-foreground">
+                <div>Set</div>
+                <div>Minutes</div>
+                <div>Km</div>
+                <div>Calories</div>
+                <div></div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-sm font-medium text-muted-foreground">
+                <div>Set</div>
+                <div>kg</div>
+                <div>Reps</div>
+                <div></div>
+              </div>
+            )}
+
             {entry.sets.map((set: any, setIdx: number) => (
-              <div key={setIdx} className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-center">
+              <div key={setIdx} className={`grid gap-2 items-center ${entry.exercise.type === 'CARDIO' ? 'grid-cols-[auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_1fr_1fr_auto]'}`}>
                 <div className="text-center font-bold bg-muted rounded py-2 px-3">{setIdx + 1}</div>
-                <Input
-                  type="number"
-                  value={set.weight}
-                  onChange={(e) => updateSet(entryIdx, setIdx, 'weight', Number(e.target.value))}
-                  className="text-center"
-                />
-                <Input
-                  type="number"
-                  value={set.reps}
-                  onChange={(e) => updateSet(entryIdx, setIdx, 'reps', Number(e.target.value))}
-                  className="text-center"
-                />
+
+                {entry.exercise.type === 'CARDIO' ? (
+                  <>
+                    <Input
+                      type="number"
+                      value={set.duration === '' ? '' : set.duration}
+                      onChange={(e) => updateSet(entryIdx, setIdx, 'duration', Number(e.target.value))}
+                      className="text-center px-1"
+                      placeholder="0"
+                    />
+                    <Input
+                      type="number"
+                      value={set.distance === '' ? '' : set.distance}
+                      onChange={(e) => updateSet(entryIdx, setIdx, 'distance', Number(e.target.value))}
+                      className="text-center px-1"
+                      placeholder="0"
+                    />
+                    <Input
+                      type="number"
+                      value={set.calories === '' ? '' : set.calories}
+                      onChange={(e) => updateSet(entryIdx, setIdx, 'calories', Number(e.target.value))}
+                      className="text-center px-1"
+                      placeholder="0"
+                    />
+                  </>
+                ) : (
+                  <>
+                    <Input
+                      type="number"
+                      value={set.weight}
+                      onChange={(e) => updateSet(entryIdx, setIdx, 'weight', Number(e.target.value))}
+                      className="text-center"
+                    />
+                    <Input
+                      type="number"
+                      value={set.reps}
+                      onChange={(e) => updateSet(entryIdx, setIdx, 'reps', Number(e.target.value))}
+                      className="text-center"
+                    />
+                  </>
+                )}
+
                 <Button
                   variant="ghost"
                   size="icon"

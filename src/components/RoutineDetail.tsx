@@ -179,7 +179,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       <div className="flex flex-col sm:flex-row md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
-            <h2 className="text-3xl font-bold tracking-tight capitalize">{routineName}</h2>
+            <h2 className="text-2xl font-bold tracking-tight capitalize">{routineName}</h2>
             <Button variant="ghost" size="icon" onClick={() => setIsRenaming(true)}>
               <Pencil className="w-4 h-4" />
             </Button>
@@ -234,8 +234,8 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
               <div className="flex items-center gap-1">
                 <div
                   className={`text-xs px-2 py-0.5 rounded cursor-pointer select-none transition-colors border mr-2 ${(re as any).isSuperset
-                      ? "bg-amber-400 border-amber-400 text-white font-semibold"
-                      : "bg-transparent border-muted-foreground/30 text-muted-foreground hover:bg-muted"
+                    ? "bg-amber-400 border-amber-400 text-white font-semibold"
+                    : "bg-transparent border-muted-foreground/30 text-muted-foreground hover:bg-muted"
                     }`}
                   onClick={() => toggleSuperset(re.id, (re as any).isSuperset)}
                 >

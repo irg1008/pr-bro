@@ -37,6 +37,7 @@ model Routine {
   focusedParts   String[] // Array of preferred body parts/categories
   exercises      RoutineExercise[]
   logs           WorkoutLog[]
+  order          Int               @default(0)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 }
