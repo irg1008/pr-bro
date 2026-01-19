@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { navigate } from "astro:transitions/client";
-import { X } from "lucide-react";
+import { Trash2, X } from "lucide-react";
 import type { Exercise, WorkoutLogEntry } from "prisma/generated/client";
 import React, { useState } from 'react';
 
@@ -68,10 +68,13 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end">
+      <div className="flex justify-end px-1">
         <AlertDialog>
           <AlertDialogTrigger render={
-            <Button variant="destructive">Delete Log</Button>
+
+            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
+              <Trash2 className="h-5 w-5" />
+            </Button>
           } />
           <AlertDialogContent>
             <AlertDialogHeader>
@@ -96,7 +99,19 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
             {entry.exercise.imageUrl && (
               <img src={entry.exercise.imageUrl} alt={entry.exercise.name} className="w-16 h-16 rounded object-cover border" />
             )}
-            <CardTitle className="capitalize">{entry.exercise.name}</CardTitle>
+            <div className="flex flex-col">
+              <CardTitle className="capitalize">{entry.exercise.name}</CardTitle>
+              <div className="flex gap-2 items-center mt-1 flex-wrap">
+                <span className="text-xs font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded capitalize">
+                  {entry.exercise.category?.toLowerCase() || 'other'}
+                </span>
+                {entry.exercise.target && entry.exercise.target !== entry.exercise.category && (
+                  <span className="text-xs font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded capitalize">
+                    {entry.exercise.target.toLowerCase()}
+                  </span>
+                )}
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="space-y-2">
             {entry.exercise.type === 'CARDIO' ? (

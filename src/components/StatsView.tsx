@@ -7,6 +7,8 @@ interface ExerciseStat {
   id: string;
   name: string;
   category: string;
+  target?: string;
+  imageUrl?: string | null;
   history: { date: string; maxWeight: number }[];
   currentMax: number;
   pr: number;
@@ -79,12 +81,31 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
               return (
                 <Card key={stat.id} className="overflow-hidden border-2 border-transparent hover:border-primary/20 transition-all">
                   <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle className="text-xl capitalize line-clamp-1" title={stat.name}>{stat.name}</CardTitle>
+                    <div className="flex justify-between items-start gap-4">
+                      <div className="flex gap-3">
+                        {stat.imageUrl && (
+                          <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0 border">
+                            <img src={stat.imageUrl} alt={stat.name} className="w-full h-full object-cover" />
+                          </div>
+                        )}
+                        <div className="flex flex-col gap-1">
+                          <CardTitle className="text-lg capitalize line-clamp-2" title={stat.name}>{stat.name}</CardTitle>
+                          <div className="flex gap-2 flex-wrap">
+                            {stat.category && (
+                              <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded capitalize">
+                                {stat.category.toLowerCase()}
+                              </span>
+                            )}
+                            {stat.target && stat.target !== stat.category && (
+                              <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded capitalize">
+                                {stat.target.toLowerCase()}
+                              </span>
+                            )}
+                          </div>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <div className="text-2xl font-bold">{stat.currentMax} kg</div>
+                      <div className="text-right shrink-0">
+                        <div className="text-xl font-bold">{stat.currentMax} kg</div>
                         {stat.improvement !== 0 && (
                           <div className={`text-xs font-bold ${stat.improvement > 0 ? "text-green-500" : "text-red-500"}`}>
                             {stat.improvement > 0 ? "+" : ""}{stat.improvement} kg
@@ -146,19 +167,21 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                 </Card>
               );
             })}
-          </div>
-        </div>
+          </div >
+        </div >
       ))}
 
       {/* Empty state logic if filtered results are empty? */}
 
 
-      {stats.length === 0 && (
-        <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/20">
-          <p className="text-lg mb-2">No stats available yet</p>
-          <p className="text-sm">Complete some workouts to see your progress here!</p>
-        </div>
-      )}
-    </div>
+      {
+        stats.length === 0 && (
+          <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/20">
+            <p className="text-lg mb-2">No stats available yet</p>
+            <p className="text-sm">Complete some workouts to see your progress here!</p>
+          </div>
+        )
+      }
+    </div >
   );
 };

@@ -46,7 +46,9 @@ export const GET: APIRoute = async () => {
       return {
         id: ex.id,
         name: ex.name,
+        imageUrl: ex.imageUrl,
         category: ex.category || "Uncategorized",
+        target: ex.target || "Uncategorized",
         history,
         currentMax,
         pr,
