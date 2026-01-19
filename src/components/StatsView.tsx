@@ -230,7 +230,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
       ))}
 
       {stats.length === 0 && (
-        <div className="text-muted-foreground bg-muted/20 rounded-lg border-2 border-dashed py-12 text-center">
+        <div className="text-muted-foreground bg-muted/20 rounded-lg border-2 border-dashed py-12 px-4 text-center">
           <p className="mb-2 text-lg">No stats available yet</p>
           <p className="text-sm">Complete some workouts to see your progress here!</p>
         </div>

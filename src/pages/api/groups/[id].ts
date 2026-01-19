@@ -12,6 +12,7 @@ export const GET: APIRoute = async ({ params }) => {
     where: { id },
     include: {
       routines: {
+        orderBy: { createdAt: "asc" },
         include: {
           exercises: true
         }

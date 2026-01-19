@@ -14,6 +14,8 @@
     "start:prod": "pnpm db:deploy && node ./dist/server/entry.mjs",
     "test": "vitest run",
     "test:watch": "vitest",
+    "toolbar:on": "astro preferences enable devToolbar",
+    "toolbar:off": "astro preferences disable devToolbar",
     "format": "oxfmt",
     "lint": "oxlint",
     "check": "oxlint && oxfmt",

@@ -449,14 +449,14 @@ export const ActiveWorkout = ({
       </div>
 
       {/* Main Content - Carousel */}
-      <div className="-mx-4 min-h-0">
+      <div className="min-h-0">
         <Carousel setApi={setApi} className="w-full">
           <CarouselContent>
             {activeExercises.map((ex, index) => (
               <CarouselItem key={`${ex.id}-${index}`} className="h-full overflow-y-auto px-4">
-                <div className="carousel-visual-content bg-card mb-8 h-full overflow-hidden rounded-xl shadow-lg transition-none will-change-transform">
+                <div className="carousel-visual-content bg-card mb-4 h-full overflow-hidden rounded-xl shadow-lg transition-none will-change-transform">
                   {ex.imageUrl && (
-                    <div className="bg-muted aspect-square w-full">
+                    <div className="bg-muted h-56 w-full shrink-0">
                       <img
                         src={ex.imageUrl}
                         alt={ex.name}
@@ -466,10 +466,10 @@ export const ActiveWorkout = ({
                     </div>
                   )}
 
-                  <div className="p-4">
+                  <div className="p-3">
                     <div className="flex items-start justify-between">
                       <div className="flex flex-col">
-                        <h2 className="pr-2 text-xl font-bold capitalize">{ex.name}</h2>
+                        <h2 className="pr-2 text-lg font-bold capitalize">{ex.name}</h2>
                         <div className="mt-1 flex flex-wrap items-center gap-2">
                           <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs font-medium capitalize">
                             {ex.category?.toLowerCase() || "other"}
