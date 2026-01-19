@@ -1,9 +1,10 @@
+import { ThreeBackground } from "@/components/ThreeBackground";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { navigate } from "astro:transitions/client";
 import type { Exercise, Routine, RoutineExercise } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 
 // Define the composite type for the joined query result
 export type RoutineWithExercises = Routine & {
@@ -30,7 +31,7 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
     const checkActive = async () => {
       try {
         // Fetch recent logs to see if one is active
-        const res = await fetch('/api/workout-logs');
+        const res = await fetch("/api/workout-logs");
         if (res.ok) {
           const logs = await res.json();
           // Find the most recent log for this routine that hasn't officially finished
@@ -54,13 +55,13 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
 
     const now = new Date().toISOString();
     try {
-      const res = await fetch('/api/workout-logs', {
-        method: 'POST',
+      const res = await fetch("/api/workout-logs", {
+        method: "POST",
         body: JSON.stringify({
           routineId: nextRoutine.id,
           createdAt: now
         }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { "Content-Type": "application/json" }
       });
 
       if (res.ok) {
@@ -81,9 +82,9 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
 
   if (!activeGroupName) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold mb-4">Welcome to PR Bro</h2>
-        <p className="mb-8 text-muted-foreground">Select a routine group to get started.</p>
+      <div className="py-12 text-center">
+        <h2 className="mb-4 text-2xl font-bold">Welcome to PR Bro</h2>
+        <p className="text-muted-foreground mb-8">Select a routine group to get started.</p>
         <Button asChild>
           <a href="/routines">Manage Routines</a>
         </Button>
@@ -93,9 +94,9 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
 
   if (!nextRoutine) {
     return (
-      <div className="text-center py-12">
-        <h2 className="text-2xl font-bold mb-4 capitalize">Active: {activeGroupName}</h2>
-        <p className="mb-4 text-muted-foreground">No routines found in this group.</p>
+      <div className="py-12 text-center">
+        <h2 className="mb-4 text-2xl font-bold capitalize">Active: {activeGroupName}</h2>
+        <p className="text-muted-foreground mb-4">No routines found in this group.</p>
         <Button asChild>
           <a href="/routines">Manage Routines</a>
         </Button>
@@ -104,33 +105,47 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
   }
 
   return (
-    <div className="space-y-6 py-8 max-w-2xl mx-auto">
+    <div className="relative z-10 mx-auto max-w-2xl space-y-6 py-8">
       <div className="flex flex-col gap-1">
         <h1 className="text-xl font-semibold tracking-tight">Today's Workout</h1>
-        <p className="text-muted-foreground text-sm font-medium flex items-center gap-2">
-          Cycle: <Badge variant="outline" className="font-normal capitalize">{activeGroupName}</Badge>
+        <p className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
+          Cycle:{" "}
+          <Badge variant="outline" className="font-normal capitalize">
+            {activeGroupName}
+          </Badge>
         </p>
       </div>
 
-      <Card className="border shadow-sm overflow-hidden">
-        <CardHeader className="pb-3 border-b">
+      <ThreeBackground />
+
+      <Card className="group/card ring-primary/5 hover:ring-primary/20 relative overflow-hidden border shadow-sm ring-1 transition-all duration-300 hover:shadow-md">
+        <div className="from-primary/5 pointer-events-none absolute inset-0 bg-linear-to-br via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover/card:opacity-100" />
+        <CardHeader className="border-b pb-3">
           <div className="space-y-1">
-            <CardTitle className="text-lg font-semibold tracking-tight text-foreground capitalize">
+            <CardTitle className="text-foreground text-lg font-semibold tracking-tight capitalize">
               {nextRoutine.name}
             </CardTitle>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-muted-foreground text-sm">
               {nextRoutine.description || "Time to lift heavy things."}
             </p>
           </div>
         </CardHeader>
         <CardContent>
-          <div className="space-y-3 mb-6">
-            <h3 className="font-medium text-xs uppercase text-muted-foreground">Workout Plan</h3>
+          <div className="mb-6 space-y-3">
+            <h3 className="text-muted-foreground text-xs font-medium uppercase">Workout Plan</h3>
             <div className="grid gap-2">
               {nextRoutine.exercises.map((ex: any) => (
-                <div key={ex.id} className="flex items-center justify-between p-2 bg-muted/20 rounded-md border hover:bg-muted/40 transition-colors">
-                  <span className="font-medium text-sm capitalize text-foreground">{ex.exercise.name}</span>
-                  <Badge variant="secondary" className="text-[10px] font-normal capitalize shrink-0 px-1.5 h-5">
+                <div
+                  key={ex.id}
+                  className="bg-muted/20 hover:bg-muted/40 flex items-center justify-between rounded-md border p-2 transition-colors"
+                >
+                  <span className="text-foreground text-sm font-medium capitalize">
+                    {ex.exercise.name}
+                  </span>
+                  <Badge
+                    variant="secondary"
+                    className="h-5 shrink-0 px-1.5 text-[10px] font-normal capitalize"
+                  >
                     {ex.exercise.category.toLowerCase()}
                   </Badge>
                 </div>
@@ -144,18 +159,20 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
             disabled={!nextRoutine.exercises || nextRoutine.exercises.length === 0}
             variant={activeLogId ? "default" : "default"}
           >
-            {(!nextRoutine.exercises || nextRoutine.exercises.length === 0)
+            {!nextRoutine.exercises || nextRoutine.exercises.length === 0
               ? "Add exercises to start"
-              : activeLogId ? "Resume Workout" : "Start Workout"}
+              : activeLogId
+                ? "Resume Workout"
+                : "Start Workout"}
           </Button>
         </CardContent>
       </Card>
 
-      <div className="text-center">
-        <a href="/routines" className="text-xs font-medium text-muted-foreground hover:text-primary transition-colors">
+      <Button variant="ghost" asChild>
+        <a className="w-full" href="/routines">
           Switch Routine Group
         </a>
-      </div>
+      </Button>
     </div>
   );
 };

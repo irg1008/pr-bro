@@ -201,6 +201,32 @@
     @apply border-border outline-ring/50;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground max-w-dvw overflow-x-hidden font-sans;
+    font-synthesis-weight: none;
+    text-rendering: optimizeLegibility;
+    /* Subtle gym floor/industrial texture */
+    background-image: radial-gradient(
+      color-mix(in oklch, var(--foreground), transparent 96%) 1px,
+      transparent 1.5px
+    );
+    background-size: 24px 24px;
+  }
+
+  /* Tactile feedback for interactive elements */
+  button,
+  .button-like {
+    @apply transition-transform active:scale-[0.98];
+  }
+
+  /* Custom Scrollbar - Sleek & Minimal */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-transparent;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-muted-foreground/20 hover:bg-muted-foreground/40 rounded-full transition-colors;
   }
 }

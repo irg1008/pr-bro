@@ -16,7 +16,7 @@ import { Label } from "@/components/ui/label";
 import { navigate } from "astro:transitions/client";
 import { ArrowLeft, ArrowRight, Pencil, Trash2 } from "lucide-react";
 import type { Routine } from "prisma/generated/client";
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { Badge } from "./ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 
@@ -35,24 +35,24 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
   groupName,
   groupDescription,
   isActive = false,
-  routines: initialRoutines = [],
+  routines: initialRoutines = []
 }) => {
   const [routines, setRoutines] = useState<RoutineWithCount[]>(initialRoutines);
   const [isCreating, setIsCreating] = useState(false);
-  const [newName, setNewName] = useState('');
-  const [newDesc, setNewDesc] = useState('');
+  const [newName, setNewName] = useState("");
+  const [newDesc, setNewDesc] = useState("");
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
 
   const [editingRoutine, setEditingRoutine] = useState<RoutineWithCount | null>(null);
-  const [editName, setEditName] = useState('');
-  const [editDesc, setEditDesc] = useState('');
+  const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
   const [editCategories, setEditCategories] = useState<string[]>([]);
 
   // Group Edit State
   const [isEditingGroup, setIsEditingGroup] = useState(false);
-  const [editingGroupName, setEditingGroupName] = useState('');
-  const [editingGroupDesc, setEditingGroupDesc] = useState('');
+  const [editingGroupName, setEditingGroupName] = useState("");
+  const [editingGroupDesc, setEditingGroupDesc] = useState("");
 
   const handleUpdateGroup = async () => {
     if (!editingGroupName.trim()) return;
@@ -61,9 +61,9 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         method: "PATCH",
         body: JSON.stringify({
           name: editingGroupName,
-          description: editingGroupDesc,
+          description: editingGroupDesc
         }),
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" }
       });
       if (res.ok) {
         setIsEditingGroup(false);
@@ -75,13 +75,13 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
   };
 
   useEffect(() => {
-    fetch('/api/categories')
-      .then(res => res.json())
+    fetch("/api/categories")
+      .then((res) => res.json())
       .then((data: string[]) => {
         // API now returns string[] directly
         setAvailableCategories(data);
       })
-      .catch(err => console.error("Failed to fetch categories", err));
+      .catch((err) => console.error("Failed to fetch categories", err));
   }, []);
 
   const handleCreate = async () => {
@@ -95,11 +95,11 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             routineGroupId: groupId,
             focusedParts: selectedCategories
           }),
-          headers: { "Content-Type": "application/json" },
+          headers: { "Content-Type": "application/json" }
         });
         if (res.ok) {
-          setNewName('');
-          setNewDesc('');
+          setNewName("");
+          setNewDesc("");
           setSelectedCategories([]);
           setIsCreating(false);
           // Optimistically add or just reload
@@ -115,13 +115,13 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
     if (!editingRoutine || !editName.trim()) return;
     try {
       const res = await fetch(`/api/routines/${editingRoutine.id}`, {
-        method: 'PATCH',
+        method: "PATCH",
         body: JSON.stringify({
           name: editName,
           description: editDesc,
           focusedParts: editCategories
         }),
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json" }
       });
       if (res.ok) {
         setEditingRoutine(null);
@@ -136,14 +136,14 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
     e.stopPropagation();
     setEditingRoutine(routine);
     setEditName(routine.name);
-    setEditDesc(routine.description || '');
+    setEditDesc(routine.description || "");
     setEditCategories(routine.focusedParts || []);
   };
 
   const handleDelete = async (routineId: string) => {
     try {
       const res = await fetch(`/api/routines/${routineId}`, {
-        method: 'DELETE'
+        method: "DELETE"
       });
       if (res.ok) {
         navigate(location.pathname);
@@ -151,7 +151,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
     } catch (error) {
       console.error("Failed to delete routine", error);
     }
-  }
+  };
 
   const handleSelectRoutine = (routineId: string) => {
     navigate(`/routines/${groupId}/${routineId}`);
@@ -159,20 +159,18 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
 
   const toggleCategory = (category: string, isEdit: boolean = false) => {
     const setFn = isEdit ? setEditCategories : setSelectedCategories;
-    setFn(current =>
-      current.includes(category)
-        ? current.filter(c => c !== category)
-        : [...current, category]
+    setFn((current) =>
+      current.includes(category) ? current.filter((c) => c !== category) : [...current, category]
     );
   };
 
-  const handleMove = async (index: number, direction: 'up' | 'down', e: React.MouseEvent) => {
+  const handleMove = async (index: number, direction: "up" | "down", e: React.MouseEvent) => {
     e.stopPropagation();
-    if (direction === 'up' && index === 0) return;
-    if (direction === 'down' && index === routines.length - 1) return;
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === routines.length - 1) return;
 
     const newRoutines = [...routines];
-    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+    const targetIndex = direction === "up" ? index - 1 : index + 1;
 
     // Swap
     [newRoutines[index], newRoutines[targetIndex]] = [newRoutines[targetIndex], newRoutines[index]];
@@ -182,8 +180,8 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
     try {
       await fetch(`/api/routines/reorder`, {
         method: "POST",
-        body: JSON.stringify({ routineIds: newRoutines.map(r => r.id) }),
-        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ routineIds: newRoutines.map((r) => r.id) }),
+        headers: { "Content-Type": "application/json" }
       });
     } catch (e) {
       console.error("Failed to reorder", e);
@@ -192,19 +190,15 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3 mb-1">
+          <div className="mb-1 flex items-center gap-3">
             <h2 className="text-2xl font-bold tracking-tight capitalize">{groupName}</h2>
-            {isActive && (
-              <Badge variant="secondary" className="bg-green-100 text-green-800 hover:bg-green-100 border-0">
-                Active
-              </Badge>
-            )}
+            {isActive && <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>}
             <Button
               variant="ghost"
               size="icon"
-              className="h-6 w-6 text-muted-foreground hover:text-primary"
+              className="text-muted-foreground hover:text-primary h-6 w-6"
               onClick={() => {
                 setEditingGroupName(groupName);
                 setEditingGroupDesc(groupDescription || "");
@@ -214,7 +208,9 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
               <Pencil className="h-4 w-4" />
             </Button>
           </div>
-          <p className="text-muted-foreground">{groupDescription || "Manage your routines for this group."}</p>
+          <p className="text-muted-foreground">
+            {groupDescription || "Manage your routines for this group."}
+          </p>
         </div>
         <Button onClick={() => setIsCreating(true)}>New Routine</Button>
       </div>
@@ -246,12 +242,15 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
 
             <div className="grid w-full max-w-sm items-center gap-1.5">
               <Label>Focused Parts / Categories</Label>
-              <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2">
+              <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
                 {availableCategories.length === 0 && (
-                  <span className="text-sm text-muted-foreground">Loading categories...</span>
+                  <span className="text-muted-foreground text-sm">Loading categories...</span>
                 )}
-                {availableCategories.map(cat => (
-                  <label key={cat} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-1 rounded capitalize">
+                {availableCategories.map((cat) => (
+                  <label
+                    key={cat}
+                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded p-1 capitalize"
+                  >
                     <input
                       type="checkbox"
                       checked={selectedCategories.includes(cat)}
@@ -263,9 +262,9 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                 ))}
               </div>
               {selectedCategories.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {selectedCategories.map(cat => (
-                    <Badge key={cat} variant="secondary" className="capitalize text-xs">
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {selectedCategories.map((cat) => (
+                    <Badge key={cat} variant="secondary" className="text-xs capitalize">
                       {cat}
                     </Badge>
                   ))}
@@ -275,7 +274,9 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
 
             <div className="flex gap-2 pt-2">
               <Button onClick={handleCreate}>Save Routine</Button>
-              <Button variant="outline" onClick={() => setIsCreating(false)}>Cancel</Button>
+              <Button variant="outline" onClick={() => setIsCreating(false)}>
+                Cancel
+              </Button>
             </div>
           </CardContent>
         </Card>
@@ -285,67 +286,71 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         {routines.map((routine, index) => (
           <Card
             key={routine.id}
-            className="cursor-pointer hover:bg-accent/50 transition-colors relative group"
+            className="hover:bg-accent/50 group relative cursor-pointer transition-colors"
             onClick={() => handleSelectRoutine(routine.id)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xl font-bold capitalize">{routine.name}</CardTitle>
-              <div className="flex gap-1 items-center">
-                <div className="flex mr-1 gap-0.5">
+              <div className="flex items-center gap-1">
+                <div className="mr-1 flex gap-0.5">
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
                     disabled={index === 0}
-                    onClick={(e) => handleMove(index, 'up', e)}
+                    onClick={(e) => handleMove(index, "up", e)}
                     title="Move Previous"
                   >
-                    <ArrowLeft className="w-4 h-4" />
+                    <ArrowLeft className="h-4 w-4" />
                   </Button>
                   <Button
                     variant="ghost"
                     size="icon"
                     className="h-8 w-8"
                     disabled={index === routines.length - 1}
-                    onClick={(e) => handleMove(index, 'down', e)}
+                    onClick={(e) => handleMove(index, "down", e)}
                     title="Move Next"
                   >
-                    <ArrowRight className="w-4 h-4" />
+                    <ArrowRight className="h-4 w-4" />
                   </Button>
                 </div>
                 <AlertDialog>
-                  <div className="flex gap-1 items-center">
+                  <div className="flex items-center gap-1">
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 text-muted-foreground hover:text-primary z-10"
+                      className="text-muted-foreground hover:text-primary z-10 h-8 w-8"
                       onClick={(e) => openEdit(routine, e)}
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
-                    <AlertDialogTrigger render={
-
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-8 w-8 text-muted-foreground hover:text-destructive z-10"
-                        onClick={(e) => e.stopPropagation()}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    } />
+                    <AlertDialogTrigger
+                      render={
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-muted-foreground hover:text-destructive z-10 h-8 w-8"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      }
+                    />
                   </div>
                   <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                     <AlertDialogHeader>
                       <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                       <AlertDialogDescription>
-                        This action cannot be undone. This will permanently delete the routine
-                        "{routine.name}" and all associated workout history.
+                        This action cannot be undone. This will permanently delete the routine "
+                        {routine.name}" and all associated workout history.
                       </AlertDialogDescription>
                     </AlertDialogHeader>
                     <AlertDialogFooter>
                       <AlertDialogCancel>Cancel</AlertDialogCancel>
-                      <AlertDialogAction onClick={() => handleDelete(routine.id)} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                      <AlertDialogAction
+                        onClick={() => handleDelete(routine.id)}
+                        className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                      >
                         Delete
                       </AlertDialogAction>
                     </AlertDialogFooter>
@@ -354,28 +359,31 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
               </div>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground line-clamp-2">
+              <p className="text-muted-foreground line-clamp-2 text-sm">
                 {routine.description || "No description"}
               </p>
 
-              {(routine.focusedParts && routine.focusedParts.length > 0) && (
-                <div className="flex flex-wrap gap-1 mt-2">
-                  {routine.focusedParts.map(part => (
-                    <span key={part} className="text-[10px] bg-secondary/50 px-1.5 py-0.5 rounded capitalize text-muted-foreground">
+              {routine.focusedParts && routine.focusedParts.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {routine.focusedParts.map((part) => (
+                    <span
+                      key={part}
+                      className="bg-secondary/50 text-muted-foreground rounded px-1.5 py-0.5 text-[10px] capitalize"
+                    >
                       {part}
                     </span>
                   ))}
                 </div>
               )}
 
-              <div className="mt-4 text-xs font-medium text-muted-foreground">
+              <div className="text-muted-foreground mt-4 text-xs font-medium">
                 {routine.exerciseCount} Exercises
               </div>
             </CardContent>
           </Card>
         ))}
         {routines.length === 0 && !isCreating && (
-          <div className="col-span-full text-center p-8 text-muted-foreground border-2 border-dashed rounded-lg">
+          <div className="text-muted-foreground col-span-full rounded-lg border-2 border-dashed p-8 text-center">
             No routines found in this group. Create one to get started!
           </div>
         )}
@@ -405,12 +413,15 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             </div>
             <div className="grid w-full items-center gap-1.5">
               <Label>Focused Parts / Categories</Label>
-              <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2">
+              <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
                 {availableCategories.length === 0 && (
-                  <span className="text-sm text-muted-foreground">Loading categories...</span>
+                  <span className="text-muted-foreground text-sm">Loading categories...</span>
                 )}
-                {availableCategories.map(cat => (
-                  <label key={cat} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-1 rounded capitalize">
+                {availableCategories.map((cat) => (
+                  <label
+                    key={cat}
+                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded p-1 capitalize"
+                  >
                     <input
                       type="checkbox"
                       checked={editCategories.includes(cat)}
@@ -422,9 +433,9 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                 ))}
               </div>
               {editCategories.length > 0 && (
-                <div className="flex flex-wrap gap-1 mt-1">
-                  {editCategories.map(cat => (
-                    <Badge key={cat} variant="secondary" className="capitalize text-xs">
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {editCategories.map((cat) => (
+                    <Badge key={cat} variant="secondary" className="text-xs capitalize">
                       {cat}
                     </Badge>
                   ))}
@@ -433,7 +444,9 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setEditingRoutine(null)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setEditingRoutine(null)}>
+              Cancel
+            </Button>
             <Button onClick={handleEdit}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>
@@ -463,7 +476,9 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsEditingGroup(false)}>Cancel</Button>
+            <Button variant="outline" onClick={() => setIsEditingGroup(false)}>
+              Cancel
+            </Button>
             <Button onClick={handleUpdateGroup}>Save Changes</Button>
           </DialogFooter>
         </DialogContent>

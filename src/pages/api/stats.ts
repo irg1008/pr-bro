@@ -33,15 +33,22 @@ export const GET: APIRoute = async () => {
         }
       });
 
-      const history = Array.from(historyMap.entries())
+      let history = Array.from(historyMap.entries())
         .map(([date, maxWeight]) => ({ date, maxWeight }))
         .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
       if (history.length === 0) return null;
 
+      // Calculate PR from full history before slicing
+      const pr = Math.max(...history.map((h) => h.maxWeight));
+
+      // Limit to last 100 entries for the graph
+      if (history.length > 100) {
+        history = history.slice(history.length - 100);
+      }
+
       const currentMax = history[history.length - 1].maxWeight;
       const prevMax = history.length > 1 ? history[history.length - 2].maxWeight : 0;
-      const pr = Math.max(...history.map((h) => h.maxWeight));
 
       return {
         id: ex.id,

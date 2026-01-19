@@ -1,218 +1,81 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { Dumbbell } from "lucide-react";
 ---
 
-<BaseLayout title={""} description={""}>
+<BaseLayout
+	title="404 - Set Failed"
+	description="The set you are looking for could not be found."
+>
 	<div
-		class="bg-background relative flex min-h-screen items-center justify-center overflow-hidden"
+		class="bg-background relative flex min-h-screen flex-col items-center justify-center overflow-hidden p-4"
 	>
-		<!-- Background gradient -->
+		<!-- Background Texture/Gradient -->
 		<div
-			class="from-muted/30 absolute inset-0 bg-linear-to-b via-transparent to-transparent"
+			class="absolute inset-0 bg-radial-[circle_at_center,var(--tw-gradient-stops)] from-muted/20 via-background to-background pointer-events-none"
 		>
 		</div>
 
-		<!-- Animated vines SVG background -->
-		<svg
-			class="absolute inset-0 h-full w-full opacity-20"
-			viewBox="0 0 1000 1000"
-			preserveAspectRatio="xMidYMid slice"
-		>
-			<defs>
-				<linearGradient id="vineGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
-					<stop offset="0%" stop-color="#2d5a27"></stop>
-					<stop offset="100%" stop-color="#1a3d18"></stop>
-				</linearGradient>
-				<linearGradient id="vineGrad2" x1="100%" y1="0%" x2="0%" y2="100%">
-					<stop offset="0%" stop-color="#3d7a35"></stop>
-					<stop offset="100%" stop-color="#2d5a27"></stop>
-				</linearGradient>
-			</defs>
-
-			<!-- Left side vines -->
-			<g class="vine-group vine-left">
-				<path
-					d="M -50 0 Q 100 200, 50 400 T 150 600 T 50 800 T 100 1000"
-					fill="none"
-					stroke="url(#vineGrad1)"
-					stroke-width="8"
-					stroke-linecap="round"
-					class="vine-path"></path>
-				<path
-					d="M -30 100 Q 80 250, 30 450 T 120 650 T 20 850"
-					fill="none"
-					stroke="url(#vineGrad2)"
-					stroke-width="5"
-					stroke-linecap="round"
-					class="vine-path"
-					style="animation-delay: 0.5s"></path>
-				<path
-					d="M 0 -50 Q 150 150, 80 350 T 180 550 T 60 750 T 120 950"
-					fill="none"
-					stroke="url(#vineGrad1)"
-					stroke-width="6"
-					stroke-linecap="round"
-					class="vine-path"
-					style="animation-delay: 1s"></path>
-			</g>
-
-			<!-- Right side vines -->
-			<g class="vine-group vine-right">
-				<path
-					d="M 1050 0 Q 900 200, 950 400 T 850 600 T 950 800 T 900 1000"
-					fill="none"
-					stroke="url(#vineGrad1)"
-					stroke-width="8"
-					stroke-linecap="round"
-					class="vine-path"
-					style="animation-delay: 0.3s"></path>
-				<path
-					d="M 1030 150 Q 920 300, 970 500 T 880 700 T 980 900"
-					fill="none"
-					stroke="url(#vineGrad2)"
-					stroke-width="5"
-					stroke-linecap="round"
-					class="vine-path"
-					style="animation-delay: 0.8s"></path>
-				<path
-					d="M 1000 -30 Q 850 170, 920 370 T 820 570 T 940 770 T 880 970"
-					fill="none"
-					stroke="url(#vineGrad1)"
-					stroke-width="6"
-					stroke-linecap="round"
-					class="vine-path"
-					style="animation-delay: 1.2s"></path>
-			</g>
-
-			<!-- Top vines -->
-			<g class="vine-group vine-top">
-				<path
-					d="M 200 -50 Q 300 100, 500 80 T 700 120 T 900 50"
-					fill="none"
-					stroke="url(#vineGrad2)"
-					stroke-width="6"
-					stroke-linecap="round"
-					class="vine-path"
-					style="animation-delay: 0.2s"></path>
-				<path
-					d="M 400 -30 Q 450 80, 550 60 T 650 100"
-					fill="none"
-					stroke="url(#vineGrad1)"
-					stroke-width="4"
-					stroke-linecap="round"
-					class="vine-path"
-					style="animation-delay: 0.7s"></path>
-			</g>
-
-			<!-- Bottom vines -->
-			<g class="vine-group vine-bottom">
-				<path
-					d="M 100 1050 Q 250 900, 450 950 T 650 880 T 850 970"
-					fill="none"
-					stroke="url(#vineGrad2)"
-					stroke-width="7"
-					stroke-linecap="round"
-					class="vine-path"
-					style="animation-delay: 0.4s"></path>
-				<path
-					d="M 300 1030 Q 400 920, 550 960 T 750 890"
-					fill="none"
-					stroke="url(#vineGrad1)"
-					stroke-width="5"
-					stroke-linecap="round"
-					class="vine-path"
-					style="animation-delay: 0.9s"></path>
-			</g>
-		</svg>
-
-		<!-- Content -->
-		<div class="relative z-10 px-4 text-center">
-			<!-- 404 Text with decay effect -->
-			<div class="relative mb-6">
-				<h1
-					class="text-404 text-muted-foreground/20 select-none text-[10rem] font-black leading-none tracking-tighter md:text-[14rem] lg:text-[18rem]"
-				>
-					404
-				</h1>
-				<!-- Cracked/decayed overlay effect -->
-				<div
-					class="pointer-events-none absolute inset-0 flex items-center justify-center"
-				>
-					<span
-						class="text-404-overlay text-muted-foreground/40 bg-linear-to-b from-current via-current to-current bg-clip-text text-[10rem] font-black leading-none tracking-tighter md:text-[14rem] lg:text-[18rem]"
-					>
-						404
-					</span>
-				</div>
+		<div class="relative z-10 flex flex-col items-center text-center">
+			<!-- Icon/Graphic -->
+			<div class="mb-8 text-muted-foreground/30">
+				<Dumbbell className="h-32 w-32 animate-pulse-slow" strokeWidth={1} />
 			</div>
 
-			<!-- Message -->
-			<div class="space-y-4">
-				<h2 class="text-foreground text-xl font-semibold md:text-2xl">
-					Not found
+			<h1
+				class="text-9xl font-black tracking-tighter text-foreground select-none"
+			>
+				404
+			</h1>
+
+			<div class="space-y-2 mt-4 max-w-md">
+				<h2 class="text-2xl md:text-3xl font-bold tracking-tight">
+					Form Breakdown
 				</h2>
-				<p class="text-muted-foreground mx-auto max-w-md">
-					The page you are looking for does not exist or has been moved.
+				<p class="text-muted-foreground text-lg">
+					We couldn't find the page you're looking for. It might have been
+					re-racked or doesn't exist.
 				</p>
 			</div>
 
-			<!-- CTA Button -->
-			<div class="mt-10">
-				<a
-					href="/"
-					class="bg-primary text-primary-foreground hover:bg-primary/90 group relative inline-flex items-center gap-2 overflow-hidden rounded-full px-8 py-4 font-semibold transition-all duration-300"
+			<!-- CTA -->
+			<a
+				href="/"
+				class="mt-8 group relative inline-flex items-center gap-2 overflow-hidden rounded-full bg-primary px-8 py-3 text-primary-foreground font-semibold transition-all hover:scale-105 active:scale-95"
+			>
+				<span>Return to Rack</span>
+				<svg
+					xmlns="http://www.w3.org/2000/svg"
+					width="16"
+					height="16"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					class="transition-transform group-hover:translate-x-1"
 				>
-					<svg
-						class="h-5 w-5 transition-transform duration-300 group-hover:-translate-x-1"
-						fill="none"
-						viewBox="0 0 24 24"
-						stroke="currentColor"
-					>
-						<path
-							stroke-linecap="round"
-							stroke-linejoin="round"
-							stroke-width="2"
-							d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
-					</svg>
-					Go Home
-				</a>
-			</div>
+					<path d="M5 12h14"></path>
+					<path d="m12 5 7 7-7 7"></path>
+				</svg>
+			</a>
 		</div>
 	</div>
 </BaseLayout>
 
 <style>
-	/* Vine drawing animation */
-	.vine-path {
-		stroke-dasharray: 2000;
-		stroke-dashoffset: 2000;
-		animation: draw-vine 4s ease-out forwards;
+	.animate-pulse-slow {
+		animation: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 	}
 
-	@keyframes draw-vine {
-		to {
-			stroke-dashoffset: 0;
-		}
-	}
-
-	/* 404 text subtle animation */
-	.text-404 {
-		animation: subtle-pulse 4s ease-in-out infinite;
-	}
-
-	@keyframes subtle-pulse {
+	@keyframes pulse {
 		0%,
 		100% {
-			opacity: 1;
+			opacity: 0.3;
 		}
 		50% {
-			opacity: 0.8;
+			opacity: 0.6;
 		}
-	}
-
-	/* Crack texture overlay - optional CSS pattern */
-	.text-404-overlay {
-		mask-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E");
-		mask-size: 100px 100px;
 	}
 </style>

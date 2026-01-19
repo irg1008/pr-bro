@@ -48,7 +48,7 @@ jobs:
 
       - name: Set lower case owner name
         run: |
-          echo "IMAGE_NAME=${GITHUB_REPOSITORY_OWNER,,}/la-sella" >> $GITHUB_ENV
+          echo "IMAGE_NAME=${GITHUB_REPOSITORY_OWNER,,}/pr-bro" >> $GITHUB_ENV
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3

@@ -5,4 +5,4 @@ User-agent: Googlebot
 Allow: /
 Disallow: /success
 
-Sitemap: https://site.com/sitemap-index.xml
+Sitemap: https://prbro.pavoo.me/sitemap-index.xml
