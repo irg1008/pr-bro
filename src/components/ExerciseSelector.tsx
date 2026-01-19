@@ -6,7 +6,7 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
+  DialogTrigger
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -35,10 +35,13 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   const [internalOpen, setInternalOpen] = useState(false);
 
   const isOpen = controlledOpen !== undefined ? controlledOpen : internalOpen;
-  const setIsOpen = useCallback((val: boolean) => {
-    if (onOpenChange) onOpenChange(val);
-    if (controlledOpen === undefined) setInternalOpen(val);
-  }, [onOpenChange, controlledOpen]);
+  const setIsOpen = useCallback(
+    (val: boolean) => {
+      if (onOpenChange) onOpenChange(val);
+      if (controlledOpen === undefined) setInternalOpen(val);
+    },
+    [onOpenChange, controlledOpen]
+  );
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [page, setPage] = useState(1);
@@ -46,7 +49,9 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState("");
   const [debouncedSearch] = useDebounce(search, 500);
-  const [activeCategory, setActiveCategory] = useState<string | null>(preferredCategories[0] || null);
+  const [activeCategory, setActiveCategory] = useState<string | null>(
+    preferredCategories[0] || null
+  );
 
   // Infinite Scroll Observer
   const observer = useRef<IntersectionObserver | null>(null);
@@ -79,7 +84,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           page: page.toString(),
           limit: "20",
           search: debouncedSearch,
-          category: activeCategory || "",
+          category: activeCategory || ""
         });
 
         // Request prioritization if we are just browsing (no specific category filter)
@@ -113,28 +118,28 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   return (
     <Dialog open={isOpen} onOpenChange={setIsOpen}>
       <DialogTrigger asChild>
-        {trigger ? trigger : (
-          <Button variant="default" className="w-full sm:w-62.5 justify-between">
+        {trigger ? (
+          trigger
+        ) : (
+          <Button variant="default" className="w-full justify-between sm:w-62.5">
             <span className="flex items-center gap-2">
-              <Plus className="w-4 h-4" /> Add Exercise
+              <Plus className="h-4 w-4" /> Add Exercise
             </span>
-            <span className="text-[10px] font-bold bg-black/20 text-white dark:text-white px-2 py-0.5 rounded-full">
+            <span className="rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-bold text-white dark:text-white">
               {selectedExerciseIds.length} added
             </span>
           </Button>
         )}
       </DialogTrigger>
-      <DialogContent className="max-w-4xl h-[80vh] flex flex-col p-6">
+      <DialogContent className="flex h-[80vh] max-w-4xl flex-col p-6">
         <DialogHeader>
           <DialogTitle>Select Exercise</DialogTitle>
-          <DialogDescription>
-            Search and select exercises to add to your routine.
-          </DialogDescription>
+          <DialogDescription>Search and select exercises to add to your routine.</DialogDescription>
         </DialogHeader>
 
         <div className="flex flex-col gap-4">
           <div className="relative flex-1">
-            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+            <Search className="text-muted-foreground absolute top-2.5 left-2.5 h-4 w-4" />
             <Input
               placeholder="Search by name..."
               className="pl-8"
@@ -144,9 +149,11 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           </div>
           {/* Preferred Categories Filter */}
           {preferredCategories.length > 0 && (
-            <div className="flex gap-2 flex-wrap items-center">
-              <span className="text-xs font-semibold whitespace-nowrap text-muted-foreground">Focus:</span>
-              {preferredCategories.map(cat => (
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-muted-foreground text-xs font-semibold whitespace-nowrap">
+                Focus:
+              </span>
+              {preferredCategories.map((cat) => (
                 <Badge
                   key={cat}
                   variant={activeCategory === cat ? "default" : "outline"}
@@ -167,13 +174,12 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           )}
         </div>
 
-
-        <div className="flex flex-col gap-4 flex-1 overflow-y-auto">
+        <div className="flex flex-1 flex-col gap-4 overflow-y-auto">
           {/* Controls */}
 
           {/* Grid */}
-          <div className="flex-1 min-h-0 px-2">
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-4 pb-4">
+          <div className="min-h-0 flex-1 px-2">
+            <div className="grid grid-cols-2 gap-4 pt-4 pb-4 md:grid-cols-3">
               {exercises.map((ex, index) => {
                 const isSelected = selectedExerciseIds.includes(ex.id);
                 return (
@@ -181,36 +187,51 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                     key={ex.id}
                     ref={index === exercises.length - 1 ? lastElementRef : null}
                     className={cn(
-                      "group relative flex flex-col border rounded-lg overflow-hidden cursor-pointer transition-all hover:ring-2 hover:ring-primary",
-                      isSelected && "ring-2 ring-primary bg-muted/50"
+                      "group hover:ring-primary relative flex cursor-pointer flex-col overflow-hidden rounded-lg border transition-all hover:ring-2",
+                      isSelected && "ring-primary bg-muted/50 ring-2"
                     )}
                     onClick={() => handleExerciseClick(ex)}
                   >
-                    <div className="aspect-square bg-muted relative overflow-hidden">
+                    <div className="bg-muted relative aspect-square overflow-hidden">
                       {ex.imageUrl ? (
                         <img
                           src={ex.imageUrl}
                           alt={ex.name}
                           loading="lazy"
-                          className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                          className="h-full w-full object-cover transition-transform group-hover:scale-105"
                         />
                       ) : (
-                        <div className="flex items-center justify-center h-full text-muted-foreground">No Image</div>
+                        <div className="text-muted-foreground flex h-full items-center justify-center">
+                          No Image
+                        </div>
                       )}
                       {isSelected && (
-                        <div className="absolute inset-0 bg-primary/40 flex items-center justify-center">
+                        <div className="bg-primary/40 absolute inset-0 flex items-center justify-center">
                           <div className="bg-primary text-primary-foreground rounded-full p-2">
-                            <Check className="w-6 h-6" />
+                            <Check className="h-6 w-6" />
                           </div>
                         </div>
                       )}
                     </div>
-                    <div className="p-3 flex flex-col gap-1 grow">
-                      <h4 className="font-semibold text-sm capitalize leading-tight" title={ex.name}>{ex.name}</h4>
-                      <div className="flex gap-1 flex-wrap mt-auto pt-2">
-                        <Badge variant="secondary" className="text-[10px] h-fit py-0.5 px-1.5 whitespace-normal text-center capitalize">{ex.category?.toLowerCase() || 'other'}</Badge>
+                    <div className="flex grow flex-col gap-1 p-3">
+                      <h4
+                        className="text-sm leading-tight font-semibold capitalize"
+                        title={ex.name}
+                      >
+                        {ex.name}
+                      </h4>
+                      <div className="mt-auto flex flex-wrap gap-1 pt-2">
+                        <Badge
+                          variant="secondary"
+                          className="h-fit px-1.5 py-0.5 text-center text-[10px] whitespace-normal capitalize"
+                        >
+                          {ex.category?.toLowerCase() || "other"}
+                        </Badge>
                         {ex.target && ex.target !== ex.category && (
-                          <Badge variant="secondary" className="text-[10px] h-fit py-0.5 px-1.5 whitespace-normal text-center capitalize">
+                          <Badge
+                            variant="secondary"
+                            className="h-fit px-1.5 py-0.5 text-center text-[10px] whitespace-normal capitalize"
+                          >
                             {ex.target.toLowerCase()}
                           </Badge>
                         )}
@@ -220,12 +241,12 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                 );
               })}
               {loading && (
-                <div className="col-span-full py-4 text-center text-muted-foreground">
+                <div className="text-muted-foreground col-span-full py-4 text-center">
                   Loading more exercises...
                 </div>
               )}
               {!loading && exercises.length === 0 && (
-                <div className="col-span-full py-12 text-center text-muted-foreground">
+                <div className="text-muted-foreground col-span-full py-12 text-center">
                   No exercises found.
                 </div>
               )}

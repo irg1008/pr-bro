@@ -1,5 +1,8 @@
 ---
+import { DeleteHistoryButton } from "@/components/DeleteHistoryButton";
+import { Button } from "@/components/ui/button";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import type {
 	Routine,
 	RoutineGroup,
@@ -13,68 +16,176 @@ type WorkoutLogWithRoutine = WorkoutLog & {
 };
 const allLogs: WorkoutLogWithRoutine[] = await response.json();
 const logs = allLogs.filter((log) => log.finishedAt);
+
+// Pagination settings
+const PageSize = 5;
+const pageParam = Astro.url.searchParams.get("page");
+const currentPage = pageParam ? parseInt(pageParam) : 1;
+
+// Grouping Logic
+// Grouping Logic
+type CycleKey = string; // "${routineGroupId}-${cycleNumber}"
+
+interface Cycle {
+	id: string; // key
+	groupName: string;
+	cycleNumber: number;
+	logs: WorkoutLogWithRoutine[];
+	startDate: Date;
+	endDate: Date;
+	durationDays: number;
+	lastLogDate: Date; // For sorting cycles
+}
+
+const cyclesMap = new Map<CycleKey, Cycle>();
+
+logs.forEach((log) => {
+	const groupName = log.routine.group.name;
+	const cycleNum = (log as any).cycleNumber || 1; // Cast to any to avoid TS error if types aren't fully synced
+	const key = `${log.routine.group.id}-${cycleNum}`;
+
+	if (!cyclesMap.has(key)) {
+		cyclesMap.set(key, {
+			id: key,
+			groupName,
+			cycleNumber: cycleNum,
+			logs: [],
+			startDate: new Date(log.createdAt),
+			endDate: new Date(log.createdAt),
+			durationDays: 0,
+			lastLogDate: new Date(log.createdAt),
+		});
+	}
+
+	const cycle = cyclesMap.get(key)!;
+	cycle.logs.push(log);
+
+	const logDate = new Date(log.createdAt);
+	if (logDate < cycle.startDate) cycle.startDate = logDate;
+	if (logDate > cycle.endDate) cycle.endDate = logDate;
+	if (logDate > cycle.lastLogDate) cycle.lastLogDate = logDate;
+});
+
+// Finalize Cycle Metadata
+const cycles = Array.from(cyclesMap.values()).map((cycle) => {
+	// Sort logs within cycle descending (newest first)
+	cycle.logs.sort(
+		(a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+	);
+
+	// Calculate duration properly
+	const diffTime = Math.abs(
+		cycle.endDate.getTime() - cycle.startDate.getTime(),
+	);
+	cycle.durationDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Inclusive
+	if (cycle.durationDays < 1) cycle.durationDays = 1;
+
+	return cycle;
+});
+
+// Sort cycles to show newest activity first
+cycles.sort((a, b) => b.lastLogDate.getTime() - a.lastLogDate.getTime());
+
+// 4. Paginate
+const totalPages = Math.ceil(cycles.length / PageSize);
+const paginatedCycles = cycles.slice(
+	(currentPage - 1) * PageSize,
+	currentPage * PageSize,
+);
 ---
 
 <BaseLayout title="Workout History">
-	<div class="container mx-auto py-8 px-4">
-		<h1 class="text-3xl font-bold mb-8">Workout History</h1>
+	<div class="container mx-auto py-8 px-4 max-w-xl">
+		<div class="flex justify-between items-center mb-8">
+			<h1 class="text-3xl font-bold">Workout History</h1>
+			<DeleteHistoryButton client:visible />
+		</div>
 
-		<div class="space-y-4">
+		<div class="space-y-8">
 			{
-				logs.map((log) => (
-					<a
-						href={`/history/${log.id}`}
-						class="block rounded-lg border bg-card text-card-foreground shadow-sm p-4 hover:bg-accent transition-colors"
-					>
-						<div class="flex justify-between items-start">
+				paginatedCycles.map((cycle) => (
+					<div class="space-y-4">
+						{/* Cycle Header */}
+						<div class="flex items-center justify-between border-b pb-2">
 							<div>
-								<h3 class="font-bold text-lg capitalize">{log.routine.name}</h3>
-								<p class="text-sm text-muted-foreground capitalize">
-									{log.routine.group.name}
-								</p>
-								<p class="text-xs text-muted-foreground mt-1">
-									{new Date(log.createdAt).toLocaleDateString()} &bull;{" "}
-									{new Date(log.createdAt).toLocaleTimeString([], {
-										hour: "2-digit",
-										minute: "2-digit",
+								<h2 class="text-xl font-bold text-primary">
+									{cycle.groupName} - Cycle {cycle.cycleNumber}
+								</h2>
+								<p class="text-xs text-muted-foreground">
+									{cycle.startDate.toLocaleDateString(undefined, {
+										month: "short",
+										day: "numeric",
+									})}{" "}
+									-{" "}
+									{cycle.endDate.toLocaleDateString(undefined, {
+										month: "short",
+										day: "numeric",
 									})}
-									{log.finishedAt && (
-										<span>
-											{" "}
-											-{" "}
-											{new Date(log.finishedAt).toLocaleTimeString([], {
-												hour: "2-digit",
-												minute: "2-digit",
-											})}
-										</span>
-									)}
 								</p>
 							</div>
-							<div class="text-right">
-								<div class="text-sm font-medium">
-									{log.finishedAt
-										? (() => {
-												const diff = Math.round(
-													(new Date(log.finishedAt).getTime() -
-														new Date(log.createdAt).getTime()) /
-														1000,
-												);
-												return diff >= 3600
-													? Math.floor(diff / 3600) +
-															"h " +
-															Math.round((diff % 3600) / 60) +
-															"m"
-													: Math.round(diff / 60) + " min";
-											})()
-										: "N/A"}
-								</div>
+							<div class="bg-muted px-2 py-1 rounded text-xs font-medium">
+								{cycle.durationDays} Days
 							</div>
 						</div>
-					</a>
+
+						{/* Logs List */}
+						<div class="space-y-3">
+							{cycle.logs.map((log) => (
+								<a
+									href={`/history/${log.id}`}
+									class="block rounded-lg border bg-card text-card-foreground shadow-sm p-4 hover:bg-accent transition-colors relative overflow-hidden group"
+								>
+									<div class="flex justify-between items-start z-10 relative">
+										<div>
+											<h3 class="font-bold text-lg capitalize flex items-center gap-2">
+												{log.routine.name}
+											</h3>
+											<p class="text-xs text-muted-foreground mt-1">
+												{new Date(log.createdAt).toLocaleDateString()} &bull;{" "}
+												{new Date(log.createdAt).toLocaleTimeString([], {
+													hour: "2-digit",
+													minute: "2-digit",
+												})}
+												{log.finishedAt && (
+													<span>
+														{" - "}
+														{new Date(log.finishedAt).toLocaleTimeString([], {
+															hour: "2-digit",
+															minute: "2-digit",
+														})}
+													</span>
+												)}
+											</p>
+										</div>
+										<div class="text-right">
+											<div class="text-sm font-medium">
+												{log.finishedAt
+													? (() => {
+															const diff = Math.round(
+																(new Date(log.finishedAt).getTime() -
+																	new Date(log.createdAt).getTime()) /
+																	1000,
+															);
+															return diff >= 3600
+																? Math.floor(diff / 3600) +
+																		"h " +
+																		Math.round((diff % 3600) / 60) +
+																		"m"
+																: Math.round(diff / 60) + " min";
+														})()
+													: "N/A"}
+											</div>
+										</div>
+									</div>
+								</a>
+							))}
+						</div>
+					</div>
 				))
 			}
+
 			{
-				logs.length === 0 && (
+				cycles.length === 0 && (
 					<div class="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/20">
 						<p class="text-lg mb-2 font-medium">No history available yet</p>
 						<p class="text-sm">Complete your first workout to see it here!</p>
@@ -82,5 +193,44 @@ const logs = allLogs.filter((log) => log.finishedAt);
 				)
 			}
 		</div>
+
+		{/* Pagination Controls */}
+		{
+			totalPages > 1 && (
+				<div class="flex justify-center gap-4 mt-8 pt-4 border-t">
+					<Button
+						variant="outline"
+						size="icon"
+						disabled={currentPage <= 1}
+						asChild
+					>
+						<a href={currentPage > 1 ? `?page=${currentPage - 1}` : undefined}>
+							<ChevronLeft className="h-4 w-4" />
+						</a>
+					</Button>
+
+					<div class="flex items-center text-sm font-medium">
+						Page {currentPage} of {totalPages}
+					</div>
+
+					<Button
+						variant="outline"
+						size="icon"
+						disabled={currentPage >= totalPages}
+						asChild
+					>
+						<a
+							href={
+								currentPage < totalPages
+									? `?page=${currentPage + 1}`
+									: undefined
+							}
+						>
+							<ChevronRight className="h-4 w-4" />
+						</a>
+					</Button>
+				</div>
+			)
+		}
 	</div>
 </BaseLayout>

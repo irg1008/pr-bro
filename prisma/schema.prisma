@@ -74,14 +74,15 @@ model RoutineExercise {
 }
 
 model WorkoutLog {
-  id         String            @id @default(cuid())
-  routineId  String
-  routine    Routine           @relation(fields: [routineId], references: [id])
-  date       DateTime          @default(now())
-  finishedAt DateTime?
-  entries    WorkoutLogEntry[]
-  createdAt  DateTime          @default(now())
-  updatedAt  DateTime          @updatedAt
+  id          String            @id @default(cuid())
+  routineId   String
+  routine     Routine           @relation(fields: [routineId], references: [id])
+  date        DateTime          @default(now())
+  finishedAt  DateTime?
+  entries     WorkoutLogEntry[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+  cycleNumber Int               @default(1)
 }
 
 model WorkoutLogEntry {

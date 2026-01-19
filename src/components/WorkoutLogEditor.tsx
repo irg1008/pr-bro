@@ -15,7 +15,7 @@ import { Input } from "@/components/ui/input";
 import { navigate } from "astro:transitions/client";
 import { Trash2, X } from "lucide-react";
 import type { Exercise, WorkoutLogEntry } from "prisma/generated/client";
-import React, { useState } from 'react';
+import React, { useState } from "react";
 
 type WorkoutLogEntryWithExercise = WorkoutLogEntry & { exercise: Exercise };
 
@@ -25,14 +25,11 @@ interface WorkoutLogEditorProps {
 }
 
 // Helper type since sets are JSON in Prisma but we use them as objects here
-type WorkoutLogEntryButSetsAny = Omit<WorkoutLogEntryWithExercise, 'sets'> & { sets: any[] };
+type WorkoutLogEntryButSetsAny = Omit<WorkoutLogEntryWithExercise, "sets"> & { sets: any[] };
 
-export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
-  logId,
-  initialEntries,
-}) => {
+export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({ logId, initialEntries }) => {
   const [entries, setEntries] = useState<WorkoutLogEntryButSetsAny[]>(
-    initialEntries.map(e => ({ ...e, sets: e.sets as any[] }))
+    initialEntries.map((e) => ({ ...e, sets: e.sets as any[] }))
   );
 
   const updateSet = (entryIndex: number, setIndex: number, field: string, value: number) => {
@@ -47,21 +44,21 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
     // Transform array back to Record<exerciseId, sets[]> for backend consistency
     const entriesPayload: Record<string, any> = {};
 
-    entries.forEach(entry => {
+    entries.forEach((entry) => {
       entriesPayload[entry.exerciseId] = entry.sets;
     });
 
     await fetch(`/api/workout-logs/${logId}`, {
       method: "PUT",
       body: JSON.stringify({ entries: entriesPayload }),
-      headers: { "Content-Type": "application/json" },
+      headers: { "Content-Type": "application/json" }
     });
     navigate("/history");
   };
 
   const handleDelete = async () => {
     await fetch(`/api/workout-logs/${logId}`, {
-      method: "DELETE",
+      method: "DELETE"
     });
     navigate("/history");
   };
@@ -70,12 +67,17 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
     <div className="space-y-6">
       <div className="flex justify-end px-1">
         <AlertDialog>
-          <AlertDialogTrigger render={
-
-            <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-destructive">
-              <Trash2 className="h-5 w-5" />
-            </Button>
-          } />
+          <AlertDialogTrigger
+            render={
+              <Button
+                variant="ghost"
+                size="icon"
+                className="text-muted-foreground hover:text-destructive"
+              >
+                <Trash2 className="h-5 w-5" />
+              </Button>
+            }
+          />
           <AlertDialogContent>
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
@@ -85,7 +87,10 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              <AlertDialogAction
+                onClick={handleDelete}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
                 Delete
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -97,16 +102,20 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
         <Card key={entry.id}>
           <CardHeader className="flex flex-row items-center gap-4">
             {entry.exercise.imageUrl && (
-              <img src={entry.exercise.imageUrl} alt={entry.exercise.name} className="w-16 h-16 rounded object-cover border" />
+              <img
+                src={entry.exercise.imageUrl}
+                alt={entry.exercise.name}
+                className="h-16 w-16 rounded border object-cover"
+              />
             )}
             <div className="flex flex-col">
               <CardTitle className="capitalize">{entry.exercise.name}</CardTitle>
-              <div className="flex gap-2 items-center mt-1 flex-wrap">
-                <span className="text-xs font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded capitalize">
-                  {entry.exercise.category?.toLowerCase() || 'other'}
+              <div className="mt-1 flex flex-wrap items-center gap-2">
+                <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs font-medium capitalize">
+                  {entry.exercise.category?.toLowerCase() || "other"}
                 </span>
                 {entry.exercise.target && entry.exercise.target !== entry.exercise.category && (
-                  <span className="text-xs font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded capitalize">
+                  <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs font-medium capitalize">
                     {entry.exercise.target.toLowerCase()}
                   </span>
                 )}
@@ -114,8 +123,8 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
             </div>
           </CardHeader>
           <CardContent className="space-y-2">
-            {entry.exercise.type === 'CARDIO' ? (
-              <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 text-sm font-medium text-muted-foreground">
+            {entry.exercise.type === "CARDIO" ? (
+              <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 text-sm font-medium">
                 <div>Set</div>
                 <div>Minutes</div>
                 <div>Km</div>
@@ -123,7 +132,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                 <div></div>
               </div>
             ) : (
-              <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-sm font-medium text-muted-foreground">
+              <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-sm font-medium">
                 <div>Set</div>
                 <div>kg</div>
                 <div>Reps</div>
@@ -132,30 +141,39 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
             )}
 
             {entry.sets.map((set: any, setIdx: number) => (
-              <div key={setIdx} className={`grid gap-2 items-center ${entry.exercise.type === 'CARDIO' ? 'grid-cols-[auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_1fr_1fr_auto]'}`}>
-                <div className="text-center font-bold bg-muted rounded py-2 px-3">{setIdx + 1}</div>
+              <div
+                key={setIdx}
+                className={`grid items-center gap-2 ${entry.exercise.type === "CARDIO" ? "grid-cols-[auto_1fr_1fr_1fr_auto]" : "grid-cols-[auto_1fr_1fr_auto]"}`}
+              >
+                <div className="bg-muted rounded px-3 py-2 text-center font-bold">{setIdx + 1}</div>
 
-                {entry.exercise.type === 'CARDIO' ? (
+                {entry.exercise.type === "CARDIO" ? (
                   <>
                     <Input
                       type="number"
-                      value={set.duration === '' ? '' : set.duration}
-                      onChange={(e) => updateSet(entryIdx, setIdx, 'duration', Number(e.target.value))}
-                      className="text-center px-1"
+                      value={set.duration === "" ? "" : set.duration}
+                      onChange={(e) =>
+                        updateSet(entryIdx, setIdx, "duration", Number(e.target.value))
+                      }
+                      className="px-1 text-center"
                       placeholder="0"
                     />
                     <Input
                       type="number"
-                      value={set.distance === '' ? '' : set.distance}
-                      onChange={(e) => updateSet(entryIdx, setIdx, 'distance', Number(e.target.value))}
-                      className="text-center px-1"
+                      value={set.distance === "" ? "" : set.distance}
+                      onChange={(e) =>
+                        updateSet(entryIdx, setIdx, "distance", Number(e.target.value))
+                      }
+                      className="px-1 text-center"
                       placeholder="0"
                     />
                     <Input
                       type="number"
-                      value={set.calories === '' ? '' : set.calories}
-                      onChange={(e) => updateSet(entryIdx, setIdx, 'calories', Number(e.target.value))}
-                      className="text-center px-1"
+                      value={set.calories === "" ? "" : set.calories}
+                      onChange={(e) =>
+                        updateSet(entryIdx, setIdx, "calories", Number(e.target.value))
+                      }
+                      className="px-1 text-center"
                       placeholder="0"
                     />
                   </>
@@ -164,13 +182,15 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                     <Input
                       type="number"
                       value={set.weight}
-                      onChange={(e) => updateSet(entryIdx, setIdx, 'weight', Number(e.target.value))}
+                      onChange={(e) =>
+                        updateSet(entryIdx, setIdx, "weight", Number(e.target.value))
+                      }
                       className="text-center"
                     />
                     <Input
                       type="number"
                       value={set.reps}
-                      onChange={(e) => updateSet(entryIdx, setIdx, 'reps', Number(e.target.value))}
+                      onChange={(e) => updateSet(entryIdx, setIdx, "reps", Number(e.target.value))}
                       className="text-center"
                     />
                   </>
@@ -179,11 +199,13 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  className="text-muted-foreground hover:text-destructive h-8 w-8"
                   onClick={() => {
                     if (entry.sets.length <= 1) return;
                     const newEntries = [...entries];
-                    newEntries[entryIdx].sets = newEntries[entryIdx].sets.filter((_: any, i: number) => i !== setIdx);
+                    newEntries[entryIdx].sets = newEntries[entryIdx].sets.filter(
+                      (_: any, i: number) => i !== setIdx
+                    );
                     setEntries(newEntries);
                   }}
                   disabled={entry.sets.length <= 1}
@@ -195,10 +217,14 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
             <Button
               variant="outline"
               size="sm"
-              className="w-full mt-2"
+              className="mt-2 w-full"
               onClick={() => {
                 const newEntries = [...entries];
-                const lastSet = newEntries[entryIdx].sets[newEntries[entryIdx].sets.length - 1] || { weight: 0, reps: 0, completed: false };
+                const lastSet = newEntries[entryIdx].sets[newEntries[entryIdx].sets.length - 1] || {
+                  weight: 0,
+                  reps: 0,
+                  completed: false
+                };
                 newEntries[entryIdx].sets = [...newEntries[entryIdx].sets, { ...lastSet }];
                 setEntries(newEntries);
               }}
@@ -210,7 +236,9 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
       ))}
 
       <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={() => navigate("/history")}>Cancel</Button>
+        <Button variant="outline" onClick={() => navigate("/history")}>
+          Cancel
+        </Button>
         <Button onClick={handleSave}>Save Changes</Button>
       </div>
     </div>

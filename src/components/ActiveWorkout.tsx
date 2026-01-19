@@ -7,7 +7,7 @@ import {
   AlertDialogDescription,
   AlertDialogFooter,
   AlertDialogHeader,
-  AlertDialogTitle,
+  AlertDialogTitle
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,12 +16,29 @@ import {
   CarouselItem,
   type CarouselApi
 } from "@/components/ui/carousel";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { navigate } from "astro:transitions/client";
-import { Activity, ArrowLeftRight, Bike, Dumbbell, Footprints, Plus, Timer, Trash2, Waves, X } from "lucide-react";
+import {
+  Activity,
+  ArrowLeftRight,
+  Bike,
+  Dumbbell,
+  Footprints,
+  Plus,
+  Timer,
+  Trash2,
+  Waves,
+  X
+} from "lucide-react";
 import type { Exercise } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 
 const CARDIO_OPTIONS = [
@@ -30,21 +47,21 @@ const CARDIO_OPTIONS = [
   { name: "Cycling", icon: Bike },
   { name: "Swimming", icon: Waves },
   { name: "HIIT", icon: Timer },
-  { name: "Other", icon: Dumbbell },
+  { name: "Other", icon: Dumbbell }
 ];
 
 export const ExerciseType = {
-  WEIGHT: 'WEIGHT',
-  CARDIO: 'CARDIO'
+  WEIGHT: "WEIGHT",
+  CARDIO: "CARDIO"
 } as const;
-export type ExerciseType = typeof ExerciseType[keyof typeof ExerciseType];
+export type ExerciseType = (typeof ExerciseType)[keyof typeof ExerciseType];
 
 export interface WorkoutSet {
-  weight?: number | '';
-  reps?: number | '';
-  duration?: number | ''; // minutes?
-  distance?: number | ''; // km?
-  calories?: number | '';
+  weight?: number | "";
+  reps?: number | "";
+  duration?: number | ""; // minutes?
+  distance?: number | ""; // km?
+  calories?: number | "";
   completed: boolean;
 }
 
@@ -69,13 +86,18 @@ export const ActiveWorkout = ({
   // Dynamic Exercise State
   const [activeExercises, setActiveExercises] = useState<Exercise[]>(initialExercises);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [pickerMode, setPickerMode] = useState<'add' | 'replace'>('add');
+  const [pickerMode, setPickerMode] = useState<"add" | "replace">("add");
 
   const [cardioModalOpen, setCardioModalOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [saveSuccessOpen, setSaveSuccessOpen] = useState(false);
-  const [infoAlert, setInfoAlert] = useState<{ open: boolean; title: string; message: string }>({ open: false, title: '', message: '' });
-  const [supersetStatus, setSupersetStatus] = useState<Record<string, boolean>>(initialSupersetStatus);
+  const [infoAlert, setInfoAlert] = useState<{ open: boolean; title: string; message: string }>({
+    open: false,
+    title: "",
+    message: ""
+  });
+  const [supersetStatus, setSupersetStatus] =
+    useState<Record<string, boolean>>(initialSupersetStatus);
 
   // Fetch existing log data on mount (resume support)
   useEffect(() => {
@@ -119,11 +141,11 @@ export const ActiveWorkout = ({
       const normalizedDistance = machineDistance * (slideCount - 1);
       const factor = Math.min(Math.max(1 - normalizedDistance, 0), 1);
 
-      const opacity = 0.3 + (0.7 * factor);
-      const scale = 0.9 + (0.1 * factor);
+      const opacity = 0.3 + 0.7 * factor;
+      const scale = 0.9 + 0.1 * factor;
       const blur = (1 - factor) * 4;
 
-      const inner = slide.querySelector('.carousel-visual-content') as HTMLElement;
+      const inner = slide.querySelector(".carousel-visual-content") as HTMLElement;
       if (inner) {
         inner.style.opacity = opacity.toString();
         inner.style.transform = `scale(${scale})`;
@@ -149,19 +171,18 @@ export const ActiveWorkout = ({
       onScroll(api);
       setCurrent(api.selectedScrollSnap());
     });
-
   }, [api, onScroll]);
 
   const currentExercise = activeExercises[current] || activeExercises[0];
 
   const createEmptySet = (type: ExerciseType = ExerciseType.WEIGHT): WorkoutSet => {
     if (type === ExerciseType.CARDIO) {
-      return { duration: '', distance: '', calories: '', completed: false };
+      return { duration: "", distance: "", calories: "", completed: false };
     }
-    return { weight: '', reps: '', completed: false };
+    return { weight: "", reps: "", completed: false };
   };
 
-  const updateSet = (idx: number, field: keyof WorkoutSet, value: number | '') => {
+  const updateSet = (idx: number, field: keyof WorkoutSet, value: number | "") => {
     const exId = currentExercise?.id;
     if (!exId) return;
 
@@ -199,14 +220,14 @@ export const ActiveWorkout = ({
   };
 
   const validateAll = () => {
-    return activeExercises.every(ex => {
+    return activeExercises.every((ex) => {
       const exSets = sets[ex.id] || [createEmptySet(ex.type as ExerciseType)];
-      return exSets.every(s => {
+      return exSets.every((s) => {
         if (ex.type === ExerciseType.CARDIO) {
           // User request: Minutes and Calories are required
-          return s.duration !== '' && s.calories !== '';
+          return s.duration !== "" && s.calories !== "";
         } else {
-          return s.weight !== '' && s.reps !== '';
+          return s.weight !== "" && s.reps !== "";
         }
       });
     });
@@ -214,21 +235,19 @@ export const ActiveWorkout = ({
 
   const isFormValid = validateAll();
 
-
-
   const sanitizeSets = () => {
     const completeSets: Record<string, WorkoutSet[]> = {};
-    const validExerciseIds = new Set(activeExercises.map(e => e.id));
+    const validExerciseIds = new Set(activeExercises.map((e) => e.id));
 
     // Only include sets for currently active exercises
-    Object.keys(sets).forEach(key => {
+    Object.keys(sets).forEach((key) => {
       if (validExerciseIds.has(key)) {
         completeSets[key] = sets[key];
       }
     });
 
     // Ensure data exists for all active exercises
-    activeExercises.forEach(ex => {
+    activeExercises.forEach((ex) => {
       if (!completeSets[ex.id]) {
         completeSets[ex.id] = [createEmptySet(ex.type as ExerciseType)];
       }
@@ -240,13 +259,13 @@ export const ActiveWorkout = ({
     const completeSets = sanitizeSets();
     try {
       await fetch(`/api/workout-logs/${logId}`, {
-        method: 'PUT',
+        method: "PUT",
         body: JSON.stringify({
           entries: completeSets,
-          supersetStatus,
+          supersetStatus
           // No finishedAt for save
         }),
-        headers: { 'Content-Type': 'application/json' }
+        headers: { "Content-Type": "application/json" }
       });
 
       setSaveSuccessOpen(true);
@@ -264,24 +283,25 @@ export const ActiveWorkout = ({
     if (!isFormValid) return;
     const completeSets = sanitizeSets();
 
-    try {
-      await fetch(`/api/workout-logs/${logId}`, {
-        method: 'PUT',
+    toast.promise(
+      fetch(`/api/workout-logs/${logId}`, {
+        method: "PUT",
         body: JSON.stringify({
           entries: completeSets,
           supersetStatus,
           finishedAt: new Date().toISOString()
         }),
-        headers: { 'Content-Type': 'application/json' }
-      });
-      toast.success("Workout finished!", {
-        description: "Great job! Your progress has been saved.",
-        duration: 3000,
-      });
-      navigate("/");
-    } catch (e) {
-      console.error("Finish failed", e);
-    }
+        headers: { "Content-Type": "application/json" }
+      }),
+      {
+        loading: "Saving workout...",
+        success: () => {
+          navigate("/");
+          return "Workout saved!";
+        },
+        error: "Failed to save workout."
+      }
+    );
   };
 
   const handleCancel = () => {
@@ -289,20 +309,20 @@ export const ActiveWorkout = ({
   };
 
   const openAddExercise = () => {
-    setPickerMode('add');
+    setPickerMode("add");
     setPickerOpen(true);
   };
 
   const openReplaceExercise = () => {
-    setPickerMode('replace');
+    setPickerMode("replace");
     setPickerOpen(true);
   };
 
   const handleExerciseSelect = async (exercise: Exercise) => {
     if (!exercise) return;
 
-    if (pickerMode === 'add') {
-      setActiveExercises(prev => [...prev, exercise]);
+    if (pickerMode === "add") {
+      setActiveExercises((prev) => [...prev, exercise]);
       // Give time for render then scroll
       setTimeout(() => api?.scrollTo(activeExercises.length), 100);
     } else {
@@ -326,7 +346,9 @@ export const ActiveWorkout = ({
       // Find generic cardio or specific term (Running, Walking, etc)
       // Note: These must be seeded or created on command if we want specific types
       // Use uppercase CARDIO to match seed
-      const res = await fetch(`/api/exercises?search=${encodeURIComponent(term)}&category=CARDIO&limit=1`);
+      const res = await fetch(
+        `/api/exercises?search=${encodeURIComponent(term)}&category=CARDIO&limit=1`
+      );
 
       let found: Exercise | null = null;
       if (res.ok) {
@@ -343,19 +365,18 @@ export const ActiveWorkout = ({
 
       // If not found, we could prompt to create it, or fallback.
       // For now, let's just create it on the fly if backend supports it?
-      // Or just open picker. 
+      // Or just open picker.
       // The user requested seeding, so we assume they will exist.
       setInfoAlert({
         open: true,
         title: "Exercise Not Found",
         message: `Could not find "${term}". Please ensure database is seeded.`
       });
-      setPickerMode('add');
+      setPickerMode("add");
       setPickerOpen(true);
-
     } catch (e) {
       console.error("Failed to quick add cardio", e);
-      setPickerMode('add');
+      setPickerMode("add");
       setPickerOpen(true);
     }
   };
@@ -369,16 +390,16 @@ export const ActiveWorkout = ({
     setDeleteAlertOpen(false);
     if (!currentExercise) return;
 
-    const newExercises = activeExercises.filter(e => e.id !== currentExercise.id);
+    const newExercises = activeExercises.filter((e) => e.id !== currentExercise.id);
     setActiveExercises(newExercises);
 
     const { [currentExercise.id]: _removed, ...restSets } = sets;
     setSets(restSets);
 
     await fetch(`/api/workout-logs/${logId}`, {
-      method: 'PUT',
+      method: "PUT",
       body: JSON.stringify({ entries: restSets, supersetStatus }),
-      headers: { 'Content-Type': 'application/json' }
+      headers: { "Content-Type": "application/json" }
     });
 
     // No scroll adjustment needed usually, but could check current index
@@ -388,83 +409,93 @@ export const ActiveWorkout = ({
   };
 
   const startTimeDisplay = new Date(initialStartTime).toLocaleString(undefined, {
-    year: 'numeric',
-    month: 'numeric',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit'
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
   });
 
   return (
-    <div className="flex flex-col h-full min-h-0 max-w-md mx-auto">
+    <div className="mx-auto flex h-full min-h-0 max-w-md flex-col">
       {/* Header */}
-      <div className="flex justify-between items-center py-4 shrink-0 px-2 lg:px-0">
+      <div className="flex shrink-0 items-center justify-between px-2 py-4 lg:px-0">
         <div className="flex items-center gap-2">
-          <div className="text-sm font-medium text-muted-foreground bg-muted/50 px-3 py-1 rounded-full border">
+          <div className="text-muted-foreground bg-muted/50 rounded-full border px-3 py-1 text-sm font-medium">
             Started: {startTimeDisplay}
           </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <div className="text-sm font-medium bg-muted px-2 py-1 rounded">
+          <div className="bg-muted rounded px-2 py-1 text-sm font-medium">
             {`${current + 1} / ${activeExercises.length + 1}`}
           </div>
         </div>
       </div>
 
       {/* Main Content - Carousel */}
-      <div className="min-h-0 -mx-4">
+      <div className="-mx-4 min-h-0">
         <Carousel setApi={setApi} className="w-full">
           <CarouselContent>
             {activeExercises.map((ex, index) => (
-              <CarouselItem key={`${ex.id}-${index}`} className="h-full px-4 overflow-y-auto">
-                <div
-                  className="carousel-visual-content bg-card rounded-xl shadow-lg overflow-hidden mb-8 h-full transition-none will-change-transform"
-                >
+              <CarouselItem key={`${ex.id}-${index}`} className="h-full overflow-y-auto px-4">
+                <div className="carousel-visual-content bg-card mb-8 h-full overflow-hidden rounded-xl shadow-lg transition-none will-change-transform">
                   {ex.imageUrl && (
-                    <div className="aspect-square w-full bg-muted">
+                    <div className="bg-muted aspect-square w-full">
                       <img
                         src={ex.imageUrl}
                         alt={ex.name}
-                        onClick={() => { }}
-                        className="w-full h-full object-contain"
+                        onClick={() => {}}
+                        className="h-full w-full object-contain"
                       />
                     </div>
                   )}
 
                   <div className="p-4">
-                    <div className="flex justify-between items-start">
+                    <div className="flex items-start justify-between">
                       <div className="flex flex-col">
-                        <h2 className="text-xl font-bold capitalize pr-2">{ex.name}</h2>
-                        <div className="flex gap-2 items-center mt-1 flex-wrap">
-                          <span className="text-xs font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded capitalize">
-                            {ex.category?.toLowerCase() || 'other'}
+                        <h2 className="pr-2 text-xl font-bold capitalize">{ex.name}</h2>
+                        <div className="mt-1 flex flex-wrap items-center gap-2">
+                          <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs font-medium capitalize">
+                            {ex.category?.toLowerCase() || "other"}
                           </span>
                           {ex.target && ex.target !== ex.category && (
-                            <span className="text-xs font-medium text-muted-foreground bg-secondary px-2 py-0.5 rounded capitalize">
+                            <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs font-medium capitalize">
                               {ex.target.toLowerCase()}
                             </span>
                           )}
                         </div>
                       </div>
-                      <div className="flex gap-2 items-center">
+                      <div className="flex items-center gap-2">
                         <div
-                          className={`text-xs px-2 py-0.5 rounded cursor-pointer select-none transition-colors border ${supersetStatus[ex.id]
-                            ? "bg-amber-400 border-amber-400 text-white font-semibold"
-                            : "bg-transparent border-muted-foreground/30 text-muted-foreground hover:bg-muted"
-                            }`}
+                          className={`cursor-pointer rounded border px-2 py-0.5 text-xs transition-colors select-none ${
+                            supersetStatus[ex.id]
+                              ? "border-amber-400 bg-amber-400 font-semibold text-white"
+                              : "border-muted-foreground/30 text-muted-foreground hover:bg-muted bg-transparent"
+                          }`}
                           onClick={(e) => {
                             e.stopPropagation();
-                            setSupersetStatus(prev => ({ ...prev, [ex.id]: !prev[ex.id] }));
+                            setSupersetStatus((prev) => ({ ...prev, [ex.id]: !prev[ex.id] }));
                           }}
                           title="Toggle Superset"
                         >
                           Superset
                         </div>
-                        <Button variant="ghost" size="sm" className="h-8 w-8 text-muted-foreground hover:text-foreground hover:bg-muted" onClick={handleDeleteClick} title="Remove Exercise">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-foreground hover:bg-muted h-8 w-8"
+                          onClick={handleDeleteClick}
+                          title="Remove Exercise"
+                        >
                           <Trash2 className="h-4 w-4" />
                         </Button>
-                        <Button variant="ghost" size="sm" className="h-8 gap-2 text-muted-foreground hover:text-foreground" onClick={openReplaceExercise}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-muted-foreground hover:text-foreground h-8 gap-2"
+                          onClick={openReplaceExercise}
+                        >
                           <ArrowLeftRight className="h-4 w-4" />
                           <span className="text-xs">Replace</span>
                         </Button>
@@ -474,7 +505,7 @@ export const ActiveWorkout = ({
 
                   <div className="space-y-3 p-4">
                     {ex.type === ExerciseType.CARDIO ? (
-                      <div className="grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 text-sm font-medium text-muted-foreground">
+                      <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 text-sm font-medium">
                         <div>Set</div>
                         <div>Minutes</div>
                         <div>Km</div>
@@ -482,7 +513,7 @@ export const ActiveWorkout = ({
                         <div></div>
                       </div>
                     ) : (
-                      <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-sm font-medium text-muted-foreground">
+                      <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-sm font-medium">
                         <div>Set</div>
                         <div>kg</div>
                         <div>Reps</div>
@@ -491,30 +522,53 @@ export const ActiveWorkout = ({
                     )}
 
                     {(sets[ex.id] || [createEmptySet(ex.type as ExerciseType)]).map((set, idx) => (
-                      <div key={idx} className={`grid gap-2 items-center ${ex.type === ExerciseType.CARDIO ? 'grid-cols-[auto_1fr_1fr_1fr_auto]' : 'grid-cols-[auto_1fr_1fr_auto]'}`}>
-                        <div className="text-center font-bold bg-muted rounded py-2 px-3">{idx + 1}</div>
+                      <div
+                        key={idx}
+                        className={`grid items-center gap-2 ${ex.type === ExerciseType.CARDIO ? "grid-cols-[auto_1fr_1fr_1fr_auto]" : "grid-cols-[auto_1fr_1fr_auto]"}`}
+                      >
+                        <div className="bg-muted rounded px-3 py-2 text-center font-bold">
+                          {idx + 1}
+                        </div>
 
                         {ex.type === ExerciseType.CARDIO ? (
                           <>
                             <Input
                               type="number"
-                              value={set.duration === '' ? '' : set.duration}
-                              onChange={(e) => updateSet(idx, 'duration', e.target.value === '' ? '' : Number(e.target.value))}
-                              className="text-center px-1"
+                              value={set.duration === "" ? "" : set.duration}
+                              onChange={(e) =>
+                                updateSet(
+                                  idx,
+                                  "duration",
+                                  e.target.value === "" ? "" : Number(e.target.value)
+                                )
+                              }
+                              className="px-1 text-center"
                               placeholder="0"
                             />
                             <Input
                               type="number"
-                              value={set.distance === '' ? '' : set.distance}
-                              onChange={(e) => updateSet(idx, 'distance', e.target.value === '' ? '' : Number(e.target.value))}
-                              className="text-center px-1"
+                              value={set.distance === "" ? "" : set.distance}
+                              onChange={(e) =>
+                                updateSet(
+                                  idx,
+                                  "distance",
+                                  e.target.value === "" ? "" : Number(e.target.value)
+                                )
+                              }
+                              className="px-1 text-center"
                               placeholder="0"
                             />
                             <Input
                               type="number"
-                              value={set.calories === '' ? '' : set.calories}
-                              onChange={(e) => updateSet(idx, 'calories', e.target.value === '' ? '' : Number(e.target.value))}
-                              className="text-center px-1"
+                              value={set.calories === "" ? "" : set.calories}
+                              onChange={(e) =>
+                                updateSet(
+                                  idx,
+                                  "calories",
+                                  e.target.value === "" ? "" : Number(e.target.value)
+                                )
+                              }
+                              className="px-1 text-center"
                               placeholder="0"
                             />
                           </>
@@ -522,15 +576,27 @@ export const ActiveWorkout = ({
                           <>
                             <Input
                               type="number"
-                              value={set.weight === '' ? '' : set.weight}
-                              onChange={(e) => updateSet(idx, 'weight', e.target.value === '' ? '' : Number(e.target.value))}
+                              value={set.weight === "" ? "" : set.weight}
+                              onChange={(e) =>
+                                updateSet(
+                                  idx,
+                                  "weight",
+                                  e.target.value === "" ? "" : Number(e.target.value)
+                                )
+                              }
                               className="text-center"
                               placeholder="0"
                             />
                             <Input
                               type="number"
-                              value={set.reps === '' ? '' : set.reps}
-                              onChange={(e) => updateSet(idx, 'reps', e.target.value === '' ? '' : Number(e.target.value))}
+                              value={set.reps === "" ? "" : set.reps}
+                              onChange={(e) =>
+                                updateSet(
+                                  idx,
+                                  "reps",
+                                  e.target.value === "" ? "" : Number(e.target.value)
+                                )
+                              }
                               className="text-center"
                               placeholder="0"
                             />
@@ -540,7 +606,7 @@ export const ActiveWorkout = ({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          className="text-muted-foreground hover:text-destructive h-8 w-8"
                           onClick={() => removeSet(idx)}
                           disabled={(sets[ex.id] || []).length <= 1}
                         >
@@ -559,18 +625,16 @@ export const ActiveWorkout = ({
 
             {/* Add New Exercise Slide */}
             <CarouselItem className="h-full px-4" key="add-new-slide">
-              <div
-                className="carousel-visual-content bg-card rounded-xl shadow-lg flex flex-col items-center justify-center gap-6 h-full mb-8 py-8"
-              >
-                <Button size="lg" className="w-48 h-12 text-base gap-2" onClick={openAddExercise}>
-                  <Plus className="w-5 h-5" />
+              <div className="carousel-visual-content bg-card mb-8 flex h-full flex-col items-center justify-center gap-6 rounded-xl py-8 shadow-lg">
+                <Button size="lg" className="h-12 w-48 gap-2 text-base" onClick={openAddExercise}>
+                  <Plus className="h-5 w-5" />
                   Add Exercise
                 </Button>
 
                 <Dialog open={cardioModalOpen} onOpenChange={setCardioModalOpen}>
                   <DialogTrigger asChild>
-                    <Button variant="outline" size="lg" className="w-48 h-12 text-base gap-2">
-                      <Activity className="w-5 h-5" />
+                    <Button variant="outline" size="lg" className="h-12 w-48 gap-2 text-base">
+                      <Activity className="h-5 w-5" />
                       Add Cardio
                     </Button>
                   </DialogTrigger>
@@ -583,10 +647,10 @@ export const ActiveWorkout = ({
                         <Button
                           key={option.name}
                           variant="outline"
-                          className="h-24 flex flex-col gap-2 hover:bg-muted/50 hover:border-primary/50 transition-all"
+                          className="hover:bg-muted/50 hover:border-primary/50 flex h-24 flex-col gap-2 transition-all"
                           onClick={() => handleAddCardio(option.name)}
                         >
-                          <option.icon className="w-8 h-8 opacity-70" />
+                          <option.icon className="h-8 w-8 opacity-70" />
                           <span className="font-semibold">{option.name}</span>
                         </Button>
                       ))}
@@ -600,7 +664,7 @@ export const ActiveWorkout = ({
       </div>
 
       {/* Footer Actions */}
-      <div className="bg-background shrink-0 flex flex-col gap-2 pt-2">
+      <div className="bg-background flex shrink-0 flex-col gap-2 pt-2">
         <div className="flex gap-2">
           <Button
             disabled={current >= activeExercises.length}
@@ -611,28 +675,32 @@ export const ActiveWorkout = ({
             Next
           </Button>
           <Button
-            className="flex-1 bg-green-600 hover:bg-green-700 text-white"
+            className="flex-1 bg-green-600 text-white hover:bg-green-700"
             onClick={handleSave}
           >
             Save
           </Button>
           <Button
-            className="flex-1 bg-primary text-primary-foreground hover:bg-primary/90"
+            className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
             onClick={handleFinish}
             disabled={!isFormValid}
           >
             Finish
           </Button>
         </div>
-        <Button variant="ghost" onClick={handleCancel} title="Cancel and Return">Cancel Workout</Button>
+        <Button variant="ghost" onClick={handleCancel} title="Cancel and Return">
+          Cancel Workout
+        </Button>
       </div>
 
       <ExerciseSelector
         open={pickerOpen}
         onOpenChange={setPickerOpen}
         onSelect={handleExerciseSelect}
-        selectedExerciseIds={activeExercises.map(e => e.id)}
-        preferredCategories={Array.from(new Set(activeExercises.map(e => e.category).filter(Boolean))) as string[]}
+        selectedExerciseIds={activeExercises.map((e) => e.id)}
+        preferredCategories={
+          Array.from(new Set(activeExercises.map((e) => e.category).filter(Boolean))) as string[]
+        }
         trigger={<div className="hidden" />}
       />
 
@@ -641,12 +709,17 @@ export const ActiveWorkout = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Remove Exercise?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will remove <span className="font-semibold text-foreground">{currentExercise?.name}</span> and all its sets from your current workout.
+              This will remove{" "}
+              <span className="text-foreground font-semibold">{currentExercise?.name}</span> and all
+              its sets from your current workout.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteExercise} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction
+              onClick={confirmDeleteExercise}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Remove
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -658,29 +731,35 @@ export const ActiveWorkout = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Progress Saved</AlertDialogTitle>
             <AlertDialogDescription>
-              Your workout has been saved successfully. Would you like to exit to the home screen or continue working out?
+              Your workout has been saved successfully. Would you like to exit to the home screen or
+              continue working out?
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSaveSuccessOpen(false)}>Continue Here</AlertDialogCancel>
+            <AlertDialogCancel onClick={() => setSaveSuccessOpen(false)}>
+              Continue Here
+            </AlertDialogCancel>
             <AlertDialogAction onClick={() => navigate("/")}>Exit</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
-      <AlertDialog open={infoAlert.open} onOpenChange={(open) => setInfoAlert(prev => ({ ...prev, open }))}>
+      <AlertDialog
+        open={infoAlert.open}
+        onOpenChange={(open) => setInfoAlert((prev) => ({ ...prev, open }))}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>{infoAlert.title}</AlertDialogTitle>
-            <AlertDialogDescription>
-              {infoAlert.message}
-            </AlertDialogDescription>
+            <AlertDialogDescription>{infoAlert.message}</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogAction onClick={() => setInfoAlert(prev => ({ ...prev, open: false }))}>OK</AlertDialogAction>
+            <AlertDialogAction onClick={() => setInfoAlert((prev) => ({ ...prev, open: false }))}>
+              OK
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div >
+    </div>
   );
 };

@@ -134,10 +134,7 @@ function CarouselContent({ className, ...props }: React.ComponentProps<"div">) {
 
   return (
     <div ref={carouselRef} data-slot="carousel-content">
-      <div
-        className={cn("flex", className)}
-        {...props}
-      />
+      <div className={cn("flex", className)} {...props} />
     </div>
   );
 }
@@ -223,6 +220,8 @@ function CarouselNext({
 export {
   Carousel,
   CarouselContent,
-  CarouselItem, CarouselNext, CarouselPrevious, type CarouselApi
+  CarouselItem,
+  CarouselNext,
+  CarouselPrevious,
+  type CarouselApi
 };
-
