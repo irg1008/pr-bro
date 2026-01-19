@@ -37,6 +37,8 @@ export default defineConfig({
     allowedHosts: ["site.com"]
   },
 
+  output: "server",
+
   adapter: node({
     mode: "standalone"
   }),

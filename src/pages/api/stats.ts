@@ -6,8 +6,7 @@ export const GET: APIRoute = async () => {
   const exercises = await prisma.exercise.findMany({
     include: {
       logEntries: {
-        orderBy: { createdAt: "desc" },
-        take: 2 // We only need the last 2 to compare
+        orderBy: { createdAt: "asc" }
       }
     }
   });
@@ -15,30 +14,44 @@ export const GET: APIRoute = async () => {
   // Process data for display
   const stats = exercises
     .map((ex) => {
-      const latest = ex.logEntries[0];
-      const previous = ex.logEntries[1];
+      // Group by date to find max weight per day
+      const historyMap = new Map<string, number>();
 
-      if (!latest) return null;
+      ex.logEntries.forEach((log) => {
+        const date = new Date(log.createdAt).toISOString().split("T")[0];
+        const sets = log.sets as any[];
 
-      const latestSets = latest.sets as any[];
-      const previousSets = previous ? (previous.sets as any[]) : [];
+        if (!Array.isArray(sets)) return;
 
-      const maxWeightLatest = Math.max(...latestSets.map((s: any) => Number(s.weight) || 0));
-      const maxWeightPrev =
-        previousSets.length > 0
-          ? Math.max(...previousSets.map((s: any) => Number(s.weight) || 0))
-          : 0;
+        const maxWeight = Math.max(...sets.map((s: any) => Number(s.weight) || 0));
 
-      const diff = maxWeightLatest - maxWeightPrev;
+        if (maxWeight > 0) {
+          const current = historyMap.get(date) || 0;
+          if (maxWeight > current) {
+            historyMap.set(date, maxWeight);
+          }
+        }
+      });
+
+      const history = Array.from(historyMap.entries())
+        .map(([date, maxWeight]) => ({ date, maxWeight }))
+        .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+      if (history.length === 0) return null;
+
+      const currentMax = history[history.length - 1].maxWeight;
+      const prevMax = history.length > 1 ? history[history.length - 2].maxWeight : 0;
+      const pr = Math.max(...history.map((h) => h.maxWeight));
 
       return {
         id: ex.id,
         name: ex.name,
-        category: ex.category,
-        lastTrained: latest.createdAt,
-        maxWeight: maxWeightLatest,
-        improvement: previous ? diff : 0,
-        hasHistory: !!previous
+        category: ex.category || "Uncategorized",
+        history,
+        currentMax,
+        pr,
+        improvement: prevMax ? currentMax - prevMax : 0,
+        lastTrained: history[history.length - 1].date
       };
     })
     .filter(Boolean);

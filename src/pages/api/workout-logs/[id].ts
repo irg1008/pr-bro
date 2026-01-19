@@ -31,28 +31,37 @@ export const PUT: APIRoute = async ({ request, params }) => {
   if (!id) return new Response("ID required", { status: 400 });
 
   const data = await request.json();
-  const { entries } = data;
+  const { entries, finishedAt } = data;
 
-  if (!entries) return new Response("Entries required", { status: 400 });
+  if (finishedAt) {
+    await prisma.workoutLog.update({
+      where: { id },
+      data: { finishedAt: new Date(finishedAt) }
+    });
+  }
 
-  // Transaction: Delete old entries, create new ones using update
-  // Actually, easier to update log entries if IDs are preserved, but for simplicity:
-  // We'll update each entry if it exists.
+  if (entries) {
+    // Sync entries: Delete all existing and recreate to handle dynamic changes (add/remove/replace)
+    await prisma.workoutLogEntry.deleteMany({
+      where: { workoutLogId: id }
+    });
 
-  // Wait, `entries` is our UI model. In DB we have WorkoutLogEntry.
-  // Let's assume we are passed the full structure.
-
-  // Strategy: Update the sets JSON for each entry.
-  await Promise.all(
-    entries.map((entry: any) =>
-      prisma.workoutLogEntry.update({
-        where: { id: entry.id },
-        data: {
-          sets: entry.sets
-        }
+    // Entries is Record<exerciseId, sets[]>
+    const entryCreates = Object.entries(entries).map(
+      ([exerciseId, sets]: [string, any], index) => ({
+        workoutLogId: id,
+        exerciseId,
+        sets: sets,
+        order: index
       })
-    )
-  );
+    );
+
+    // Create many not supported in nested create easily unless createMany
+    // But we are at root, so createMany works.
+    await prisma.workoutLogEntry.createMany({
+      data: entryCreates
+    });
+  }
 
   return new Response(null, { status: 200 });
 };

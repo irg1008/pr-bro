@@ -1,0 +1,126 @@
+import { Badge } from "@/components/ui/badge";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import React from 'react';
+import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+
+interface ExerciseStat {
+  id: string;
+  name: string;
+  category: string;
+  history: { date: string; maxWeight: number }[];
+  currentMax: number;
+  pr: number;
+  improvement: number;
+  lastTrained: string;
+}
+
+interface StatsViewProps {
+  stats: ExerciseStat[];
+}
+
+export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
+  // Group by category
+  const groupedStats = stats.reduce((acc, stat) => {
+    const category = stat.category || "Uncategorized";
+    if (!acc[category]) {
+      acc[category] = [];
+    }
+    acc[category].push(stat);
+    return acc;
+  }, {} as Record<string, typeof stats>);
+
+  // Sort categories
+  const sortedCategories = Object.keys(groupedStats).sort();
+
+  // Sort items within categories
+  sortedCategories.forEach(cat => {
+    groupedStats[cat].sort((a, b) => a.name.localeCompare(b.name));
+  });
+
+  return (
+    <div className="space-y-8">
+      {sortedCategories.map(category => (
+        <div key={category} className="space-y-4">
+          <h2 className="text-2xl font-bold capitalize border-b pb-2">{category}</h2>
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {groupedStats[category].map((stat) => (
+              <Card key={stat.id} className="overflow-hidden border-2 border-transparent hover:border-primary/20 transition-all">
+                <CardHeader className="pb-2">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <CardTitle className="text-xl capitalize line-clamp-1" title={stat.name}>{stat.name}</CardTitle>
+                      {/* Category label is now redundant in the card header if grouped, but can keep or remove. Keeping for clarity if context is lost. */}
+                    </div>
+                    <div className="text-right">
+                      <div className="text-2xl font-bold">{stat.currentMax} kg</div>
+                      {stat.improvement !== 0 && (
+                        <div className={`text-xs font-bold ${stat.improvement > 0 ? "text-green-500" : "text-red-500"}`}>
+                          {stat.improvement > 0 ? "+" : ""}{stat.improvement} kg
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <div className="h-50 w-full mt-4 -ml-4">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={stat.history}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
+                        <XAxis
+                          dataKey="date"
+                          tickFormatter={(value) => new Date(value).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                          stroke="#888888"
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                        />
+                        <YAxis
+                          stroke="#888888"
+                          fontSize={12}
+                          tickLine={false}
+                          axisLine={false}
+                          width={40}
+                        />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: 'hsl(var(--card))', borderRadius: '8px', border: '1px solid hsl(var(--border))' }}
+                          itemStyle={{ color: 'hsl(var(--foreground))' }}
+                          formatter={(value) => [`${value} kg`, 'Max Weight']}
+                          labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                        />
+                        <Line
+                          type="monotone"
+                          dataKey="maxWeight"
+                          stroke="hsl(var(--primary))"
+                          strokeWidth={3}
+                          dot={{ r: 4, fill: "hsl(var(--background))", stroke: "hsl(var(--primary))", strokeWidth: 2 }}
+                          activeDot={{ r: 6, fill: "hsl(var(--background))", stroke: "hsl(var(--primary))", strokeWidth: 2 }}
+                        />
+                      </LineChart>
+                    </ResponsiveContainer>
+                  </div>
+
+                  <div className="flex justify-between items-center mt-4 pt-4 border-t text-sm">
+                    <div className="text-muted-foreground text-xs">
+                      Last: {new Date(stat.lastTrained).toLocaleDateString()}
+                    </div>
+                    <Badge variant="outline" className="text-xs">
+                      PR: {stat.pr} kg
+                    </Badge>
+                  </div>
+
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      ))}
+
+      {stats.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/20">
+          <p className="text-lg mb-2">No stats available yet</p>
+          <p className="text-sm">Complete some workouts to see your progress here!</p>
+        </div>
+      )}
+    </div>
+  );
+};

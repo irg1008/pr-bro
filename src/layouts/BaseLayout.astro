@@ -2,6 +2,8 @@
 import { ClientRouter } from "astro:transitions";
 import { cn } from "@/lib/utils";
 
+import { Header } from "@/components/Header";
+import { Footer } from "@/components/Footer";
 import HeadSEO from "@/components/HeadSEO.astro";
 import { Toaster } from "@/components/ui/sonner";
 
@@ -9,10 +11,11 @@ const { title, description, ogImage } = Astro.props;
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang="en" class="dark">
 	<head>
 		<ClientRouter />
 		<HeadSEO title={title} description={description} ogImage={ogImage} />
+		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
 		<link rel="sitemap" href="/sitemap-index.xml" />
 
 		<script is:inline>
@@ -23,10 +26,10 @@ const { title, description, ogImage } = Astro.props;
 				) {
 					return localStorage.getItem("theme");
 				}
-				if (window.matchMedia("(prefers-color-scheme: dark)").matches) {
-					return "dark";
+				if (window.matchMedia("(prefers-color-scheme: light)").matches) {
+					return "light";
 				}
-				return "light";
+				return "dark";
 			};
 
 			const setTheme = () => {
@@ -46,13 +49,17 @@ const { title, description, ogImage } = Astro.props;
 	</head>
 	<body
 		class={cn(
-			"group/body overscroll-none antialiased [--footer-height:calc(var(--spacing)*14)] [--header-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)]",
+			"group/body overscroll-none antialiased [--footer-height:calc(var(--spacing)*16)] [--header-height:calc(var(--spacing)*14)] xl:[--footer-height:calc(var(--spacing)*24)]",
 		)}
 	>
 		<div class="bg-background relative flex min-h-svh flex-col">
-			<main class="relative flex flex-1 flex-col">
+			<Header client:load />
+			<main
+				class="relative flex flex-1 flex-col pb-16 md:pb-0 overflow-x-hidden max-w-dvw"
+			>
 				<slot />
 			</main>
+			<Footer client:load />
 		</div>
 		<Toaster client:load />
 	</body>

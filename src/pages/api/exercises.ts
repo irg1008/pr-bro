@@ -1,30 +1,134 @@
 import { db as prisma } from "@/lib/db";
 import type { APIRoute } from "astro";
-import { MOCK_EXERCISES } from "../../consts/exercises";
 
-export const GET: APIRoute = async () => {
-  const count = await prisma.exercise.count();
+export const GET: APIRoute = async ({ request }) => {
+  const url = new URL(request.url);
+  const page = parseInt(url.searchParams.get("page") || "1");
+  const limit = parseInt(url.searchParams.get("limit") || "20");
+  const search = url.searchParams.get("search") || "";
+  const category = url.searchParams.get("category") || "";
+  const prioritize = url.searchParams.get("prioritize") || "";
 
-  if (count === 0) {
-    // Auto-seed if empty
-    console.log("Seeding mock exercises...");
-    await Promise.all(
-      MOCK_EXERCISES.map((ex) =>
-        prisma.exercise.create({
-          data: {
-            id: ex.id,
-            name: ex.name,
-            category: ex.category,
-            imageUrl: ex.imageUrl
-          }
-        })
-      )
-    );
+  const skip = (page - 1) * limit;
+
+  // Base filter
+  const baseWhere: any = {};
+  if (search) {
+    baseWhere.name = { contains: search, mode: "insensitive" };
   }
 
-  const exercises = await prisma.exercise.findMany();
-  return new Response(JSON.stringify(exercises), {
-    status: 200,
-    headers: { "Content-Type": "application/json" }
-  });
+  if (category) {
+    // If specific filter is active, ignore prioritization logic logic for simplicity
+    // or just return standard results for that category
+    baseWhere.category = category;
+
+    try {
+      const [exercises, total] = await Promise.all([
+        prisma.exercise.findMany({
+          where: baseWhere,
+          take: limit,
+          skip,
+          orderBy: { name: "asc" }
+        }),
+        prisma.exercise.count({ where: baseWhere })
+      ]);
+      return jsonResponse(exercises, total, page, limit);
+    } catch (e) {
+      console.error(e);
+      return new Response("Error", { status: 500 });
+    }
+  }
+
+  // Handle Prioritization
+  if (prioritize) {
+    const pCategories = prioritize
+      .split(",")
+      .map((s) => s.trim())
+      .filter(Boolean);
+
+    const priorityWhere = { ...baseWhere, category: { in: pCategories } };
+    const standardWhere = {
+      ...baseWhere,
+      NOT: { category: { in: pCategories } } // Everything else
+    };
+
+    try {
+      const pCount = await prisma.exercise.count({ where: priorityWhere });
+      const total = await prisma.exercise.count({ where: baseWhere }); // Total of everything matching search
+
+      let exercises: any[] = [];
+
+      if (skip < pCount) {
+        // We are still within the priority zone (or overlapping boundary)
+        const takeFromP = Math.min(limit, pCount - skip);
+        const pExercises = await prisma.exercise.findMany({
+          where: priorityWhere,
+          take: takeFromP,
+          skip: skip,
+          orderBy: { name: "asc" }
+        });
+
+        exercises = [...pExercises];
+
+        const remainingLimit = limit - pExercises.length;
+        if (remainingLimit > 0) {
+          // Fill the rest of the page with standard exercises
+          const sExercises = await prisma.exercise.findMany({
+            where: standardWhere,
+            take: remainingLimit,
+            skip: 0, // Start from beginning of standard set
+            orderBy: { name: "asc" }
+          });
+          exercises = [...exercises, ...sExercises];
+        }
+      } else {
+        // We are fully past the priority zone
+        const adjustedSkip = skip - pCount;
+        exercises = await prisma.exercise.findMany({
+          where: standardWhere,
+          take: limit,
+          skip: adjustedSkip,
+          orderBy: { name: "asc" }
+        });
+      }
+
+      return jsonResponse(exercises, total, page, limit);
+    } catch (e) {
+      console.error("Prioritization Error", e);
+      return new Response("Error", { status: 500 });
+    }
+  }
+
+  // Standard Fetch (No Prioritization, No specific category filter)
+  try {
+    const [exercises, total] = await Promise.all([
+      prisma.exercise.findMany({
+        where: baseWhere,
+        take: limit,
+        skip,
+        orderBy: { name: "asc" }
+      }),
+      prisma.exercise.count({ where: baseWhere })
+    ]);
+
+    return jsonResponse(exercises, total, page, limit);
+  } catch (e) {
+    console.error(e);
+    return new Response("Error fetching exercises", { status: 500 });
+  }
 };
+
+function jsonResponse(data: any, total: number, page: number, limit: number) {
+  return new Response(
+    JSON.stringify({
+      data,
+      total,
+      page,
+      totalPages: Math.ceil(total / limit)
+    }),
+    {
+      status: 200,
+      headers: { "Content-Type": "application/json" }
+    }
+  );
+}

@@ -23,27 +23,27 @@ export const GET: APIRoute = async () => {
 
 export const POST: APIRoute = async ({ request }) => {
   const data = await request.json();
-  const { routineId, duration, entries } = data;
+  console.log("Workout Log Data:", JSON.stringify(data, null, 2));
+  const { routineId, finishedAt, entries, createdAt } = data;
 
-  if (!routineId || !entries) {
-    return new Response("Routine ID and entries are required", { status: 400 });
+  if (!routineId) {
+    return new Response("Routine ID is required", { status: 400 });
   }
 
   const log = await prisma.workoutLog.create({
     data: {
       routineId,
-      duration,
-      entries: {
-        create: Object.entries(entries).flatMap(
-          ([exerciseId, sets]: [string, any]) =>
-            // filter empty sets if needed, or mapped
-            ({
+      finishedAt: finishedAt ? new Date(finishedAt) : undefined,
+      createdAt: createdAt ? new Date(createdAt) : undefined,
+      entries: entries
+        ? {
+            create: Object.entries(entries).flatMap(([exerciseId, sets]: [string, any]) => ({
               exerciseId,
-              sets: sets, // JSON
-              order: 0 // Simplification for now
-            })
-        )
-      }
+              sets: sets,
+              order: 0
+            }))
+          }
+        : undefined
     }
   });
 

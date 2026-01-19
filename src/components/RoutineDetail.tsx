@@ -1,23 +1,20 @@
+import { ExerciseSelector } from "@/components/ExerciseSelector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
-  Command,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-} from "@/components/ui/command";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "@/components/ui/popover";
-import { cn } from "@/lib/utils";
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { navigate } from "astro:transitions/client";
-import { Check, ChevronsUpDown, Plus, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowUp, ListOrdered, Pencil, Trash2 } from "lucide-react";
 import type { Exercise, RoutineExercise } from "prisma/generated/client";
 import React, { useEffect, useState } from 'react';
+import { Badge } from "./ui/badge";
 
 type RoutineExerciseWithExercise = RoutineExercise & { exercise: Exercise };
 
@@ -25,34 +22,112 @@ interface RoutineDetailProps {
   routineId: string;
   routineName: string;
   initialExercises: RoutineExerciseWithExercise[];
+  focusedParts?: string[];
 }
 
 export const RoutineDetail: React.FC<RoutineDetailProps> = ({
   routineId,
   routineName,
   initialExercises,
+  focusedParts = [],
 }) => {
   const [exercises, setExercises] = useState<RoutineExerciseWithExercise[]>(initialExercises);
-  const [availableExercises, setAvailableExercises] = useState<Exercise[]>([]);
-  const [open, setOpen] = useState(false);
+  const [isRenaming, setIsRenaming] = useState(false);
+  const [newName, setNewName] = useState(routineName);
+  const [availableCategories, setAvailableCategories] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>(focusedParts);
 
   useEffect(() => {
-    fetch('/api/exercises')
+    fetch('/api/categories')
       .then(res => res.json())
-      .then(data => setAvailableExercises(data));
+      .then((data: string[]) => {
+        setAvailableCategories(data);
+      })
+      .catch(err => console.error("Failed to fetch categories", err));
   }, []);
 
-  const handleAdd = async (exerciseId: string) => {
+  const handleRename = async () => {
+    if (!newName.trim()) return;
+    try {
+      await fetch(`/api/routines/${routineId}`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          name: newName,
+          focusedParts: selectedCategories
+        }),
+        headers: { "Content-Type": "application/json" },
+      });
+      setIsRenaming(false);
+      navigate(location.pathname);
+    } catch (error) {
+      console.error("Failed to rename", error);
+    }
+  };
+
+  const toggleCategory = (category: string) => {
+    setSelectedCategories(current =>
+      current.includes(category)
+        ? current.filter(c => c !== category)
+        : [...current, category]
+    );
+  };
+
+  const handleAdd = async (exercise: Exercise) => {
     try {
       await fetch("/api/routine-exercises", {
         method: "POST",
-        body: JSON.stringify({ routineId: routineId, exerciseId }),
+        body: JSON.stringify({ routineId: routineId, exerciseId: exercise.id }),
         headers: { "Content-Type": "application/json" },
       });
-      setOpen(false);
       navigate(location.pathname);
     } catch (error) {
       console.error("Failed to add exercise", error);
+    }
+  };
+
+  const handleMove = async (index: number, direction: 'up' | 'down') => {
+    if (direction === 'up' && index === 0) return;
+    if (direction === 'down' && index === exercises.length - 1) return;
+
+    const newExercises = [...exercises];
+    const targetIndex = direction === 'up' ? index - 1 : index + 1;
+
+    // Swap
+    [newExercises[index], newExercises[targetIndex]] = [newExercises[targetIndex], newExercises[index]];
+
+    setExercises(newExercises);
+
+    try {
+      await fetch(`/api/routines/${routineId}/reorder`, {
+        method: "POST",
+        body: JSON.stringify({ routineExerciseIds: newExercises.map(e => e.id) }),
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      console.error("Failed to reorder", e);
+    }
+  };
+
+  const handleSortByCategory = async () => {
+    const sorted = [...exercises].sort((a, b) => {
+      const catA = (a.exercise.category || "").toLowerCase();
+      const catB = (b.exercise.category || "").toLowerCase();
+      if (catA < catB) return -1;
+      if (catA > catB) return 1;
+      // Secondary sort by name
+      if (a.exercise.name.toLowerCase() < b.exercise.name.toLowerCase()) return -1;
+      if (a.exercise.name.toLowerCase() > b.exercise.name.toLowerCase()) return 1;
+      return 0;
+    });
+    setExercises(sorted);
+    try {
+      await fetch(`/api/routines/${routineId}/reorder`, {
+        method: "POST",
+        body: JSON.stringify({ routineExerciseIds: sorted.map(e => e.id) }),
+        headers: { "Content-Type": "application/json" },
+      });
+    } catch (e) {
+      console.error("Failed to reorder", e);
     }
   };
 
@@ -70,63 +145,34 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      <div className="flex flex-col sm:flex-row md:items-center justify-between gap-4">
         <div>
-          <h2 className="text-3xl font-bold tracking-tight">{routineName}</h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-3xl font-bold tracking-tight capitalize">{routineName}</h2>
+            <Button variant="ghost" size="icon" onClick={() => setIsRenaming(true)}>
+              <Pencil className="w-4 h-4" />
+            </Button>
+          </div>
           <p className="text-muted-foreground">{exercises.length} exercises</p>
+          {focusedParts.length > 0 && (
+            <div className="flex gap-1 mt-1">
+              {focusedParts.map(p => (
+                <span key={p} className="text-xs bg-secondary px-2 py-0.5 rounded text-secondary-foreground">{p}</span>
+              ))}
+            </div>
+          )}
+          <div className="mt-4">
+            <Button variant="outline" size="sm" className="gap-2" onClick={handleSortByCategory}>
+              <ListOrdered className="w-4 h-4" /> Sort by Category
+            </Button>
+          </div>
         </div>
 
-        <Popover open={open} onOpenChange={setOpen}>
-          <PopoverTrigger asChild>
-            <Button
-              variant="default"
-              role="combobox"
-              aria-expanded={open}
-              className="w-full sm:w-[250px] justify-between"
-            >
-              <span className="flex items-center gap-2">
-                <Plus className="w-4 h-4" /> Add Exercise
-              </span>
-              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-            </Button>
-          </PopoverTrigger>
-          <PopoverContent className="w-[300px] p-0" align="end">
-            <Command>
-              <CommandInput placeholder="Search exercise..." />
-              <CommandList>
-                <CommandEmpty>No exercise found.</CommandEmpty>
-                <CommandGroup heading="Available Exercises">
-                  {availableExercises.map((ex) => {
-                    const isAdded = exercises.some(e => e.exerciseId === ex.id);
-                    return (
-                      <CommandItem
-                        key={ex.id}
-                        value={ex.name}
-                        onSelect={() => handleAdd(ex.id)}
-                        disabled={isAdded}
-                        className={cn("cursor-pointer", isAdded && "opacity-50")}
-                      >
-                        <Check
-                          className={cn(
-                            "mr-2 h-4 w-4",
-                            isAdded ? "opacity-100" : "opacity-0"
-                          )}
-                        />
-                        <div className="flex items-center gap-2">
-                          {ex.imageUrl && <img src={ex.imageUrl} className="w-6 h-6 rounded object-cover" />}
-                          <div className="flex flex-col">
-                            <span>{ex.name}</span>
-                            <span className="text-xs text-muted-foreground">{ex.category}</span>
-                          </div>
-                        </div>
-                      </CommandItem>
-                    );
-                  })}
-                </CommandGroup>
-              </CommandList>
-            </Command>
-          </PopoverContent>
-        </Popover>
+        <ExerciseSelector
+          onSelect={handleAdd}
+          selectedExerciseIds={exercises.map(e => e.exerciseId)}
+          preferredCategories={focusedParts}
+        />
       </div>
 
       <div className="space-y-4">
@@ -134,20 +180,42 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
           <Card key={re.id} className="overflow-hidden">
             <CardContent className="flex items-center justify-between p-4">
               <div className="flex items-center gap-4">
-                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted font-bold text-muted-foreground text-sm">
+                <div className="flex items-center justify-center w-8 h-8 rounded-full bg-muted font-bold text-muted-foreground text-sm shrink-0">
                   {index + 1}
                 </div>
                 {re.exercise.imageUrl && (
-                  <img src={re.exercise.imageUrl} alt={re.exercise.name} className="w-12 h-12 rounded object-cover border" />
+                  <img src={re.exercise.imageUrl} alt={re.exercise.name} className="w-12 h-12 rounded object-cover border shrink-0" />
                 )}
                 <div>
-                  <h3 className="font-bold">{re.exercise.name}</h3>
+                  <h3 className="font-bold line-clamp-1 capitalize">{re.exercise.name}</h3>
                   <span className="text-xs text-muted-foreground capitalize">{re.exercise.category}</span>
                 </div>
               </div>
-              <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10" onClick={() => handleRemove(re.id)}>
-                <Trash2 className="w-5 h-5" />
-              </Button>
+              <div className="flex items-center gap-1">
+                <div className="flex flex-col mr-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    disabled={index === 0}
+                    onClick={() => handleMove(index, 'up')}
+                  >
+                    <ArrowUp className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-6 w-6"
+                    disabled={index === exercises.length - 1}
+                    onClick={() => handleMove(index, 'down')}
+                  >
+                    <ArrowDown className="w-4 h-4" />
+                  </Button>
+                </div>
+                <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0" onClick={() => handleRemove(re.id)}>
+                  <Trash2 className="w-5 h-5" />
+                </Button>
+              </div>
             </CardContent>
           </Card>
         ))}
@@ -158,6 +226,60 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
           </div>
         )}
       </div>
+
+      <Dialog open={isRenaming} onOpenChange={setIsRenaming}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Rename Routine</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="name" className="text-right">
+                Name
+              </Label>
+              <Input
+                id="name"
+                value={newName}
+                onChange={(e) => setNewName(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label className="text-right mt-2">Categories</Label>
+              <div className="col-span-3 space-y-3">
+                <div className="border rounded-md p-3 max-h-48 overflow-y-auto space-y-2">
+                  {availableCategories.length === 0 && (
+                    <span className="text-sm text-muted-foreground">Loading categories...</span>
+                  )}
+                  {availableCategories.map(cat => (
+                    <label key={cat} className="flex items-center gap-2 cursor-pointer hover:bg-muted/50 p-1 rounded capitalize">
+                      <input
+                        type="checkbox"
+                        checked={selectedCategories.includes(cat)}
+                        onChange={() => toggleCategory(cat)}
+                        className="h-4 w-4 rounded border-gray-300"
+                      />
+                      <span className="text-sm">{cat}</span>
+                    </label>
+                  ))}
+                </div>
+                {selectedCategories.length > 0 && (
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {selectedCategories.map(cat => (
+                      <Badge key={cat} variant="secondary" className="capitalize text-xs">
+                        {cat}
+                      </Badge>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button onClick={handleRename}>Save changes</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

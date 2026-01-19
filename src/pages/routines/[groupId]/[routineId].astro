@@ -52,6 +52,7 @@ const routine: RoutineWithExercises = await response.json();
 			routineId={routine.id}
 			routineName={routine.name}
 			initialExercises={routine.exercises}
+			focusedParts={routine.focusedParts || []}
 		/>
 	</div>
 </BaseLayout>

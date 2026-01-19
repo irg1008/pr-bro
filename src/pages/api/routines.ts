@@ -13,8 +13,9 @@ export const POST: APIRoute = async ({ request }) => {
   const routine = await prisma.routine.create({
     data: {
       name: data.name,
-      description: data.description,
-      routineGroupId: data.routineGroupId
+      description: data.description || "",
+      routineGroupId: data.routineGroupId,
+      focusedParts: data.focusedParts || []
     }
   });
 

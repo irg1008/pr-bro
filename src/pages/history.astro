@@ -25,18 +25,46 @@ const logs: WorkoutLogWithRoutine[] = await response.json();
 						href={`/history/${log.id}`}
 						class="block rounded-lg border bg-card text-card-foreground shadow-sm p-4 hover:bg-accent transition-colors"
 					>
-						<div class="flex justify-between items-center">
+						<div class="flex justify-between items-start">
 							<div>
-								<h3 class="font-bold text-lg">{log.routine.name}</h3>
-								<p class="text-sm text-muted-foreground">
-									{log.routine.group.name} &bull;{" "}
-									{new Date(log.createdAt).toLocaleDateString()}
+								<h3 class="font-bold text-lg capitalize">{log.routine.name}</h3>
+								<p class="text-sm text-muted-foreground capitalize">
+									{log.routine.group.name}
+								</p>
+								<p class="text-xs text-muted-foreground mt-1">
+									{new Date(log.createdAt).toLocaleDateString()} &bull;{" "}
+									{new Date(log.createdAt).toLocaleTimeString([], {
+										hour: "2-digit",
+										minute: "2-digit",
+									})}
+									{log.finishedAt && (
+										<span>
+											{" "}
+											-{" "}
+											{new Date(log.finishedAt).toLocaleTimeString([], {
+												hour: "2-digit",
+												minute: "2-digit",
+											})}
+										</span>
+									)}
 								</p>
 							</div>
 							<div class="text-right">
 								<div class="text-sm font-medium">
-									{log.duration
-										? Math.round(log.duration / 60) + " min"
+									{log.finishedAt
+										? (() => {
+												const diff = Math.round(
+													(new Date(log.finishedAt).getTime() -
+														new Date(log.createdAt).getTime()) /
+														1000,
+												);
+												return diff >= 3600
+													? Math.floor(diff / 3600) +
+															"h " +
+															Math.round((diff % 3600) / 60) +
+															"m"
+													: Math.round(diff / 60) + " min";
+											})()
 										: "N/A"}
 								</div>
 							</div>

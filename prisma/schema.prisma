@@ -13,6 +13,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum ExerciseType {
+  WEIGHT
+  CARDIO
+}
+
 model RoutineGroup {
   id          String    @id @default(cuid())
   name        String
@@ -29,6 +34,7 @@ model Routine {
   description    String?
   routineGroupId String
   group          RoutineGroup      @relation(fields: [routineGroupId], references: [id])
+  focusedParts   String[] // Array of preferred body parts/categories
   exercises      RoutineExercise[]
   logs           WorkoutLog[]
   createdAt      DateTime          @default(now())
@@ -46,7 +52,8 @@ model Exercise {
   target           String?
   secondaryMuscles String[]
   instructions     String[]
-  gifId            String?
+  type             ExerciseType      @default(WEIGHT)
+  // gifId removed as per user request
   routineExercises RoutineExercise[]
   logEntries       WorkoutLogEntry[]
   createdAt        DateTime          @default(now())
@@ -65,14 +72,14 @@ model RoutineExercise {
 }
 
 model WorkoutLog {
-  id        String            @id @default(cuid())
-  routineId String
-  routine   Routine           @relation(fields: [routineId], references: [id])
-  date      DateTime          @default(now())
-  duration  Int? // in seconds
-  entries   WorkoutLogEntry[]
-  createdAt DateTime          @default(now())
-  updatedAt DateTime          @updatedAt
+  id         String            @id @default(cuid())
+  routineId  String
+  routine    Routine           @relation(fields: [routineId], references: [id])
+  date       DateTime          @default(now())
+  finishedAt DateTime?
+  entries    WorkoutLogEntry[]
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
 }
 
 model WorkoutLogEntry {

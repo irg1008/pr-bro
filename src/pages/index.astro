@@ -1,12 +1,17 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import type { Routine, RoutineGroup } from "prisma/generated/client";
-import { HomePageWrapper } from "../components/HomePageWrapper";
+import type { RoutineGroup } from "prisma/generated/client";
+import {
+	HomePageWrapper,
+	type RoutineWithExercises,
+} from "../components/HomePageWrapper";
 import { GET } from "./api/home";
 
 const response = await GET(Astro);
-const data: { activeGroup: RoutineGroup | null; nextRoutine: Routine | null } =
-	await response.json();
+const data: {
+	activeGroup: RoutineGroup | null;
+	nextRoutine: RoutineWithExercises | null;
+} = await response.json();
 const { activeGroup, nextRoutine } = data;
 ---
 

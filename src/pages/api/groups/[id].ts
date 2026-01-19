@@ -28,3 +28,46 @@ export const GET: APIRoute = async ({ params }) => {
     headers: { "Content-Type": "application/json" }
   });
 };
+
+export const PATCH: APIRoute = async ({ params, request }) => {
+  const { id } = params;
+  if (!id) return new Response("ID required", { status: 400 });
+
+  try {
+    const body = await request.json();
+    const { name, description } = body;
+
+    const updated = await prisma.routineGroup.update({
+      where: { id },
+      data: { name, description }
+    });
+
+    return new Response(JSON.stringify(updated), { status: 200 });
+  } catch (error) {
+    console.error(error);
+    return new Response("Failed to update group", { status: 500 });
+  }
+};
+export const DELETE: APIRoute = async ({ params }) => {
+  const { id } = params;
+  if (!id) return new Response("ID required", { status: 400 });
+
+  try {
+    // Delete associated data first (manual cascade)
+    const routines = await prisma.routine.findMany({ where: { routineGroupId: id } });
+
+    for (const routine of routines) {
+      await prisma.workoutLogEntry.deleteMany({ where: { workoutLog: { routineId: routine.id } } });
+      await prisma.workoutLog.deleteMany({ where: { routineId: routine.id } });
+      await prisma.routineExercise.deleteMany({ where: { routineId: routine.id } });
+    }
+
+    await prisma.routine.deleteMany({ where: { routineGroupId: id } });
+    await prisma.routineGroup.delete({ where: { id } });
+
+    return new Response(null, { status: 204 });
+  } catch (error) {
+    console.error(error);
+    return new Response("Failed to delete", { status: 500 });
+  }
+};

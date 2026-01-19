@@ -1,25 +1,35 @@
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { navigate } from "astro:transitions/client";
+import { X } from "lucide-react";
 import type { Exercise, WorkoutLogEntry } from "prisma/generated/client";
 import React, { useState } from 'react';
 
 type WorkoutLogEntryWithExercise = WorkoutLogEntry & { exercise: Exercise };
 
 interface WorkoutLogEditorProps {
+  logId: string;
   initialEntries: WorkoutLogEntryWithExercise[];
-  onSave: (entries: WorkoutLogEntryButSetsAny[]) => Promise<void>;
-  onDelete: () => Promise<void>;
 }
 
 // Helper type since sets are JSON in Prisma but we use them as objects here
 type WorkoutLogEntryButSetsAny = Omit<WorkoutLogEntryWithExercise, 'sets'> & { sets: any[] };
 
 export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
+  logId,
   initialEntries,
-  onSave,
-  onDelete
 }) => {
   const [entries, setEntries] = useState<WorkoutLogEntryButSetsAny[]>(
     initialEntries.map(e => ({ ...e, sets: e.sets as any[] }))
@@ -34,35 +44,63 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
   };
 
   const handleSave = async () => {
-    await onSave(entries);
+    await fetch(`/api/workout-logs/${logId}`, {
+      method: "PUT",
+      body: JSON.stringify({ entries }),
+      headers: { "Content-Type": "application/json" },
+    });
     navigate("/history");
   };
 
   const handleDelete = async () => {
-    await onDelete();
+    await fetch(`/api/workout-logs/${logId}`, {
+      method: "DELETE",
+    });
     navigate("/history");
   };
 
   return (
     <div className="space-y-6">
       <div className="flex justify-end">
-        <Button variant="destructive" onClick={handleDelete}>Delete Log</Button>
+        <AlertDialog>
+          <AlertDialogTrigger render={
+            <Button variant="destructive">Delete Log</Button>
+          } />
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This action cannot be undone. This will permanently delete this workout log.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDelete} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       </div>
 
       {entries.map((entry, entryIdx) => (
         <Card key={entry.id}>
-          <CardHeader>
-            <CardTitle>{entry.exercise.name}</CardTitle>
+          <CardHeader className="flex flex-row items-center gap-4">
+            {entry.exercise.imageUrl && (
+              <img src={entry.exercise.imageUrl} alt={entry.exercise.name} className="w-16 h-16 rounded object-cover border" />
+            )}
+            <CardTitle className="capitalize">{entry.exercise.name}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-2">
-            <div className="grid grid-cols-3 gap-4 text-sm font-medium text-muted-foreground">
+            <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-sm font-medium text-muted-foreground">
               <div>Set</div>
               <div>kg</div>
               <div>Reps</div>
+              <div></div>
             </div>
             {entry.sets.map((set: any, setIdx: number) => (
-              <div key={setIdx} className="grid grid-cols-3 gap-4 items-center">
-                <div className="text-center font-bold bg-muted rounded py-2">{setIdx + 1}</div>
+              <div key={setIdx} className="grid grid-cols-[auto_1fr_1fr_auto] gap-2 items-center">
+                <div className="text-center font-bold bg-muted rounded py-2 px-3">{setIdx + 1}</div>
                 <Input
                   type="number"
                   value={set.weight}
@@ -75,8 +113,35 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                   onChange={(e) => updateSet(entryIdx, setIdx, 'reps', Number(e.target.value))}
                   className="text-center"
                 />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                  onClick={() => {
+                    if (entry.sets.length <= 1) return;
+                    const newEntries = [...entries];
+                    newEntries[entryIdx].sets = newEntries[entryIdx].sets.filter((_: any, i: number) => i !== setIdx);
+                    setEntries(newEntries);
+                  }}
+                  disabled={entry.sets.length <= 1}
+                >
+                  <X className="h-4 w-4" />
+                </Button>
               </div>
             ))}
+            <Button
+              variant="outline"
+              size="sm"
+              className="w-full mt-2"
+              onClick={() => {
+                const newEntries = [...entries];
+                const lastSet = newEntries[entryIdx].sets[newEntries[entryIdx].sets.length - 1] || { weight: 0, reps: 0, completed: false };
+                newEntries[entryIdx].sets = [...newEntries[entryIdx].sets, { ...lastSet }];
+                setEntries(newEntries);
+              }}
+            >
+              + Add Set
+            </Button>
           </CardContent>
         </Card>
       ))}

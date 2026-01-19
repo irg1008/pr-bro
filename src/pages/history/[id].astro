@@ -3,6 +3,8 @@ import { WorkoutLogEditor } from "@/components/WorkoutLogEditor";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { GET } from "../api/workout-logs/[id]";
 
+export const prerender = false;
+
 const { id } = Astro.params;
 
 if (!id) {
@@ -48,23 +50,6 @@ if (!log) {
 			</p>
 		</div>
 
-		<WorkoutLogEditor
-			client:load
-			initialEntries={log.entries}
-			onSave={async (entries) => {
-				await fetch(`/api/workout-logs/${log.id}`, {
-					method: "PUT",
-					body: JSON.stringify({ entries }),
-					headers: { "Content-Type": "application/json" },
-				});
-			}}
-			onDelete={async () => {
-				if (confirm("Are you sure you want to delete this log?")) {
-					await fetch(`/api/workout-logs/${log.id}`, {
-						method: "DELETE",
-					});
-				}
-			}}
-		/>
+		<WorkoutLogEditor client:load logId={log.id} initialEntries={log.entries} />
 	</div>
 </BaseLayout>

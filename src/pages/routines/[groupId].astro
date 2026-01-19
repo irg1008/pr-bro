@@ -40,16 +40,6 @@ const routines: RoutineWithCount[] = group.routines.map((r) => ({
 					class="text-sm text-muted-foreground hover:underline"
 					>← Back to Groups</a
 				>
-				<div class="flex items-center gap-3">
-					<h1 class="text-3xl font-bold">{group.name}</h1>
-					{
-						group.isActive && (
-							<span class="bg-green-100 text-green-800 text-xs font-medium px-2.5 py-0.5 rounded">
-								Active
-							</span>
-						)
-					}
-				</div>
 			</div>
 			{
 				!group.isActive && (
@@ -68,6 +58,8 @@ const routines: RoutineWithCount[] = group.routines.map((r) => ({
 			client:load
 			groupId={group.id}
 			groupName={group.name}
+			groupDescription={group.description}
+			isActive={group.isActive}
 			routines={routines}
 		/>
 	</div>
