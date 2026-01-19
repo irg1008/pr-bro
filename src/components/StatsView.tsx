@@ -1,14 +1,14 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import React from 'react';
-import { CartesianGrid, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 
 interface ExerciseStat {
   id: string;
   name: string;
+  imageUrl?: string | null;
   category: string;
   target?: string;
-  imageUrl?: string | null;
   history: { date: string; maxWeight: number }[];
   currentMax: number;
   pr: number;
@@ -76,20 +76,20 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {groupedStats[category].map((stat) => {
               const filteredHistory = filterHistory(stat.history);
-              if (filteredHistory.length === 0) return null; // Or show empty state?
+              if (filteredHistory.length === 0) return null;
 
               return (
                 <Card key={stat.id} className="overflow-hidden border-2 border-transparent hover:border-primary/20 transition-all">
                   <CardHeader className="pb-2">
-                    <div className="flex justify-between items-start gap-4">
+                    <div className="flex justify-between items-start">
                       <div className="flex gap-3">
                         {stat.imageUrl && (
-                          <div className="w-12 h-12 rounded-md overflow-hidden bg-muted flex-shrink-0 border">
+                          <div className="w-12 h-12 rounded-md overflow-hidden bg-muted shrink-0 border">
                             <img src={stat.imageUrl} alt={stat.name} className="w-full h-full object-cover" />
                           </div>
                         )}
                         <div className="flex flex-col gap-1">
-                          <CardTitle className="text-lg capitalize line-clamp-2" title={stat.name}>{stat.name}</CardTitle>
+                          <CardTitle className="text-xl capitalize line-clamp-1" title={stat.name}>{stat.name}</CardTitle>
                           <div className="flex gap-2 flex-wrap">
                             {stat.category && (
                               <span className="text-[10px] font-medium text-muted-foreground bg-secondary px-1.5 py-0.5 rounded capitalize">
@@ -104,8 +104,8 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                           </div>
                         </div>
                       </div>
-                      <div className="text-right shrink-0">
-                        <div className="text-xl font-bold">{stat.currentMax} kg</div>
+                      <div className="text-right">
+                        <div className="text-2xl font-bold">{stat.currentMax} kg</div>
                         {stat.improvement !== 0 && (
                           <div className={`text-xs font-bold ${stat.improvement > 0 ? "text-green-500" : "text-red-500"}`}>
                             {stat.improvement > 0 ? "+" : ""}{stat.improvement} kg
@@ -115,9 +115,15 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                     </div>
                   </CardHeader>
                   <CardContent>
-                    <div className="h-50 w-full mt-4 -ml-4">
+                    <div className="h-48 w-full mt-4 -ml-4">
                       <ResponsiveContainer width="100%" height="100%">
-                        <LineChart data={filteredHistory}>
+                        <AreaChart data={filteredHistory}>
+                          <defs>
+                            <linearGradient id={`gradient-${stat.id}`} x1="0" y1="0" x2="0" y2="1">
+                              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                            </linearGradient>
+                          </defs>
                           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--muted))" />
                           <XAxis
                             dataKey="date"
@@ -142,15 +148,15 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                             formatter={(value) => [`${value} kg`, 'Max Weight']}
                             labelFormatter={(label) => new Date(label).toLocaleDateString()}
                           />
-                          <Line
+                          <Area
                             type="monotone"
                             dataKey="maxWeight"
-                            stroke="hsl(var(--primary))"
+                            stroke="#ef4444"
                             strokeWidth={3}
-                            dot={{ r: 4, fill: "hsl(var(--background))", stroke: "hsl(var(--primary))", strokeWidth: 2 }}
-                            activeDot={{ r: 6, fill: "hsl(var(--background))", stroke: "hsl(var(--primary))", strokeWidth: 2 }}
+                            fill={`url(#gradient-${stat.id})`}
+                            activeDot={{ r: 6, fill: "hsl(var(--background))", stroke: "#ef4444", strokeWidth: 2 }}
                           />
-                        </LineChart>
+                        </AreaChart>
                       </ResponsiveContainer>
                     </div>
 
@@ -162,26 +168,20 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                         PR: {stat.pr} kg
                       </Badge>
                     </div>
-
                   </CardContent>
                 </Card>
               );
             })}
-          </div >
-        </div >
+          </div>
+        </div>
       ))}
 
-      {/* Empty state logic if filtered results are empty? */}
-
-
-      {
-        stats.length === 0 && (
-          <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/20">
-            <p className="text-lg mb-2">No stats available yet</p>
-            <p className="text-sm">Complete some workouts to see your progress here!</p>
-          </div>
-        )
-      }
-    </div >
+      {stats.length === 0 && (
+        <div className="text-center py-12 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/20">
+          <p className="text-lg mb-2">No stats available yet</p>
+          <p className="text-sm">Complete some workouts to see your progress here!</p>
+        </div>
+      )}
+    </div>
   );
 };

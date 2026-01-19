@@ -23,7 +23,6 @@ export const GET: APIRoute = async () => {
 
 export const POST: APIRoute = async ({ request }) => {
   const data = await request.json();
-  console.log("Workout Log Data:", JSON.stringify(data, null, 2));
   const { routineId, finishedAt, entries, createdAt } = data;
 
   if (!routineId) {

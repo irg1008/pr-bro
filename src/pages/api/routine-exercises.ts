@@ -52,8 +52,6 @@ export const PATCH: APIRoute = async ({ request }) => {
 
   if (!id) return new Response("ID required", { status: 400 });
 
-  console.log(data);
-
   await prisma.routineExercise.update({
     where: { id },
     data: { isSuperset }

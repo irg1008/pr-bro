@@ -22,6 +22,7 @@ import { navigate } from "astro:transitions/client";
 import { Activity, ArrowLeftRight, Bike, Dumbbell, Footprints, Plus, Timer, Trash2, Waves, X } from "lucide-react";
 import type { Exercise } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
 import React, { useEffect, useState } from 'react';
+import { toast } from "sonner";
 
 const CARDIO_OPTIONS = [
   { name: "Running", icon: Footprints },
@@ -272,6 +273,10 @@ export const ActiveWorkout = ({
           finishedAt: new Date().toISOString()
         }),
         headers: { 'Content-Type': 'application/json' }
+      });
+      toast.success("Workout finished!", {
+        description: "Great job! Your progress has been saved.",
+        duration: 3000,
       });
       navigate("/");
     } catch (e) {
