@@ -105,74 +105,75 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
   }
 
   return (
-    <div className="relative z-10 mx-auto max-w-2xl space-y-6 py-8">
-      <div className="flex flex-col gap-1">
-        <h1 className="text-xl font-semibold tracking-tight">Today's Workout</h1>
-        <p className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
-          Cycle:{" "}
-          <Badge variant="outline" className="font-normal capitalize">
-            {activeGroupName}
-          </Badge>
-        </p>
-      </div>
-
+    <>
       <ThreeBackground />
+      <div className="relative z-10 mx-auto max-w-2xl space-y-6 py-8">
+        <div className="flex flex-col gap-1">
+          <h1 className="text-xl font-semibold tracking-tight">Today's Workout</h1>
+          <p className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
+            Cycle:{" "}
+            <Badge variant="outline" className="font-normal capitalize">
+              {activeGroupName}
+            </Badge>
+          </p>
+        </div>
 
-      <Card className="group/card ring-primary/5 hover:ring-primary/20 relative overflow-hidden border shadow-sm ring-1 transition-all duration-300 hover:shadow-md">
-        <div className="from-primary/5 pointer-events-none absolute inset-0 bg-linear-to-br via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover/card:opacity-100" />
-        <CardHeader className="border-b pb-3">
-          <div className="space-y-1">
-            <CardTitle className="text-foreground text-lg font-semibold tracking-tight capitalize">
-              {nextRoutine.name}
-            </CardTitle>
-            <p className="text-muted-foreground text-sm">
-              {nextRoutine.description || "Time to lift heavy things."}
-            </p>
-          </div>
-        </CardHeader>
-        <CardContent>
-          <div className="mb-6 space-y-3">
-            <h3 className="text-muted-foreground text-xs font-medium uppercase">Workout Plan</h3>
-            <div className="grid gap-2">
-              {nextRoutine.exercises.map((ex: any) => (
-                <div
-                  key={ex.id}
-                  className="bg-muted/20 hover:bg-muted/40 flex items-center justify-between rounded-md border p-2 transition-colors"
-                >
-                  <span className="text-foreground text-sm font-medium capitalize">
-                    {ex.exercise.name}
-                  </span>
-                  <Badge
-                    variant="secondary"
-                    className="h-5 shrink-0 px-1.5 text-[10px] font-normal capitalize"
-                  >
-                    {ex.exercise.category.toLowerCase()}
-                  </Badge>
-                </div>
-              ))}
+        <Card className="group/card ring-primary/5 hover:ring-primary/20 relative overflow-hidden border shadow-sm ring-1 transition-all duration-300 hover:shadow-md">
+          <div className="from-primary/5 pointer-events-none absolute inset-0 bg-linear-to-br via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover/card:opacity-100" />
+          <CardHeader className="border-b pb-3">
+            <div className="space-y-1">
+              <CardTitle className="text-foreground text-lg font-semibold tracking-tight capitalize">
+                {nextRoutine.name}
+              </CardTitle>
+              <p className="text-muted-foreground text-sm">
+                {nextRoutine.description || "Time to lift heavy things."}
+              </p>
             </div>
-          </div>
-          <Button
-            size="default"
-            className="w-full text-sm font-semibold shadow-none"
-            onClick={activeLogId ? handleResumeWorkout : handleStartWorkout}
-            disabled={!nextRoutine.exercises || nextRoutine.exercises.length === 0}
-            variant={activeLogId ? "default" : "default"}
-          >
-            {!nextRoutine.exercises || nextRoutine.exercises.length === 0
-              ? "Add exercises to start"
-              : activeLogId
-                ? "Resume Workout"
-                : "Start Workout"}
-          </Button>
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            <div className="mb-6 space-y-3">
+              <h3 className="text-muted-foreground text-xs font-medium uppercase">Workout Plan</h3>
+              <div className="grid gap-2">
+                {nextRoutine.exercises.map((ex: any) => (
+                  <div
+                    key={ex.id}
+                    className="bg-muted/20 hover:bg-muted/40 flex items-center justify-between rounded-md border p-2 transition-colors"
+                  >
+                    <span className="text-foreground text-sm font-medium capitalize">
+                      {ex.exercise.name}
+                    </span>
+                    <Badge
+                      variant="secondary"
+                      className="h-5 shrink-0 px-1.5 text-[10px] font-normal capitalize"
+                    >
+                      {ex.exercise.category.toLowerCase()}
+                    </Badge>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <Button
+              size="default"
+              className="w-full text-sm font-semibold shadow-none"
+              onClick={activeLogId ? handleResumeWorkout : handleStartWorkout}
+              disabled={!nextRoutine.exercises || nextRoutine.exercises.length === 0}
+              variant={activeLogId ? "default" : "default"}
+            >
+              {!nextRoutine.exercises || nextRoutine.exercises.length === 0
+                ? "Add exercises to start"
+                : activeLogId
+                  ? "Resume Workout"
+                  : "Start Workout"}
+            </Button>
+          </CardContent>
+        </Card>
 
-      <Button variant="ghost" asChild>
-        <a className="w-full" href="/routines">
-          Switch Routine Group
-        </a>
-      </Button>
-    </div>
+        <Button variant="ghost" asChild>
+          <a className="w-full" href="/routines">
+            Switch Routine Group
+          </a>
+        </Button>
+      </div>
+    </>
   );
 };
