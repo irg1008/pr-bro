@@ -10,7 +10,7 @@ const { DATABASE_URL } = loadEnv("", process.cwd(), "");
 const adapter = new PrismaPg({ connectionString: DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-const EXERCISES_CSV_PATH = path.join(process.cwd(), "public", "exercises.csv");
+const EXERCISES_CSV_PATH = path.join(process.cwd(), "prisma", "exercises.csv");
 
 interface ExerciseCSVRecord {
   id: string;
@@ -96,7 +96,8 @@ async function main() {
       { name: "Walking", equipment: "None" },
       { name: "Cycling", equipment: "Bike" },
       { name: "Swimming", equipment: "Pool" },
-      { name: "HIIT", equipment: "None" }
+      { name: "HIIT", equipment: "None" },
+      { name: "Other", equipment: "None" }
     ];
 
     for (const ex of cardioExercises) {
