@@ -25,20 +25,11 @@ async function main() {
   console.log("Start seeding...");
 
   try {
-    // Wipe existing exercises and their relationships
-    console.log("Deleting existing exercises and dependencies...");
-    // Delete dependent records first to avoid Foreign Key constraints
-    await prisma.workoutLogEntry.deleteMany({});
-    await prisma.workoutLog.deleteMany({});
-    await prisma.routineExercise.deleteMany({});
-
-    // Delete Routines and Groups to avoid stale IDs
-    await prisma.routine.deleteMany({});
-    await prisma.routineGroup.deleteMany({});
-
-    // Now safe to delete exercises
-    await prisma.exercise.deleteMany({});
-    console.log("Existing data deleted.");
+    // Load existing exercises to avoid duplicates
+    const existingExercises = await prisma.exercise.findMany({
+      select: { name: true }
+    });
+    const existingNames = new Set(existingExercises.map((e) => e.name));
 
     const fileContent = fs.readFileSync(EXERCISES_CSV_PATH);
     const records = parse(fileContent, {
@@ -48,47 +39,53 @@ async function main() {
 
     console.log(`Found ${records.length} exercises in CSV.`);
 
-    const exercisesToCreate = records.map((record) => {
-      const gifId = record.id;
-      const name = record.name;
-      const bodyPart = record.bodyPart;
-      const equipment = record.equipment;
-      const target = record.target;
+    const exercisesToCreate = records
+      .filter((record) => !existingNames.has(record.name))
+      .map((record) => {
+        const gifId = record.id;
+        const name = record.name;
+        const bodyPart = record.bodyPart;
+        const equipment = record.equipment;
+        const target = record.target;
 
-      const instructions: string[] = [];
-      const secondaryMuscles: string[] = [];
+        const instructions: string[] = [];
+        const secondaryMuscles: string[] = [];
 
-      Object.keys(record).forEach((key) => {
-        if (key.startsWith("instructions/") && record[key]) {
-          instructions.push(record[key]);
-        }
-        if (key.startsWith("secondaryMuscles/") && record[key]) {
-          secondaryMuscles.push(record[key]);
-        }
+        Object.keys(record).forEach((key) => {
+          if (key.startsWith("instructions/") && record[key]) {
+            instructions.push(record[key]);
+          }
+          if (key.startsWith("secondaryMuscles/") && record[key]) {
+            secondaryMuscles.push(record[key]);
+          }
+        });
+
+        const imageUrl = `/gifs/${gifId}.gif`;
+        const category = bodyPart ? bodyPart.toUpperCase() : "OTHER";
+        const type = category === "CARDIO" ? "CARDIO" : "WEIGHT";
+
+        return {
+          name,
+          bodyPart,
+          equipment,
+          target,
+          secondaryMuscles,
+          instructions,
+          imageUrl,
+          category,
+          type: type as any
+        };
       });
 
-      const imageUrl = `/gifs/${gifId}.gif`;
-      const category = bodyPart ? bodyPart.toUpperCase() : "OTHER";
-      const type = category === "CARDIO" ? "CARDIO" : "WEIGHT";
-
-      return {
-        name,
-        bodyPart,
-        equipment,
-        target,
-        secondaryMuscles,
-        instructions,
-        imageUrl,
-        category,
-        type: type as any // Cast to any to avoid Enum type issues within this script without importing Enum
-      };
-    });
-
-    console.log(`Inserting ${exercisesToCreate.length} exercises...`);
-    await prisma.exercise.createMany({
-      data: exercisesToCreate,
-      skipDuplicates: true
-    });
+    if (exercisesToCreate.length > 0) {
+      console.log(`Inserting ${exercisesToCreate.length} new exercises...`);
+      await prisma.exercise.createMany({
+        data: exercisesToCreate,
+        skipDuplicates: true
+      });
+    } else {
+      console.log("No new exercises to insert.");
+    }
 
     let createdCount = exercisesToCreate.length;
     console.log("Exercises inserted.");
