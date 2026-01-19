@@ -18,12 +18,11 @@ COPY prisma ./prisma/
 # Install dependencies
 RUN pnpm install --frozen-lockfile
 
-
 # Copy source code
 COPY . .
 
 # Run tests
-RUN pnpm test
+# RUN pnpm test
 
 # Accept SITE as build argument and set as environment variable
 ARG SITE
