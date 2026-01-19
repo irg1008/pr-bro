@@ -101,7 +101,7 @@ export const ThreeBackground = () => {
   }, []);
 
   return (
-    <div className="fixed inset-0 z-0 pointer-events-none opacity-20 grayscale-[0.2]">
+    <div className="pointer-events-none fixed inset-0 z-0 opacity-20 grayscale-[0.2]">
       {/* Camera adjusted to looking slightly from left (-1) but mostly centered on content logic */}
       <Canvas camera={{ position: [-1, -1, 7], fov: 40 }} gl={{ antialias: true, alpha: true }}>
         <Suspense fallback={null}>
@@ -121,7 +121,7 @@ export const ThreeBackground = () => {
           <Model url="/models/panda_head_meme.glb" mouse={mouse} />
         </Suspense>
       </Canvas>
-      <div className="absolute inset-0 bg-linear-to-b from-background/30 via-background/60 to-background/90" />
+      <div className="from-background/30 via-background/60 to-background/90 absolute inset-0 bg-linear-to-b" />
     </div>
   );
 };
