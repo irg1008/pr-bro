@@ -32,7 +32,7 @@ export default defineConfig({
   },
 
   server: {
-    allowedHosts: ["site.com"]
+    allowedHosts: ["prbro.pavoo.me"]
   },
 
   output: "server",
