@@ -318,13 +318,27 @@ export const ActiveWorkout = ({
     setPickerOpen(true);
   };
 
+  // Ref to track previous exercise count for auto-scrolling
+  const prevExerciseCount = React.useRef(initialExercises.length);
+
+  useEffect(() => {
+    // If we added an exercise, scroll to it
+    if (activeExercises.length > prevExerciseCount.current && api) {
+      const newIndex = activeExercises.length - 1;
+      // Wait for next tick/re-init
+      setTimeout(() => {
+        api.scrollTo(newIndex);
+      }, 100);
+    }
+    prevExerciseCount.current = activeExercises.length;
+  }, [activeExercises.length, api]);
+
   const handleExerciseSelect = async (exercise: Exercise) => {
     if (!exercise) return;
 
     if (pickerMode === "add") {
       setActiveExercises((prev) => [...prev, exercise]);
-      // Give time for render then scroll
-      setTimeout(() => api?.scrollTo(activeExercises.length), 100);
+      // Scroll handled by useEffect
     } else {
       const newExercises = [...activeExercises];
       if (current >= 0 && current < newExercises.length) {

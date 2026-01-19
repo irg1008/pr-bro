@@ -10,7 +10,7 @@ const { DATABASE_URL } = loadEnv("", process.cwd(), "");
 const adapter = new PrismaPg({ connectionString: DATABASE_URL });
 const prisma = new PrismaClient({ adapter });
 
-const EXERCISES_CSV_PATH = path.join(process.cwd(), "public", "exercises.csv");
+const EXERCISES_CSV_PATH = path.join(process.cwd(), "prisma", "exercises.csv");
 
 interface ExerciseCSVRecord {
   id: string;
