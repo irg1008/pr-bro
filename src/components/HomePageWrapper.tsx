@@ -137,7 +137,7 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
                 {nextRoutine.exercises.map((ex: any) => (
                   <div
                     key={ex.id}
-                    className="bg-muted/20 hover:bg-muted/40 flex items-center justify-between rounded-md border p-2 transition-colors"
+                    className="bg-muted/20 flex items-center justify-between rounded-md border p-2"
                   >
                     <span className="text-foreground text-sm font-medium capitalize">
                       {ex.exercise.name}

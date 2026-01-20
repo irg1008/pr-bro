@@ -8,6 +8,7 @@ interface TargetDisplayProps {
   targetRepsToFailure?: string | null;
   incrementValue?: number | string | null;
   className?: string;
+  asGrid?: boolean;
 }
 
 export const TargetDisplay: React.FC<TargetDisplayProps> = ({
@@ -15,14 +16,16 @@ export const TargetDisplay: React.FC<TargetDisplayProps> = ({
   targetReps,
   targetRepsToFailure,
   incrementValue,
-  className
+  className,
+  asGrid
 }) => {
   if (!targetSets && !targetReps && !targetRepsToFailure && !incrementValue) return null;
 
   return (
     <div
       className={cn(
-        "grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 text-xs text-muted-foreground",
+        "items-center gap-2 text-xs text-muted-foreground",
+        asGrid ? "grid grid-cols-2 sm:flex sm:flex-wrap" : "flex",
         className
       )}
     >

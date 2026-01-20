@@ -455,6 +455,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                             targetRepsToFailure={re.targetRepsToFailure}
                             incrementValue={re.incrementValue}
                             className="gap-3"
+                            asGrid
                           />
                         </div>
                       ) : (
