@@ -59,7 +59,7 @@ export function Combobox({
         {value ? value : placeholder}
         {/* Removed ChevronsUpDown (sort icon) */}
       </PopoverTrigger>
-      <PopoverContent className="w-full min-w-[var(--radix-popover-trigger-width)] p-0 z-[60]">
+      <PopoverContent className="w-full min-w-[var(--radix-popover-trigger-width)] p-0 z-50">
         <Command className="h-auto">
           <CommandInput
             placeholder={`Search ${placeholder.toLowerCase()}...`}

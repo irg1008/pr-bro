@@ -116,7 +116,57 @@ export const ActiveWorkout = ({
 
   const [cardioModalOpen, setCardioModalOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+
+  const [loadLastRunAlertOpen, setLoadLastRunAlertOpen] = useState(false);
+
+  /* ... inside ActiveWorkout component ... */
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
+
+  const handleLoadLastRoutineRun = async () => {
+    // Check if there is any data entered
+    const hasData = Object.values(sets).some((exSets) =>
+      exSets.some(
+        (s) =>
+          (s.weight !== "" && s.weight !== undefined) ||
+          (s.reps !== "" && s.reps !== undefined) ||
+          (s.duration !== "" && s.duration !== undefined) ||
+          (s.distance !== "" && s.distance !== undefined) ||
+          (s.calories !== "" && s.calories !== undefined)
+      )
+    );
+
+    if (hasData) {
+      setLoadLastRunAlertOpen(true);
+    } else {
+      await executeLoadLastRoutineRun();
+    }
+  };
+
+  const executeLoadLastRoutineRun = async () => {
+    setLoadLastRunAlertOpen(false);
+    try {
+      const res = await fetch(`/api/workout-logs/${logId}/last-routine-run`);
+      const result = await res.json();
+
+      if (!result.found) {
+        toast.info("No previous run found for this routine");
+        return;
+      }
+
+      const { data } = result;
+
+      // Merge or replace? User asked to "load last values".
+      setSets((prev) => ({ ...prev, ...data.sets }));
+      setSessionNotes((prev) => ({ ...prev, ...data.sessionNotes }));
+      setSupersetStatus((prev) => ({ ...prev, ...data.supersetStatus }));
+
+      toast.success(`Loaded data from ${new Date(data.finishedAt).toLocaleDateString()}`);
+    } catch (e) {
+      console.error("Failed to load last routine run", e);
+      toast.error("Failed to load previous data");
+    }
+  };
+
   const [infoAlert, setInfoAlert] = useState<{ open: boolean; title: string; message: string }>({
     open: false,
     title: "",
@@ -566,12 +616,16 @@ export const ActiveWorkout = ({
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Workout Options</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => handleLoadLastRoutineRun()}>
+              <History className="mr-2 h-4 w-4" />
+              Load last run
+            </DropdownMenuItem>
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => setResetAlertOpen(true)}
             >
               <RotateCcw className="mr-2 h-4 w-4" />
-              Reset to Routine
+              Reset to routine
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -683,7 +737,7 @@ export const ActiveWorkout = ({
                         ) : (
                           <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
                             <MessageSquareText className="h-3.5 w-3.5" />
-                            <span className="text-xs">Add Insight</span>
+                            <span className="text-xs">Add insight</span>
                           </div>
                         )}
                       </div>
@@ -699,7 +753,7 @@ export const ActiveWorkout = ({
                           onChange={(e) =>
                             setSessionNotes((prev) => ({ ...prev, [ex.id]: e.target.value }))
                           }
-                          className="min-h-[100px]"
+                          className="min-h-25"
                         />
                       </div>
                       <DialogFooter>
@@ -737,12 +791,12 @@ export const ActiveWorkout = ({
                             className={`mr-2 h-4 w-4 ${supersetStatus[ex.id] ? "text-amber-500 fill-amber-500" : ""}`}
                           />
                           <span className={supersetStatus[ex.id] ? "font-bold text-amber-500" : ""}>
-                            {supersetStatus[ex.id] ? "Active Superset" : "Toggle Superset"}
+                            {supersetStatus[ex.id] ? "Active superset" : "Toggle superset"}
                           </span>
                         </DropdownMenuItem>
                         <DropdownMenuItem onClick={() => openReplaceExercise(index)}>
                           <ArrowLeftRight className="mr-2 h-4 w-4" />
-                          Replace Exercise
+                          Replace exercise
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
@@ -750,7 +804,7 @@ export const ActiveWorkout = ({
                           onClick={() => handleDeleteClick(index)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Remove Exercise
+                          Remove exercise
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -890,7 +944,7 @@ export const ActiveWorkout = ({
               ))}
 
               <Button variant="outline" className="w-full" onClick={() => addSet(ex.id)}>
-                + Add Set
+                + Add set
               </Button>
             </div>
           </div>
@@ -899,19 +953,19 @@ export const ActiveWorkout = ({
         <div className="flex flex-col items-center justify-center gap-6 rounded-xl border-2 border-dashed py-8">
           <Button size="lg" className="h-12 w-48 gap-2 text-base" onClick={openAddExercise}>
             <Plus className="h-5 w-5" />
-            Add Exercise
+            Add exercise
           </Button>
 
           <Dialog open={cardioModalOpen} onOpenChange={setCardioModalOpen}>
             <DialogTrigger asChild>
               <Button variant="outline" size="lg" className="h-12 w-48 gap-2 text-base">
                 <Activity className="h-5 w-5" />
-                Add Cardio
+                Add cardio
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-md" onCloseAutoFocus={(e) => e.preventDefault()}>
               <DialogHeader>
-                <DialogTitle>Choose Cardio Type</DialogTitle>
+                <DialogTitle>Choose cardio type</DialogTitle>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-4 py-4">
                 {CARDIO_OPTIONS.map((option) => (
@@ -960,7 +1014,7 @@ export const ActiveWorkout = ({
       <AlertDialog open={deleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Exercise?</AlertDialogTitle>
+            <AlertDialogTitle>Remove exercise?</AlertDialogTitle>
             <AlertDialogDescription>
               This will remove{" "}
               <span className="text-foreground font-semibold">
@@ -981,10 +1035,28 @@ export const ActiveWorkout = ({
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={loadLastRunAlertOpen} onOpenChange={setLoadLastRunAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Overwrite current data?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You have already entered some data. Loading the last run will overwrite existing
+              values for matching exercises.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={executeLoadLastRoutineRun}>
+              Continue & overwrite
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog open={resetAlertOpen} onOpenChange={setResetAlertOpen}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Reset Workout?</AlertDialogTitle>
+            <AlertDialogTitle>Reset workout?</AlertDialogTitle>
             <AlertDialogDescription>
               This will reset all exercises and sets back to the original routine. Any changes
               you've made (added exercises, modified sets, notes) will be lost.

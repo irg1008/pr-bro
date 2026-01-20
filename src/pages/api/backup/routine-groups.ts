@@ -51,19 +51,25 @@ export const POST: APIRoute = async ({ request }) => {
         }
 
         // Create Group recursively
-        const newGroup = await tx.routineGroup.create({
+        await tx.routineGroup.create({
           data: {
             ...groupData,
             id: id,
             routines: {
               create: routines?.map((routine: any) => {
-                const { id: rId, exercises, routineGroupId, ...routineData } = routine;
+                const { id: rId, exercises, routineGroupId: _rgId, ...routineData } = routine;
                 return {
                   ...routineData,
                   id: rId,
                   exercises: {
                     create: exercises?.map((rx: any) => {
-                      const { id: rxId, routineId, exerciseId, exercise: _ex, ...rxData } = rx;
+                      const {
+                        id: rxId,
+                        routineId: _rId,
+                        exerciseId,
+                        exercise: _ex,
+                        ...rxData
+                      } = rx;
                       return {
                         ...rxData,
                         id: rxId,
