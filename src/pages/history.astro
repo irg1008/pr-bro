@@ -97,7 +97,7 @@ const paginatedCycles = cycles.slice(
 <BaseLayout title="Workout History">
 	<div class="container mx-auto py-8 px-4 max-w-xl">
 		<div class="flex justify-between items-center mb-8">
-			<h1 class="text-3xl font-bold">Workout History</h1>
+			<h1 class="text-3xl font-bold text-foreground">Workout History</h1>
 			<DeleteHistoryButton client:visible />
 		</div>
 
@@ -108,7 +108,7 @@ const paginatedCycles = cycles.slice(
 						{/* Cycle Header */}
 						<div class="flex items-center justify-between border-b pb-2">
 							<div>
-								<h2 class="text-xl font-bold text-primary">
+								<h2 class="text-xl font-bold text-foreground">
 									{cycle.groupName} - Cycle {cycle.cycleNumber}
 								</h2>
 								<p class="text-xs text-muted-foreground">
@@ -137,7 +137,7 @@ const paginatedCycles = cycles.slice(
 								>
 									<div class="flex justify-between items-start z-10 relative">
 										<div>
-											<h3 class="font-bold text-lg capitalize flex items-center gap-2">
+											<h3 class="font-bold text-lg capitalize flex items-center gap-2 text-foreground">
 												{log.routine.name}
 											</h3>
 											<p class="text-xs text-muted-foreground mt-1">

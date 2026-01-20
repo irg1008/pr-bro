@@ -231,7 +231,6 @@ export const ActiveWorkout = ({
       }
 
       const newSets = { ...sets };
-      let updatedCount = 0; // Keeping for reference/logging if needed
       let appliedCount = 0; // Tracks any application (success or failure-reset)
       let failureReason = "";
       const diffs: ProgressionDifference[] = [];
@@ -260,10 +259,9 @@ export const ActiveWorkout = ({
           const increment = ex.incrementValue || 2.5;
           const nextWeight = Number(lastWeight) + increment;
 
-          updatedCount++;
           appliedCount++;
 
-          newSets[ex.id] = lastSets.map((s: any) => ({
+          newSets[ex.id] = lastSets.map(() => ({
             ...createEmptySet(ex.type as ExerciseType),
             weight: nextWeight,
             reps: minReps
@@ -908,10 +906,10 @@ export const ActiveWorkout = ({
 
       {/* Double Progression Button - Full Width */}
       <Button
-        variant="default" // Primary style
+        variant="accent"
         size="lg"
         onClick={() => handleApplyDoubleProgression()}
-        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md transition-all mb-2"
+        className="w-full shadow-md transition-all mb-2"
       >
         <TrendingUp className="mr-2 h-5 w-5" />
         Apply progressive overload
@@ -1289,11 +1287,7 @@ export const ActiveWorkout = ({
           showFooter ? "bottom-19.25 md:bottom-0" : "bottom-0"
         }`}
       >
-        <Button
-          className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
-          onClick={handleFinish}
-          disabled={!isFormValid}
-        >
+        <Button className="flex-1" onClick={handleFinish} disabled={!isFormValid}>
           Finish
         </Button>
       </div>

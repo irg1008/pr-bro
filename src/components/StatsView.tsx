@@ -155,8 +155,8 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                         >
                           <defs>
                             <linearGradient id={`gradient-${stat.id}`} x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="var(--primary)" stopOpacity={0.3} />
-                              <stop offset="95%" stopColor="var(--primary)" stopOpacity={0} />
+                              <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
                             </linearGradient>
                           </defs>
                           <CartesianGrid
@@ -200,14 +200,14 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                             type="basis"
                             dataKey="maxWeight"
                             r={4}
-                            fill="var(--primary)"
+                            fill="var(--chart-1)"
                             fillOpacity={0.5}
-                            stroke="var(--primary)"
+                            stroke="var(--chart-1)"
                             strokeWidth={2}
                             activeDot={{
                               r: 4,
-                              fill: "var(--primary)",
-                              stroke: "var(--primary)",
+                              fill: "var(--chart-1)",
+                              stroke: "var(--chart-1)",
                               strokeWidth: 2
                             }}
                           >

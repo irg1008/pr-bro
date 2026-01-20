@@ -224,7 +224,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
           <Button onClick={handleCreate} className="bg-green-600 text-white hover:bg-green-700">
             Save
           </Button>
-          <Button onClick={() => setIsCreating(false)} variant="secondary">
+          <Button onClick={() => setIsCreating(false)} variant="outline">
             Cancel
           </Button>
         </div>
@@ -234,7 +234,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
         {groups.map((group) => (
           <div
             key={group.id}
-            className={`bg-card text-card-foreground hover:bg-accent hover:text-accent-foreground group relative cursor-pointer rounded-lg border shadow-sm transition-colors ${group.isActive ? "border-blue-500 bg-blue-500/5" : ""}`}
+            className={`bg-card text-card-foreground hover:bg-card/50 group relative cursor-pointer rounded-lg border shadow-sm transition-colors ${group.isActive ? "border-blue-500 bg-blue-500/5" : ""}`}
             onClick={() => handleSelectGroup(group.id)}
           >
             <div className="flex flex-col space-y-1.5 p-6">

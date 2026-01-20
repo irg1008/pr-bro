@@ -292,7 +292,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         {routines.map((routine, index) => (
           <Card
             key={routine.id}
-            className="hover:bg-accent/50 group relative cursor-pointer transition-colors"
+            className="hover:bg-card/50 group relative cursor-pointer transition-colors"
             onClick={() => handleSelectRoutine(routine.id)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">

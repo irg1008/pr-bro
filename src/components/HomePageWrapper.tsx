@@ -157,7 +157,6 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
               className="w-full text-sm font-semibold shadow-none"
               onClick={activeLogId ? handleResumeWorkout : handleStartWorkout}
               disabled={!nextRoutine.exercises || nextRoutine.exercises.length === 0}
-              variant={activeLogId ? "default" : "default"}
             >
               {!nextRoutine.exercises || nextRoutine.exercises.length === 0
                 ? "Add exercises to start"

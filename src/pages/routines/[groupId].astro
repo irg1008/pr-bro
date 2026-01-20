@@ -1,6 +1,7 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { RoutineManagement } from "../../components/RoutineManagement";
+import { Button } from "@/components/ui/button";
 import { GET } from "../api/groups/[id]";
 
 export const prerender = false;
@@ -43,13 +44,9 @@ const routines: RoutineWithCount[] = group.routines.map((r) => ({
 			</div>
 			{
 				!group.isActive && (
-					<button
-						id="set-active-btn"
-						data-group-id={group.id}
-						class="bg-blue-600 text-white px-4 py-2 rounded-md text-sm font-medium hover:bg-blue-700"
-					>
+					<Button id="set-active-btn" data-group-id={group.id} variant="accent">
 						Set as Active Cycle
-					</button>
+					</Button>
 				)
 			}
 		</div>

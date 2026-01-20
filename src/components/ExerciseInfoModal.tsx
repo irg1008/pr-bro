@@ -60,11 +60,7 @@ export const ExerciseInfoModal: React.FC<ExerciseInfoModalProps> = ({ exercise }
             <div className="space-y-2">
               <h4 className="text-sm font-semibold">Muscle Targets</h4>
               <div className="flex flex-wrap gap-1">
-                {exercise.target && (
-                  <Badge variant="default" className="capitalize">
-                    {exercise.target}
-                  </Badge>
-                )}
+                {exercise.target && <Badge className="capitalize">{exercise.target}</Badge>}
                 {exercise.secondaryMuscles &&
                   exercise.secondaryMuscles.map((m) => (
                     <Badge key={m} variant="secondary" className="capitalize">

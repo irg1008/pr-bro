@@ -129,13 +129,8 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           {trigger ? (
             trigger
           ) : (
-            <Button variant="default" className="w-full justify-between sm:w-62.5">
-              <span className="flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Add Exercise
-              </span>
-              <span className="rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-bold text-white dark:text-white">
-                {selectedExerciseIds.length} added
-              </span>
+            <Button className="justify-center">
+              <Plus className="h-4 w-4" /> Add Exercise
             </Button>
           )}
         </DialogTrigger>
