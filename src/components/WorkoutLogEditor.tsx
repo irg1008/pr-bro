@@ -33,8 +33,8 @@ import { navigate } from "astro:transitions/client";
 import { MessageSquareText, MoreVertical, Trash2, X, Zap } from "lucide-react";
 import type { Exercise, Routine, RoutineExercise, WorkoutLogEntry } from "prisma/generated/client";
 import React, { useState } from "react";
-import { type SetType } from "./ActiveWorkout";
 import { ExerciseInfoModal } from "./ExerciseInfoModal";
+import { SetTypeSelector } from "./SetTypeSelector";
 import { TargetDisplay } from "./TargetDisplay";
 
 type WorkoutLogEntryWithExercise = WorkoutLogEntry & { exercise: Exercise };
@@ -63,20 +63,6 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
     newSets[setIndex] = { ...newSets[setIndex], [field]: value };
     newEntries[entryIndex] = { ...newEntries[entryIndex], sets: newSets };
     setEntries(newEntries);
-  };
-
-  const toggleSetType = (entryIndex: number, setIndex: number) => {
-    const currentEntry = entries[entryIndex];
-    if (!currentEntry) return;
-
-    const set = currentEntry.sets[setIndex];
-    let nextType: SetType = "NORMAL";
-
-    if (!set.type || set.type === "NORMAL") nextType = "WARMUP";
-    else if (set.type === "WARMUP") nextType = "FAILURE";
-    else nextType = "NORMAL";
-
-    updateSet(entryIndex, setIndex, "type", nextType);
   };
 
   const updateNote = (entryIndex: number, note: string) => {
@@ -307,19 +293,11 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                   key={setIdx}
                   className={`grid items-center gap-2 ${entry.exercise.type === "CARDIO" ? "grid-cols-[auto_1fr_1fr_1fr_auto]" : "grid-cols-[auto_1fr_1fr_auto]"}`}
                 >
-                  <div
-                    className={`flex h-7 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border text-sm font-bold transition-colors select-none ${
-                      !set.type || set.type === "NORMAL"
-                        ? "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
-                        : set.type === "WARMUP"
-                          ? "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800"
-                          : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
-                    }`}
-                    onClick={() => toggleSetType(entryIdx, setIdx)}
-                    title="Click to toggle: Normal -> Warmup -> Failure"
-                  >
-                    {setIdx + 1}
-                  </div>
+                  <SetTypeSelector
+                    setNumber={setIdx + 1}
+                    type={set.type}
+                    onChange={(newType) => updateSet(entryIdx, setIdx, "type", newType)}
+                  />
 
                   {entry.exercise.type === "CARDIO" ? (
                     <>

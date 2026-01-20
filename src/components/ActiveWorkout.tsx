@@ -30,6 +30,8 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useHaptic } from "@/hooks/useHaptic";
+import type { SetType } from "@/types/set-types";
 import { navigate } from "astro:transitions/client";
 import {
   Activity,
@@ -56,6 +58,7 @@ import { motion } from "motion/react";
 import type { Exercise, ExerciseType } from "prisma/generated/client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { SetTypeSelector } from "./SetTypeSelector";
 import { TargetDisplay } from "./TargetDisplay";
 
 const CARDIO_OPTIONS = [
@@ -67,7 +70,7 @@ const CARDIO_OPTIONS = [
   { name: "Other", icon: Dumbbell }
 ];
 
-export type SetType = "NORMAL" | "WARMUP" | "FAILURE";
+// export type SetType = "NORMAL" | "WARMUP" | "FAILURE"; // Using shared type now
 
 export interface WorkoutSet {
   weight?: number | "";
@@ -137,6 +140,7 @@ export const ActiveWorkout = ({
   ); // Track for alert
 
   const [loadLastRunAlertOpen, setLoadLastRunAlertOpen] = useState(false);
+  const haptic = useHaptic();
 
   /* ... inside ActiveWorkout component ... */
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
@@ -589,20 +593,6 @@ export const ActiveWorkout = ({
     setSets({ ...sets, [exerciseId]: newSets });
   };
 
-  const toggleSetType = (exerciseId: string, idx: number) => {
-    const currentSets = sets[exerciseId];
-    if (!currentSets) return;
-
-    const set = currentSets[idx];
-    let nextType: SetType = "NORMAL";
-
-    if (!set.type || set.type === "NORMAL") nextType = "WARMUP";
-    else if (set.type === "WARMUP") nextType = "FAILURE";
-    else nextType = "NORMAL";
-
-    updateSet(exerciseId, idx, "type", nextType);
-  };
-
   const addSet = (exerciseId: string) => {
     if (!exerciseId) return;
 
@@ -936,33 +926,14 @@ export const ActiveWorkout = ({
         variant="accent"
         size="lg"
         onClick={() => handleApplyDoubleProgression()}
-        className="w-full shadow-md transition-all mb-2"
+        className="w-full shadow-md transition-all"
       >
         <TrendingUp className="mr-2 h-5 w-5" />
         Apply progressive overload
       </Button>
 
-      <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg border border-dashed">
-        <span
-          className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-help"
-          title="Click set number to toggle"
-        >
-          Toggle type:
-        </span>
-        <div className="flex items-center gap-3 font-medium">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-muted border border-transparent ring-1 ring-border/20"></span>
-            Normal
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-orange-200 border border-orange-300 dark:bg-orange-500/50 dark:border-orange-500"></span>
-            Warmup
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-200 border border-red-300 dark:bg-red-500/50 dark:border-red-500"></span>
-            Failure
-          </span>
-        </div>
+      <div className="flex items-center justify-center text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg border border-dashed text-center">
+        Tap set number to toggle between set types
       </div>
 
       {/* Main Content - Scroll List */}
@@ -1155,7 +1126,12 @@ export const ActiveWorkout = ({
                   {ex.type !== "CARDIO" && (
                     <div
                       className="flex items-center justify-center cursor-pointer"
-                      onClick={() => updateSet(ex.id, idx, "completed", !set.completed)}
+                      onClick={() => {
+                        const newCompleted = !set.completed;
+                        if (newCompleted) haptic.success();
+                        else haptic.impactLight();
+                        updateSet(ex.id, idx, "completed", newCompleted);
+                      }}
                     >
                       <div
                         className={`h-6 w-6 rounded-full border flex items-center justify-center transition-colors ${set.completed ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30 hover:border-muted-foreground/50"}`}
@@ -1165,19 +1141,11 @@ export const ActiveWorkout = ({
                     </div>
                   )}
 
-                  <div
-                    className={`flex h-7 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border text-sm font-bold transition-colors select-none ${
-                      !set.type || set.type === "NORMAL"
-                        ? "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
-                        : set.type === "WARMUP"
-                          ? "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800"
-                          : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
-                    }`}
-                    onClick={() => toggleSetType(ex.id, idx)}
-                    title="Click to toggle: Normal -> Warmup -> Failure"
-                  >
-                    {idx + 1}
-                  </div>
+                  <SetTypeSelector
+                    setNumber={idx + 1}
+                    type={set.type}
+                    onChange={(newType) => updateSet(ex.id, idx, "type", newType)}
+                  />
                   {ex.type === "CARDIO" ? (
                     <>
                       <Input

@@ -35,6 +35,8 @@ import { navigate } from "astro:transitions/client";
 import {
   ArrowDown,
   ArrowUp,
+  ClipboardCopy,
+  ClipboardPaste,
   ListOrdered,
   MoreVertical,
   Pencil,
@@ -96,8 +98,65 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     targetSets: "",
     targetReps: "",
     targetRepsToFailure: "",
-    incrementValue: "2.5"
+    incrementValue: ""
   });
+  const [clipboard, setClipboard] = useState<any>(null);
+
+  useEffect(() => {
+    const saved = localStorage.getItem("prbro_clipboard");
+    if (saved) {
+      try {
+        setClipboard(JSON.parse(saved));
+      } catch (e) {
+        console.error("Failed to parse clipboard", e);
+      }
+    }
+  }, []);
+
+  const handleCopy = (re: RoutineExerciseWithExercise) => {
+    const payload = {
+      exerciseId: re.exerciseId,
+      exerciseName: re.exercise.name, // For display
+      targetSets: re.targetSets,
+      targetReps: re.targetReps,
+      targetRepsToFailure: re.targetRepsToFailure,
+      incrementValue: re.incrementValue,
+      note: re.note
+    };
+    localStorage.setItem("prbro_clipboard", JSON.stringify(payload));
+    setClipboard(payload);
+    toast.success(`Copied "${re.exercise.name}" to clipboard`);
+  };
+
+  const handlePaste = async () => {
+    if (!clipboard) return;
+
+    // Check duplicate
+    if (exercises.some((e) => e.exerciseId === clipboard.exerciseId)) {
+      toast.error(`"${clipboard.exerciseName}" is already in this routine.`);
+      return;
+    }
+
+    try {
+      await fetch("/api/routine-exercises", {
+        method: "POST",
+        body: JSON.stringify({
+          routineId: routineId,
+          exerciseId: clipboard.exerciseId,
+          targetSets: clipboard.targetSets,
+          targetReps: clipboard.targetReps,
+          targetRepsToFailure: clipboard.targetRepsToFailure,
+          incrementValue: clipboard.incrementValue,
+          note: clipboard.note
+        }),
+        headers: { "Content-Type": "application/json" }
+      });
+      navigate(location.pathname);
+    } catch (error) {
+      console.error("Failed to paste exercise", error);
+      toast.error("Failed to paste exercise");
+    }
+  };
 
   useEffect(() => {
     fetch("/api/categories")
@@ -209,7 +268,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       targetSets: re.targetSets || "",
       targetReps: re.targetReps || "",
       targetRepsToFailure: re.targetRepsToFailure || "",
-      incrementValue: re.incrementValue ? re.incrementValue.toString() : "2.5"
+      incrementValue: re.incrementValue ? re.incrementValue.toString() : ""
     });
   };
 
@@ -266,7 +325,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             targetRepsToFailure: targetDialog.targetRepsToFailure || null,
             incrementValue: targetDialog.incrementValue
               ? parseFloat(targetDialog.incrementValue)
-              : 2.5
+              : null
           }
         : e
     );
@@ -280,7 +339,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
           targetSets: targetDialog.targetSets || null,
           targetReps: targetDialog.targetReps || null,
           targetRepsToFailure: targetDialog.targetRepsToFailure || null,
-          incrementValue: targetDialog.incrementValue
+          incrementValue: targetDialog.incrementValue || null
         }),
         headers: { "Content-Type": "application/json" }
       });
@@ -366,6 +425,17 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             selectedExerciseIds={exercises.map((e) => e.exerciseId)}
             preferredCategories={focusedParts}
           />
+          {clipboard && (
+            <Button
+              variant="secondary"
+              className="gap-2"
+              onClick={handlePaste}
+              title={`Paste "${clipboard.exerciseName}"`}
+            >
+              <ClipboardPaste className="h-4 w-4" />
+              <span className="hidden sm:inline">Paste</span>
+            </Button>
+          )}
         </div>
       </div>
 
@@ -426,6 +496,11 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                             className={`mr-2 h-4 w-4 ${re.isSuperset ? "text-amber-500 fill-amber-500" : ""}`}
                           />
                           <span>{re.isSuperset ? "Active Superset" : "Toggle Superset"}</span>
+                        </DropdownMenuItem>
+
+                        <DropdownMenuItem onClick={() => handleCopy(re)}>
+                          <ClipboardCopy className="mr-2 h-4 w-4" />
+                          Copy Exercise
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
