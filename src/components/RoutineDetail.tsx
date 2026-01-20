@@ -477,7 +477,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                       ) : (
                         <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
                           <StickyNote className="h-3.5 w-3.5" />
-                          <span className="text-xs">Add Note</span>
+                          <span className="text-xs">Add note</span>
                         </div>
                       )}
                     </div>
@@ -512,7 +512,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
         {exercises.length === 0 && (
           <div className="text-muted-foreground bg-muted/50 rounded-lg border-2 border-dashed px-4 py-12 text-center">
             <p className="mb-2">No exercises in this routine yet.</p>
-            <p className="text-sm">Click "Add Exercise" to get started.</p>
+            <p className="text-sm">Click "Add exercise" to get started.</p>
           </div>
         )}
       </div>

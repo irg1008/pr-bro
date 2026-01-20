@@ -130,7 +130,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
             trigger
           ) : (
             <Button className="justify-center">
-              <Plus className="h-4 w-4" /> Add Exercise
+              <Plus className="h-4 w-4" /> Add exercise
             </Button>
           )}
         </DialogTrigger>

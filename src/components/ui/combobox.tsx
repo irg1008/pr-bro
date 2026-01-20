@@ -50,7 +50,7 @@ export function Combobox({
       <PopoverTrigger
         className={cn(
           buttonVariants({ variant: "outline" }),
-          "w-full justify-between capitalize",
+          "w-full justify-between",
           !value && "text-muted-foreground"
         )}
         role="combobox"

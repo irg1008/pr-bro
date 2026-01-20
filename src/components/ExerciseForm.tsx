@@ -273,7 +273,7 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
 
       <div className="grid gap-2">
         <Label>
-          Target Muscle <span className="text-destructive">*</span>
+          Target muscle <span className="text-destructive">*</span>
         </Label>
         <Combobox
           value={formData.target}
@@ -312,7 +312,7 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
             }
           >
             <Plus className="h-3.5 w-3.5" />
-            Add Step
+            Add step
           </Button>
         </div>
         <ListInput
@@ -329,12 +329,13 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
         {isEditMode && exerciseToEdit ? (
           <Button
             type="button"
-            variant="destructive"
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-destructive h-8 w-8"
             onClick={() => setDeleteAlert(true)}
             disabled={loading}
           >
-            <Trash2 className="mr-2 h-4 w-4" />
-            Delete
+            <Trash2 className="h-4 w-4" />
           </Button>
         ) : (
           <div></div> // Spacer
