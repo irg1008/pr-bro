@@ -14,7 +14,6 @@ import { Check, Pencil, Plus, Search } from "lucide-react";
 import type { Exercise } from "prisma/generated/client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useDebounce } from "use-debounce";
-import { CreateEditExerciseDialog } from "./CreateEditExerciseDialog";
 
 interface ExerciseSelectorProps {
   onSelect: (exercise: Exercise) => Promise<void> | void;
@@ -23,7 +22,6 @@ interface ExerciseSelectorProps {
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
   trigger?: React.ReactNode;
-  allowCustomExerciseCreation?: boolean;
 }
 
 export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
@@ -32,8 +30,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   preferredCategories = [],
   open: controlledOpen,
   onOpenChange,
-  trigger,
-  allowCustomExerciseCreation = false
+  trigger
 }) => {
   const [internalOpen, setInternalOpen] = useState(false);
 
@@ -46,23 +43,11 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
     [onOpenChange, controlledOpen]
   );
 
-  // Create/Edit Dialog State
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [exerciseToEdit, setExerciseToEdit] = useState<Exercise | null>(null);
-
-  const handleCreateClick = () => {
-    setExerciseToEdit(null);
-    setDialogOpen(true);
+  const handleEditClick = async (e: React.MouseEvent, ex: Exercise) => {
+    // e.preventDefault/stopPropagation handled in onClick
+    const returnUrl = encodeURIComponent(window.location.pathname);
+    window.location.href = `/exercises/${ex.id}/edit?returnUrl=${returnUrl}`;
   };
-
-  const handleEditClick = (e: React.MouseEvent, ex: Exercise) => {
-    e.stopPropagation(); // Prevent selection
-    setExerciseToEdit(ex);
-    setDialogOpen(true);
-  };
-
-  // Add refresh trigger
-  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
   const [page, setPage] = useState(1);
@@ -95,7 +80,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
     setExercises([]);
     setPage(1);
     setTotal(0);
-  }, [debouncedSearch, activeCategory, refreshTrigger]);
+  }, [debouncedSearch, activeCategory]);
 
   useEffect(() => {
     const fetchExercises = async () => {
@@ -127,7 +112,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
     };
 
     fetchExercises();
-  }, [page, debouncedSearch, activeCategory, refreshTrigger]);
+  }, [page, debouncedSearch, activeCategory]);
 
   const handleExerciseClick = async (ex: Exercise) => {
     if (selectedExerciseIds.includes(ex.id)) return;
@@ -172,11 +157,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              {allowCustomExerciseCreation && (
-                <Button onClick={handleCreateClick} className="shrink-0 gap-2">
-                  <Plus className="h-4 w-4" /> Custom
-                </Button>
-              )}
+              {/* Removed internal Create Custom button */}
             </div>
 
             {/* Preferred Categories Filter */}
@@ -225,8 +206,12 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                       onClick={() => handleExerciseClick(ex)}
                     >
                       <button
-                        onClick={(e) => handleEditClick(e, ex)}
-                        className="bg-background/80 hover:bg-background absolute top-2 right-2 z-10 rounded-full p-1.5 opacity-0 backdrop-blur-sm transition-opacity group-hover:opacity-100"
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          handleEditClick(e, ex);
+                        }}
+                        className="bg-background/80 hover:bg-background absolute top-2 right-2 z-30 rounded-full p-1.5 shadow-sm backdrop-blur-sm transition-opacity opacity-70 hover:opacity-100"
                         title="Edit Exercise"
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -239,14 +224,29 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                             alt={ex.name}
                             loading="lazy"
                             className="h-full w-full object-cover transition-transform group-hover:scale-105"
+                            onError={(e) => {
+                              e.currentTarget.style.display = "none";
+                              // Show fallback sibling
+                              const parent = e.currentTarget.parentElement;
+                              if (parent) {
+                                const fallback = parent.querySelector(".fallback-text");
+                                if (fallback) fallback.classList.remove("hidden");
+                              }
+                            }}
                           />
-                        ) : (
-                          <div className="text-muted-foreground flex h-full items-center justify-center">
-                            No Image
-                          </div>
-                        )}
+                        ) : null}
+                        {/* Fallback text if no image or error */}
+                        <div
+                          className={cn(
+                            "fallback-text text-muted-foreground/40 text-xs font-medium absolute inset-0 flex items-center justify-center pointer-events-none",
+                            ex.imageUrl ? "hidden" : ""
+                          )}
+                        >
+                          No Image
+                        </div>
+
                         {isSelected && (
-                          <div className="bg-primary/40 absolute inset-0 flex items-center justify-center">
+                          <div className="bg-primary/40 absolute inset-0 flex items-center justify-center z-20">
                             <div className="bg-primary text-primary-foreground rounded-full p-2">
                               <Check className="h-6 w-6" />
                             </div>
@@ -295,13 +295,6 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           </div>
         </DialogContent>
       </Dialog>
-
-      <CreateEditExerciseDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        exerciseToEdit={exerciseToEdit}
-        onSave={() => setRefreshTrigger((prev) => prev + 1)}
-      />
     </>
   );
 };
