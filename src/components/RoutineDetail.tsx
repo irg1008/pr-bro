@@ -462,7 +462,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                       ) : (
                         <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
                           <Target className="h-3.5 w-3.5" />
-                          <span className="text-xs">Add Target</span>
+                          <span className="text-xs">Add target</span>
                         </div>
                       )}
                     </div>
@@ -520,7 +520,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       <Dialog open={isRenaming} onOpenChange={setIsRenaming}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename Routine</DialogTitle>
+            <DialogTitle>Rename routine</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -578,7 +578,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Remove Exercise?</AlertDialogTitle>
+            <AlertDialogTitle>Remove exercise?</AlertDialogTitle>
             <AlertDialogDescription>
               Are you sure you want to remove this exercise from the routine?
             </AlertDialogDescription>
@@ -601,7 +601,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       >
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Exercise Note</DialogTitle>
+            <DialogTitle>Exercise note</DialogTitle>
           </DialogHeader>
           <div className="py-4">
             <Label>Instruction / Note</Label>

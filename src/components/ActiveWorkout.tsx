@@ -914,7 +914,7 @@ export const ActiveWorkout = ({
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            <DropdownMenuLabel>Workout Options</DropdownMenuLabel>
+            <DropdownMenuLabel>Workout options</DropdownMenuLabel>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={() => handleLoadLastRoutineRun()}>
               <History className="mr-2 h-4 w-4" />
@@ -1434,7 +1434,7 @@ export const ActiveWorkout = ({
       <AlertDialog open={summaryModalOpen} onOpenChange={setSummaryModalOpen}>
         <AlertDialogContent className="max-w-md">
           <AlertDialogHeader>
-            <AlertDialogTitle>Progression Summary</AlertDialogTitle>
+            <AlertDialogTitle>Progression summary</AlertDialogTitle>
             <AlertDialogDescription>
               Here's how your targets have changed based on your last performance:
             </AlertDialogDescription>

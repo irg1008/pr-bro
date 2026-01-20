@@ -225,7 +225,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
       {isCreating && (
         <Card>
           <CardHeader>
-            <CardTitle>Create Routine</CardTitle>
+            <CardTitle>Create routine</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid w-full max-w-sm items-center gap-1.5">

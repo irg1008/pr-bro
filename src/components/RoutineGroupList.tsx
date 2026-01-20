@@ -131,7 +131,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
           <AlertDialog open={!!importFile} onOpenChange={(open) => !open && setImportFile(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Import Routine groups</AlertDialogTitle>
+                <AlertDialogTitle>Import routine groups</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will add any new routine groups from the file. Existing groups with the same
                   ID will be skipped.
