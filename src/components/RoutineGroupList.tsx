@@ -245,9 +245,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-base font-bold tracking-tight">{group.name}</CardTitle>
                   {group.isActive && (
-                    <Badge className="h-5 px-1.5 text-[10px] uppercase tracking-wider bg-blue-500 hover:bg-blue-600">
-                      Active
-                    </Badge>
+                    <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>
                   )}
                 </div>
                 <div className="absolute top-4 right-4 flex gap-1">
