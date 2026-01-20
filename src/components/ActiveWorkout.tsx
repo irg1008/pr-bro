@@ -926,33 +926,14 @@ export const ActiveWorkout = ({
         variant="accent"
         size="lg"
         onClick={() => handleApplyDoubleProgression()}
-        className="w-full shadow-md transition-all mb-2"
+        className="w-full shadow-md transition-all"
       >
         <TrendingUp className="mr-2 h-5 w-5" />
         Apply progressive overload
       </Button>
 
-      <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg border border-dashed">
-        <span
-          className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-help"
-          title="Click set number to toggle"
-        >
-          Toggle type:
-        </span>
-        <div className="flex items-center gap-3 font-medium">
-          <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-muted border border-transparent ring-1 ring-border/20"></span>
-            Normal
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-orange-200 border border-orange-300 dark:bg-orange-500/50 dark:border-orange-500"></span>
-            Warmup
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="h-2.5 w-2.5 rounded-full bg-red-200 border border-red-300 dark:bg-red-500/50 dark:border-red-500"></span>
-            Failure
-          </span>
-        </div>
+      <div className="flex items-center justify-center text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg border border-dashed text-center">
+        Tap set number to toggle between set types
       </div>
 
       {/* Main Content - Scroll List */}
