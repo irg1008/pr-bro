@@ -639,7 +639,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs text-muted-foreground">Sets</Label>
                 <Input

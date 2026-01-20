@@ -21,7 +21,10 @@ export const TargetDisplay: React.FC<TargetDisplayProps> = ({
 
   return (
     <div
-      className={cn("flex flex-wrap items-center gap-2 text-xs text-muted-foreground", className)}
+      className={cn(
+        "grid grid-cols-2 sm:flex sm:flex-wrap items-center gap-2 text-xs text-muted-foreground",
+        className
+      )}
     >
       {targetSets && (
         <span className="flex items-center gap-1" title="Target sets">

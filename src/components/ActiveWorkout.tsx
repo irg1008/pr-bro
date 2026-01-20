@@ -387,7 +387,20 @@ export const ActiveWorkout = ({
       const { data } = result;
 
       // Merge or replace? User asked to "load last values".
-      setSets((prev) => ({ ...prev, ...data.sets }));
+      // Map sets to reset completed status
+      const cleanSets: Record<string, WorkoutSet[]> = {};
+      if (data.sets) {
+        Object.entries(data.sets).forEach(([exId, setList]) => {
+          if (Array.isArray(setList)) {
+            cleanSets[exId] = setList.map((s: any) => ({
+              ...s,
+              completed: false
+            }));
+          }
+        });
+      }
+
+      setSets((prev) => ({ ...prev, ...cleanSets }));
       setSessionNotes((prev) => ({ ...prev, ...data.sessionNotes }));
       setSupersetStatus((prev) => ({ ...prev, ...data.supersetStatus }));
 
@@ -415,7 +428,7 @@ export const ActiveWorkout = ({
       const currentScrollY = window.scrollY;
       // Show footer when scrolling up, at top, or at bottom
       const isAtBottom =
-        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 50;
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 200;
 
       if (currentScrollY < lastScrollY.current || currentScrollY < 50 || isAtBottom) {
         setShowFooter(true);
@@ -800,10 +813,14 @@ export const ActiveWorkout = ({
         return;
       }
 
-      // Apply the loaded sets
+      // Apply the loaded sets with reset status
+      const cleanSets = Array.isArray(data.sets)
+        ? data.sets.map((s: any) => ({ ...s, completed: false }))
+        : [];
+
       setSets((prev) => ({
         ...prev,
-        [exerciseId]: data.sets
+        [exerciseId]: cleanSets
       }));
 
       // Apply the session note if exists
@@ -855,7 +872,7 @@ export const ActiveWorkout = ({
   });
 
   return (
-    <div className="mx-auto flex max-w-md px-4 flex-col gap-6 py-6">
+    <div className="mx-auto flex max-w-md px-4 flex-col gap-6 pt-6">
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between lg:px-0">
         <div className="flex flex-wrap items-center gap-2 max-w-[85%]">
