@@ -43,7 +43,7 @@ async function main() {
       .filter((record) => !existingNames.has(record.name))
       .map((record) => {
         const gifId = record.id;
-        const name = record.name;
+        const name = record.name.charAt(0).toUpperCase() + record.name.slice(1);
         const bodyPart = record.bodyPart;
         const equipment = record.equipment;
         const target = record.target;

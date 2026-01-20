@@ -769,7 +769,7 @@ export const ActiveWorkout = ({
   });
 
   return (
-    <div className="mx-auto flex max-w-md px-4 flex-col gap-6 py-6 pb-24">
+    <div className="mx-auto flex max-w-md px-4 flex-col gap-6 py-6">
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between lg:px-0">
         <div className="flex items-center gap-2">
@@ -1273,13 +1273,21 @@ export const ActiveWorkout = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Missing targets</AlertDialogTitle>
             <AlertDialogDescription>
-              Some exercises (
-              {activeExercises
-                .filter((ex) => !ex.targetReps && !ex.targetSets)
-                .map((e) => e.name)
-                .join(", ")}
-              ) need targets set to be able to apply overload progression. We suggest you add them
-              in routine settings.
+              <div className="space-y-3">
+                <span>
+                  The following exercises need targets (sets/reps) to enable progressive overload:
+                </span>
+                <ul className="list-disc pl-5 space-y-1 font-medium text-foreground/90 my-2 text-sm">
+                  {activeExercises
+                    .filter((ex) => !ex.targetReps && !ex.targetSets)
+                    .map((e) => (
+                      <li key={e.id} className="capitalize">
+                        {e.name}
+                      </li>
+                    ))}
+                </ul>
+                <span>We suggest adding them in the routine settings.</span>
+              </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
