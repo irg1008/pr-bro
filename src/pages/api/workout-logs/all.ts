@@ -6,7 +6,10 @@ export const DELETE: APIRoute = async () => {
     // Delete all workout logs
     // Due to cascades, this might delete exercises if configured, but typically logs refer to exercises.
     // We only want to delete logs, not exercises or routines.
-    await prisma.workoutLog.deleteMany({});
+    await prisma.$transaction([
+      prisma.workoutLogEntry.deleteMany({}),
+      prisma.workoutLog.deleteMany({})
+    ]);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

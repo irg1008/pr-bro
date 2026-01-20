@@ -1,3 +1,4 @@
+import { ExerciseInfoModal } from "@/components/ExerciseInfoModal";
 import { ExerciseSelector } from "@/components/ExerciseSelector";
 import {
   AlertDialog,
@@ -18,10 +19,31 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { navigate } from "astro:transitions/client";
-import { ArrowDown, ArrowUp, ListOrdered, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  ListOrdered,
+  MoreVertical,
+  Pencil,
+  Plus,
+  Repeat,
+  StickyNote,
+  Target,
+  Trash2,
+  Zap
+} from "lucide-react";
 import type { Exercise, RoutineExercise } from "prisma/generated/client";
 import React, { useEffect, useState } from "react";
 import { Badge } from "./ui/badge";
@@ -49,6 +71,28 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
   const [deleteAlert, setDeleteAlert] = useState<{ open: boolean; id: string | null }>({
     open: false,
     id: null
+  });
+  const [noteDialog, setNoteDialog] = useState<{
+    open: boolean;
+    id: string | null;
+    note: string;
+  }>({
+    open: false,
+    id: null,
+    note: ""
+  });
+  const [targetDialog, setTargetDialog] = useState<{
+    open: boolean;
+    id: string | null;
+    targetSets: string;
+    targetReps: string;
+    targetRepsToFailure: string;
+  }>({
+    open: false,
+    id: null,
+    targetSets: "",
+    targetReps: "",
+    targetRepsToFailure: ""
   });
 
   useEffect(() => {
@@ -146,6 +190,76 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     }
   };
 
+  const openNoteDialog = (re: RoutineExerciseWithExercise) => {
+    setNoteDialog({
+      open: true,
+      id: re.id,
+      note: re.note || ""
+    });
+  };
+
+  const openTargetDialog = (re: RoutineExerciseWithExercise) => {
+    setTargetDialog({
+      open: true,
+      id: re.id,
+      targetSets: re.targetSets || "",
+      targetReps: re.targetReps || "",
+      targetRepsToFailure: re.targetRepsToFailure || ""
+    });
+  };
+
+  const handleSaveNote = async () => {
+    if (!noteDialog.id) return;
+
+    const newExercises = exercises.map((e) =>
+      e.id === noteDialog.id ? { ...e, note: noteDialog.note } : e
+    );
+    setExercises(newExercises as RoutineExerciseWithExercise[]);
+
+    try {
+      await fetch(`/api/routine-exercises`, {
+        method: "PATCH",
+        body: JSON.stringify({ id: noteDialog.id, note: noteDialog.note }),
+        headers: { "Content-Type": "application/json" }
+      });
+      setNoteDialog((prev) => ({ ...prev, open: false }));
+    } catch (e) {
+      console.error("Failed to save note", e);
+    }
+  };
+
+  const handleSaveTargets = async () => {
+    if (!targetDialog.id) return;
+
+    const newExercises = exercises.map((e) =>
+      e.id === targetDialog.id
+        ? {
+            ...e,
+            targetSets: targetDialog.targetSets || null,
+            targetReps: targetDialog.targetReps || null,
+            targetRepsToFailure: targetDialog.targetRepsToFailure || null
+          }
+        : e
+    );
+    setExercises(newExercises as RoutineExerciseWithExercise[]);
+
+    try {
+      await fetch(`/api/routine-exercises`, {
+        method: "PATCH",
+        body: JSON.stringify({
+          id: targetDialog.id,
+          targetSets: targetDialog.targetSets || null,
+          targetReps: targetDialog.targetReps || null,
+          targetRepsToFailure: targetDialog.targetRepsToFailure || null
+        }),
+        headers: { "Content-Type": "application/json" }
+      });
+      setTargetDialog((prev) => ({ ...prev, open: false }));
+    } catch (e) {
+      console.error("Failed to save targets", e);
+    }
+  };
+
   const toggleSuperset = async (id: string, currentStatus: boolean) => {
     const newExercises = exercises.map((e) =>
       e.id === id ? { ...e, isSuperset: !currentStatus } : e
@@ -209,82 +323,164 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             </Button>
           </div>
         </div>
-
-        <ExerciseSelector
-          onSelect={handleAdd}
-          selectedExerciseIds={exercises.map((e) => e.exerciseId)}
-          preferredCategories={focusedParts}
-        />
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button
+            variant="outline"
+            className="w-full gap-2 sm:w-auto flex items-center justify-start"
+            onClick={async () => {
+              const returnUrl = encodeURIComponent(window.location.pathname);
+              await navigate(
+                `/exercises/create?returnUrl=${returnUrl}&addToRoutineId=${routineId}`
+              );
+            }}
+          >
+            <Plus className="h-4 w-4" /> Create Custom Exercise
+          </Button>
+          <ExerciseSelector
+            onSelect={handleAdd}
+            selectedExerciseIds={exercises.map((e) => e.exerciseId)}
+            preferredCategories={focusedParts}
+          />
+        </div>
       </div>
 
       <div className="space-y-4">
         {exercises.map((re, index) => (
           <Card key={re.id} className="overflow-hidden">
-            <CardContent className="flex items-center justify-between p-4">
-              <div className="flex items-center gap-4">
-                <div className="bg-muted text-muted-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold">
-                  {index + 1}
-                </div>
-                {re.exercise.imageUrl && (
-                  <img
-                    src={re.exercise.imageUrl}
-                    alt={re.exercise.name}
-                    className="h-12 w-12 shrink-0 rounded border object-cover"
-                  />
-                )}
-                <div>
-                  <h3 className="line-clamp-1 font-bold capitalize">{re.exercise.name}</h3>
-                  <div className="mt-0.5 flex flex-wrap items-center gap-1">
-                    <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs capitalize">
-                      {re.exercise.category?.toLowerCase() || "other"}
-                    </span>
-                    {re.exercise.target && re.exercise.target !== re.exercise.category && (
-                      <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs capitalize">
-                        {re.exercise.target.toLowerCase()}
-                      </span>
+            <CardContent className="p-3">
+              <div className="flex flex-col gap-3">
+                {/* Top Row: Index, Image, Info, Menu */}
+                <div className="flex items-start justify-between gap-3">
+                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                    <div className="bg-muted text-muted-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold mt-1">
+                      {index + 1}
+                    </div>
+                    {re.exercise.imageUrl && (
+                      <img
+                        src={re.exercise.imageUrl}
+                        alt={re.exercise.name}
+                        className="h-12 w-12 shrink-0 rounded border object-cover"
+                      />
                     )}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="line-clamp-1 font-bold capitalize flex items-center gap-2 text-sm sm:text-base">
+                        {re.exercise.name}
+                        <ExerciseInfoModal exercise={re.exercise} />
+                      </h3>
+                      <div className="mt-1 flex flex-wrap items-center gap-1">
+                        <span className="text-muted-foreground bg-secondary rounded px-1.5 py-0.5 text-[10px] capitalize">
+                          {re.exercise.category?.toLowerCase() || "other"}
+                        </span>
+                        {re.exercise.target && re.exercise.target !== re.exercise.category && (
+                          <span className="text-muted-foreground bg-secondary rounded px-1.5 py-0.5 text-[10px] capitalize">
+                            {re.exercise.target.toLowerCase()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Menu always on top right */}
+                  <div className="flex items-center gap-1">
+                    {re.isSuperset && <Zap className="h-4 w-4 text-amber-500 fill-amber-500" />}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => toggleSuperset(re.id, re.isSuperset)}>
+                          <Zap
+                            className={`mr-2 h-4 w-4 ${re.isSuperset ? "text-amber-500 fill-amber-500" : ""}`}
+                          />
+                          <span>{re.isSuperset ? "Active Superset" : "Toggle Superset"}</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleRemove(re.id)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Remove Exercise
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
                 </div>
-              </div>
-              <div className="flex items-center gap-1">
-                <div
-                  className={`mr-2 cursor-pointer rounded border px-2 py-0.5 text-xs transition-colors select-none ${
-                    (re as any).isSuperset
-                      ? "border-amber-400 bg-amber-400 font-semibold text-white"
-                      : "border-muted-foreground/30 text-muted-foreground hover:bg-muted bg-transparent"
-                  }`}
-                  onClick={() => toggleSuperset(re.id, (re as any).isSuperset)}
-                >
-                  Superset
+
+                {/* Bottom Content: Note & Move Actions */}
+                <div className="flex items-center justify-between gap-3 pl-11 mt-2">
+                  <div className="flex gap-2 flex-col">
+                    {/* Targets Area - Clickable */}
+                    <div className="cursor-pointer" onClick={() => openTargetDialog(re)}>
+                      {re.targetSets || re.targetReps || re.targetRepsToFailure ? (
+                        <div className="text-sm text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-center gap-2 border hover:bg-muted/30 transition-colors w-fit">
+                          {re.targetSets && (
+                            <span className="flex items-center gap-1 text-xs">
+                              <Repeat className="h-3 w-3 text-muted-foreground" />
+                              {re.targetSets}×
+                            </span>
+                          )}
+                          {re.targetReps && (
+                            <span className="flex items-center gap-1 text-xs">
+                              <Target className="h-3 w-3 text-muted-foreground" />
+                              {re.targetReps}
+                            </span>
+                          )}
+                          {re.targetRepsToFailure && (
+                            <span className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
+                              🔥 {re.targetRepsToFailure} RIF
+                            </span>
+                          )}
+                        </div>
+                      ) : (
+                        <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
+                          <Target className="h-3.5 w-3.5" />
+                          <span className="text-xs">Add Target</span>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Note Area - Clickable Card */}
+                    <div className="cursor-pointer group" onClick={() => openNoteDialog(re)}>
+                      {re.note ? (
+                        <div className="text-sm text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border hover:bg-muted/30 transition-colors w-fit">
+                          <StickyNote className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+                          <span className="leading-snug line-clamp-2">{re.note}</span>
+                        </div>
+                      ) : (
+                        <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
+                          <StickyNote className="h-3.5 w-3.5" />
+                          <span className="text-xs">Add Note</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Move Actions - Stacked */}
+                  <div className="flex flex-col ms-auto gap-1 shrink-0">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      disabled={index === 0}
+                      onClick={() => handleMove(index, "up")}
+                    >
+                      <ArrowUp className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      disabled={index === exercises.length - 1}
+                      onClick={() => handleMove(index, "down")}
+                    >
+                      <ArrowDown className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
                 </div>
-                <div className="mr-2 flex flex-col">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    disabled={index === 0}
-                    onClick={() => handleMove(index, "up")}
-                  >
-                    <ArrowUp className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-6 w-6"
-                    disabled={index === exercises.length - 1}
-                    onClick={() => handleMove(index, "down")}
-                  >
-                    <ArrowDown className="h-4 w-4" />
-                  </Button>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="text-destructive hover:text-destructive hover:bg-destructive/10 shrink-0"
-                  onClick={() => handleRemove(re.id)}
-                >
-                  <Trash2 className="h-5 w-5" />
-                </Button>
               </div>
             </CardContent>
           </Card>
@@ -376,6 +572,101 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      <Dialog
+        open={noteDialog.open}
+        onOpenChange={(open) => setNoteDialog((prev) => ({ ...prev, open }))}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Exercise Note</DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <Label>Instruction / Note</Label>
+            <Textarea
+              value={noteDialog.note}
+              onChange={(e) => setNoteDialog((prev) => ({ ...prev, note: e.target.value }))}
+              placeholder="e.g. Use the wide grip bar, seat setting 4..."
+              className="mt-2"
+            />
+            <p className="text-xs text-muted-foreground mt-1">
+              This note will be shown every time you perform this exercise.
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setNoteDialog((prev) => ({ ...prev, open: false }))}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveNote}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={targetDialog.open}
+        onOpenChange={(open) => setTargetDialog((prev) => ({ ...prev, open }))}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Target className="h-5 w-5" />
+              Set Targets
+            </DialogTitle>
+          </DialogHeader>
+          <div className="py-4">
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Sets</Label>
+                <Input
+                  value={targetDialog.targetSets}
+                  onChange={(e) =>
+                    setTargetDialog((prev) => ({ ...prev, targetSets: e.target.value }))
+                  }
+                  placeholder="3"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Reps</Label>
+                <Input
+                  value={targetDialog.targetReps}
+                  onChange={(e) =>
+                    setTargetDialog((prev) => ({ ...prev, targetReps: e.target.value }))
+                  }
+                  placeholder="8-12"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">RIF</Label>
+                <Input
+                  value={targetDialog.targetRepsToFailure}
+                  onChange={(e) =>
+                    setTargetDialog((prev) => ({ ...prev, targetRepsToFailure: e.target.value }))
+                  }
+                  placeholder="1-2"
+                  className="mt-1"
+                />
+              </div>
+            </div>
+            <p className="text-xs text-muted-foreground mt-3">
+              RIF = Reps In Reserve (reps before failure)
+            </p>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setTargetDialog((prev) => ({ ...prev, open: false }))}
+            >
+              Cancel
+            </Button>
+            <Button onClick={handleSaveTargets}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

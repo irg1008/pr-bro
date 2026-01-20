@@ -5,7 +5,7 @@ export const prerender = false;
 
 export const GET: APIRoute = async () => {
   const groups = await prisma.routineGroup.findMany({
-    orderBy: { createdAt: "desc" }
+    orderBy: { createdAt: "asc" }
   });
   return new Response(JSON.stringify(groups), {
     status: 200,

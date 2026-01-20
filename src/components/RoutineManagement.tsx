@@ -14,7 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { navigate } from "astro:transitions/client";
-import { ArrowLeft, ArrowRight, Pencil, Trash2 } from "lucide-react";
+import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Pencil, Trash2 } from "lucide-react";
 import type { Routine } from "prisma/generated/client";
 import React, { useEffect, useState } from "react";
 import { Badge } from "./ui/badge";
@@ -67,6 +67,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
       });
       if (res.ok) {
         setIsEditingGroup(false);
+        // Navigate usually to refresh server props, keeping it for group update as it changes page title
         navigate(location.pathname);
       }
     } catch (error) {
@@ -98,12 +99,12 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
           headers: { "Content-Type": "application/json" }
         });
         if (res.ok) {
+          const created: Routine = await res.json();
           setNewName("");
           setNewDesc("");
           setSelectedCategories([]);
           setIsCreating(false);
-          // Optimistically add or just reload
-          navigate(location.pathname);
+          setRoutines((prev) => [...prev, { ...created, exerciseCount: 0 }]);
         }
       } catch (error) {
         console.error("Failed to create routine", error);
@@ -124,8 +125,13 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         headers: { "Content-Type": "application/json" }
       });
       if (res.ok) {
+        const updated: Routine = await res.json();
         setEditingRoutine(null);
-        navigate(location.pathname);
+        setRoutines((prev) =>
+          prev.map((r) =>
+            r.id === updated.id ? { ...updated, exerciseCount: r.exerciseCount } : r
+          )
+        );
       }
     } catch (error) {
       console.error("Failed to update routine", error);
@@ -146,7 +152,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         method: "DELETE"
       });
       if (res.ok) {
-        navigate(location.pathname);
+        setRoutines((prev) => prev.filter((r) => r.id !== routineId));
       }
     } catch (error) {
       console.error("Failed to delete routine", error);
@@ -198,7 +204,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             <Button
               variant="ghost"
               size="icon"
-              className="text-muted-foreground hover:text-primary h-6 w-6"
+              className="text-muted-foreground hover:text-primary h-8 w-8"
               onClick={() => {
                 setEditingGroupName(groupName);
                 setEditingGroupDesc(groupDescription || "");
@@ -292,28 +298,6 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-xl font-bold capitalize">{routine.name}</CardTitle>
               <div className="flex items-center gap-1">
-                <div className="mr-1 flex gap-0.5">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={index === 0}
-                    onClick={(e) => handleMove(index, "up", e)}
-                    title="Move Previous"
-                  >
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="h-8 w-8"
-                    disabled={index === routines.length - 1}
-                    onClick={(e) => handleMove(index, "down", e)}
-                    title="Move Next"
-                  >
-                    <ArrowRight className="h-4 w-4" />
-                  </Button>
-                </div>
                 <AlertDialog>
                   <div className="flex items-center gap-1">
                     <Button
@@ -322,7 +306,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                       className="text-muted-foreground hover:text-primary z-10 h-8 w-8"
                       onClick={(e) => openEdit(routine, e)}
                     >
-                      <Pencil className="h-4 w-4" />
+                      <Pencil />
                     </Button>
                     <AlertDialogTrigger
                       render={
@@ -332,7 +316,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                           className="text-muted-foreground hover:text-destructive z-10 h-8 w-8"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Trash2 />
                         </Button>
                       }
                     />
@@ -356,6 +340,53 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                     </AlertDialogFooter>
                   </AlertDialogContent>
                 </AlertDialog>
+
+                {/* Mobile: Vertical Up/Down */}
+                <div className="mr-1 flex flex-col gap-0.5 md:hidden">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={index === 0}
+                    onClick={(e) => handleMove(index, "up", e)}
+                    title="Move Up"
+                  >
+                    <ArrowUp className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={index === routines.length - 1}
+                    onClick={(e) => handleMove(index, "down", e)}
+                    title="Move Down"
+                  >
+                    <ArrowDown className="h-4 w-4" />
+                  </Button>
+                </div>
+                {/* Desktop: Horizontal Left/Right */}
+                <div className="mr-1 hidden gap-0.5 md:flex">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={index === 0}
+                    onClick={(e) => handleMove(index, "up", e)}
+                    title="Move Previous"
+                  >
+                    <ArrowLeft className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-8 w-8"
+                    disabled={index === routines.length - 1}
+                    onClick={(e) => handleMove(index, "down", e)}
+                    title="Move Next"
+                  >
+                    <ArrowRight className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>

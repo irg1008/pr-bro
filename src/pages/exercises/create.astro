@@ -1,0 +1,24 @@
+---
+import { ExerciseForm } from "@/components/ExerciseForm";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+
+// Get return URL from query params to navigate back to routine
+const returnUrl = Astro.url.searchParams.get("returnUrl") || "/routines";
+const addToRoutineId = Astro.url.searchParams.get("addToRoutineId");
+---
+
+<BaseLayout title="Create Exercise">
+	<div class="container max-w-2xl py-8">
+		<div class="mb-6 flex items-center justify-between">
+			<h1 class="text-3xl font-bold">Create Exercise</h1>
+		</div>
+
+		<div class="rounded-lg border bg-card p-6 shadow-sm">
+			<ExerciseForm
+				client:load
+				returnUrl={returnUrl}
+				addToRoutineId={addToRoutineId}
+			/>
+		</div>
+	</div>
+</BaseLayout>

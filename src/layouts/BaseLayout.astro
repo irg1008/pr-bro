@@ -54,9 +54,7 @@ const { title, description, ogImage } = Astro.props;
 	>
 		<div class="bg-background relative flex min-h-svh flex-col">
 			<Header client:load />
-			<main
-				class="relative flex flex-1 flex-col pb-16 md:pb-0 overflow-x-hidden max-w-dvw"
-			>
+			<main class="relative flex flex-1 flex-col pb-16 md:pb-0 max-w-dvw">
 				<slot />
 			</main>
 			<Footer client:load />

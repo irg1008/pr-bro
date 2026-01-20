@@ -39,8 +39,27 @@ if (logId) {
 				// Use logged exercises if session started/modified, else routine defaults
 				const exercises =
 					log.entries.length > 0
-						? log.entries.map((e) => e.exercise)
-						: routine.exercises.map((e) => e.exercise);
+						? log.entries.map((e) => {
+								const routineExercise = routine.exercises.find(
+									(re) => re.exerciseId === e.exerciseId,
+								);
+								return {
+									...e.exercise,
+									sessionNote: e.note,
+									routineNote: routineExercise?.note,
+									targetSets: routineExercise?.targetSets,
+									targetReps: routineExercise?.targetReps,
+									targetRepsToFailure: routineExercise?.targetRepsToFailure,
+								};
+							})
+						: routine.exercises.map((e) => ({
+								...e.exercise,
+								routineNote: e.note,
+								sessionNote: null,
+								targetSets: e.targetSets,
+								targetReps: e.targetReps,
+								targetRepsToFailure: e.targetRepsToFailure,
+							}));
 
 				const initialSupersetStatus: Record<string, boolean> = {};
 				if (log.entries.length > 0) {
@@ -77,10 +96,7 @@ if (!logId) {
 ---
 
 <Layout title="Active Workout">
-	<div
-		class="h-dvh bg-background"
-		transition:animate={fade({ duration: "0.3s" })}
-	>
+	<div class="bg-background" transition:animate={fade({ duration: "0.3s" })}>
 		{
 			workoutData ? (
 				<ActiveWorkout

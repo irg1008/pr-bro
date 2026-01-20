@@ -60,7 +60,8 @@ export const GET: APIRoute = async () => {
         currentMax,
         pr,
         improvement: prevMax ? currentMax - prevMax : 0,
-        lastTrained: history[history.length - 1].date
+        lastTrained: history[history.length - 1].date,
+        exercise: ex // Include full exercise object for modal
       };
     })
     .filter(Boolean);
