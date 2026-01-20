@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
-import { Info } from "lucide-react";
+import { Info, Repeat, Target, TrendingUp } from "lucide-react";
 import type { Exercise } from "prisma/generated/client";
 import React from "react";
 
@@ -55,8 +55,41 @@ export const ExerciseInfoModal: React.FC<ExerciseInfoModalProps> = ({ exercise }
               </div>
             )}
 
+            {/* Performance Targets (if available) */}
+            {(exercise as any).targetSets ||
+            (exercise as any).targetReps ||
+            (exercise as any).incrementValue ? (
+              <div className="space-y-2">
+                <h4 className="text-sm font-semibold">Performance Targets</h4>
+                <div className="flex flex-wrap gap-2 text-sm text-muted-foreground bg-muted/30 p-2 rounded-lg border border-dashed">
+                  {(exercise as any).targetSets && (
+                    <span className="flex items-center gap-1">
+                      <Repeat className="h-3.5 w-3.5" />
+                      {(exercise as any).targetSets} sets
+                    </span>
+                  )}
+                  {(exercise as any).targetReps && (
+                    <span className="flex items-center gap-1">
+                      <Target className="h-3.5 w-3.5" />
+                      {(exercise as any).targetReps} reps
+                    </span>
+                  )}
+                  {(exercise as any).incrementValue && (
+                    <span className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
+                      <TrendingUp className="h-3.5 w-3.5" />+{(exercise as any).incrementValue}kg
+                    </span>
+                  )}
+                  {(exercise as any).targetRepsToFailure && (
+                    <span className="flex items-center gap-1 text-orange-600 dark:text-orange-400">
+                      🔥 {(exercise as any).targetRepsToFailure} RIF
+                    </span>
+                  )}
+                </div>
+              </div>
+            ) : null}
+
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Targets</h4>
+              <h4 className="text-sm font-semibold">Muscle Targets</h4>
               <div className="flex flex-wrap gap-1">
                 {exercise.target && (
                   <Badge variant="default" className="capitalize">

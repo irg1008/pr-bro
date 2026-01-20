@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { navigate } from "astro:transitions/client";
 import { Check, Pencil, Plus, Search } from "lucide-react";
 import type { Exercise } from "prisma/generated/client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -46,7 +47,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   const handleEditClick = async (e: React.MouseEvent, ex: Exercise) => {
     // e.preventDefault/stopPropagation handled in onClick
     const returnUrl = encodeURIComponent(window.location.pathname);
-    window.location.href = `/exercises/${ex.id}/edit?returnUrl=${returnUrl}`;
+    navigate(`/exercises/${ex.id}/edit?returnUrl=${returnUrl}`);
   };
 
   const [exercises, setExercises] = useState<Exercise[]>([]);

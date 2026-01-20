@@ -35,24 +35,26 @@ import {
   Activity,
   ArrowLeftRight,
   Bike,
+  Check,
   Dumbbell,
   Footprints,
   History,
   MessageSquareText,
   MoreVertical,
   Plus,
-  Repeat,
   RotateCcw,
-  Target,
   Timer,
   Trash2,
+  TrendingUp,
   Waves,
   X,
   Zap
 } from "lucide-react";
+import { motion } from "motion/react";
 import type { Exercise } from "prisma/generated/client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
+import { TargetDisplay } from "./TargetDisplay";
 
 const CARDIO_OPTIONS = [
   { name: "Running", icon: Footprints },
@@ -87,12 +89,15 @@ export interface ActiveWorkoutExercise extends Exercise {
   targetSets?: string | null;
   targetReps?: string | null;
   targetRepsToFailure?: string | null;
+  incrementValue?: number | null;
 }
 
 export interface ActiveWorkoutProps {
   logId: string;
   initialStartTime: string;
   routineName: string;
+  routineId: string;
+  routineGroupId: string;
   exercises: ActiveWorkoutExercise[]; // Updated type
   initialSupersetStatus?: Record<string, boolean>;
 }
@@ -100,6 +105,9 @@ export interface ActiveWorkoutProps {
 export const ActiveWorkout = ({
   logId,
   initialStartTime,
+  routineName,
+  routineId,
+  routineGroupId,
   exercises: initialExercises,
   initialSupersetStatus = {}
 }: ActiveWorkoutProps) => {
@@ -116,6 +124,7 @@ export const ActiveWorkout = ({
 
   const [cardioModalOpen, setCardioModalOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [missingTargetsAlertOpen, setMissingTargetsAlertOpen] = useState(false); // New Alert for Double Progression
 
   const [loadLastRunAlertOpen, setLoadLastRunAlertOpen] = useState(false);
 
@@ -139,6 +148,142 @@ export const ActiveWorkout = ({
       setLoadLastRunAlertOpen(true);
     } else {
       await executeLoadLastRoutineRun();
+    }
+  };
+
+  const handleApplyDoubleProgression = async (targetExerciseId?: string) => {
+    try {
+      // Determine scope: all exercises or specific one
+      // Helper to avoid event object being passed as string if called from onClick without arrow func
+      const actualTargetId = typeof targetExerciseId === "string" ? targetExerciseId : undefined;
+
+      const exercisesToProcess = actualTargetId
+        ? activeExercises.filter((ex) => ex.id === actualTargetId)
+        : activeExercises;
+
+      if (exercisesToProcess.length === 0) return;
+
+      // 1. Validate: Check which exercises have targets
+      const exercisesWithoutTargets = exercisesToProcess.filter(
+        (ex) => !ex.targetReps && !ex.targetSets
+      );
+
+      if (exercisesWithoutTargets.length > 0) {
+        setMissingTargetsAlertOpen(true);
+        return;
+      }
+
+      // 2. Fetch last run data
+      const res = await fetch(`/api/workout-logs/${logId}/last-routine-run`);
+      const result = await res.json();
+
+      let lastRunSets = result.found ? result.data.sets : {};
+
+      // FALLBACK: If single exercise mode and no routine history (or ex missing), try exercise specific history
+      if (actualTargetId) {
+        const hasRoutineHistory =
+          result.found && lastRunSets[actualTargetId] && lastRunSets[actualTargetId].length > 0;
+
+        if (!hasRoutineHistory) {
+          try {
+            const historyRes = await fetch(
+              `/api/exercises/last-sets?exerciseId=${actualTargetId}&excludeLogId=${logId}`
+            );
+            if (historyRes.ok) {
+              const historyData = await historyRes.json();
+              if (historyData && historyData.sets && historyData.sets.length > 0) {
+                lastRunSets = { [actualTargetId]: historyData.sets };
+                // toast.info("Using data from a previous routine run."); // Optional feedback
+              } else {
+                toast.info(
+                  "Finish your first workout with this exercise to enable progressive overload."
+                );
+                return;
+              }
+            } else {
+              toast.info(
+                "Finish your first workout with this exercise to enable progressive overload."
+              );
+              return;
+            }
+          } catch (err) {
+            console.error("Fallback fetch failed", err);
+          }
+        }
+      } else if (!result.found) {
+        toast.info("Finish this routine at least once to enable progressive overload.");
+        return;
+      }
+
+      const newSets = { ...sets };
+      let updatedCount = 0;
+      let failureReason = "";
+
+      exercisesToProcess.forEach((ex) => {
+        if (!ex.targetReps) return;
+
+        const targetParts = ex.targetReps.split("-").map((s) => parseInt(s.trim()));
+        const maxReps = targetParts.length > 1 ? targetParts[1] : targetParts[0];
+        const minReps = targetParts[0];
+
+        const lastSets = lastRunSets[ex.id];
+        if (!lastSets || lastSets.length === 0) {
+          if (exercisesToProcess.length === 1) failureReason = "No history found.";
+          return;
+        }
+
+        const allSetsHitTarget = lastSets.every((s: any) => {
+          if (s.type === "WARMUP") return true;
+          return s.reps >= maxReps;
+        });
+
+        const lastWeight = lastSets[0].weight;
+
+        if (allSetsHitTarget && lastWeight) {
+          const increment = ex.incrementValue || 2.5;
+          const nextWeight = Number(lastWeight) + increment;
+
+          updatedCount++;
+
+          newSets[ex.id] = lastSets.map((s: any) => ({
+            ...createEmptySet(ex.type as ExerciseType),
+            weight: nextWeight,
+            reps: ""
+          }));
+
+          toast.success(`Promoted ${ex.name}: ${lastWeight}kg -> ${nextWeight}kg`);
+        } else {
+          // Failure reason tracking
+          if (exercisesToProcess.length === 1) {
+            if (!lastWeight) failureReason = "Last run had no weight recorded.";
+            else failureReason = `Did not hit max reps (${maxReps}) on all sets last time.`;
+          }
+
+          if (!newSets[ex.id] || newSets[ex.id][0].weight === "") {
+            newSets[ex.id] = lastSets.map((s: any) => ({
+              ...createEmptySet(ex.type as ExerciseType),
+              weight: s.weight,
+              reps: ""
+            }));
+          }
+        }
+      });
+
+      if (updatedCount > 0) {
+        setSets(newSets);
+        if (exercisesToProcess.length > 1) {
+          toast.success(`Applied Double Progression to ${updatedCount} exercises!`);
+        }
+      } else {
+        if (exercisesToProcess.length === 1 && failureReason) {
+          toast.info(`Progression not applied: ${failureReason}`);
+        } else {
+          toast.info("No exercises qualified for weight increase yet. Keep pushing!");
+        }
+      }
+    } catch (e) {
+      console.error("Failed to apply double progression", e);
+      toast.error("Failed to calculate progression");
     }
   };
 
@@ -590,6 +735,31 @@ export const ActiveWorkout = ({
     }
   };
 
+  // Auto-save Effect (Debounced)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      // Don't save if finishing (handled by handleFinish) or if component just mounted (initial state)
+      // We can rely on isFinishingRef to avoid conflict
+      if (isFinishingRef.current) return;
+
+      const completeSets = sanitizeSets();
+
+      // Silent save
+      fetch(`/api/workout-logs/${logId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          entries: completeSets,
+          supersetStatus,
+          sessionNotes
+          // finishedAt is NOT sent, so status remains IN_PROGRESS
+        }),
+        headers: { "Content-Type": "application/json" }
+      }).catch((e) => console.error("Auto-save failed", e));
+    }, 2000); // 2 seconds debounce
+
+    return () => clearTimeout(timer);
+  }, [sets, supersetStatus, sessionNotes, activeExercises]); // Dependencies for auto-save
+
   const startTimeDisplay = new Date(initialStartTime).toLocaleString(undefined, {
     year: "numeric",
     month: "numeric",
@@ -607,6 +777,7 @@ export const ActiveWorkout = ({
             Started at {startTimeDisplay}
           </div>
         </div>
+
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -631,12 +802,23 @@ export const ActiveWorkout = ({
         </DropdownMenu>
       </div>
 
+      {/* Double Progression Button - Full Width */}
+      <Button
+        variant="default" // Primary style
+        size="lg"
+        onClick={() => handleApplyDoubleProgression()}
+        className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white shadow-md transition-all mb-2"
+      >
+        <TrendingUp className="mr-2 h-5 w-5" />
+        Apply progressive overload
+      </Button>
+
       <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg border border-dashed">
         <span
           className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-help"
           title="Click set number to toggle"
         >
-          Click set number to toggle:
+          Toggle type:
         </span>
         <div className="flex items-center gap-3 font-medium">
           <span className="flex items-center gap-1.5">
@@ -692,30 +874,13 @@ export const ActiveWorkout = ({
                   </div>
 
                   {/* Targets Display */}
-                  {(ex.targetSets || ex.targetReps || ex.targetRepsToFailure) && (
-                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                      {ex.targetSets && (
-                        <span className="flex items-center gap-1" title="Target sets">
-                          <Repeat className="h-3 w-3" />
-                          {ex.targetSets} sets
-                        </span>
-                      )}
-                      {ex.targetReps && (
-                        <span className="flex items-center gap-1" title="Target reps">
-                          <Target className="h-3 w-3" />
-                          {ex.targetReps} reps
-                        </span>
-                      )}
-                      {ex.targetRepsToFailure && (
-                        <span
-                          className="flex items-center gap-1 text-orange-600 dark:text-orange-400"
-                          title="Reps to failure"
-                        >
-                          🔥 {ex.targetRepsToFailure} RIF
-                        </span>
-                      )}
-                    </div>
-                  )}
+                  <TargetDisplay
+                    targetSets={ex.targetSets}
+                    targetReps={ex.targetReps}
+                    targetRepsToFailure={ex.targetRepsToFailure}
+                    incrementValue={ex.incrementValue}
+                    className="mt-1.5"
+                  />
 
                   {/* Routine Note (Static, not editable) */}
                   {ex.routineNote && (
@@ -782,6 +947,10 @@ export const ActiveWorkout = ({
                           <History className="mr-2 h-4 w-4" />
                           Load last run
                         </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => handleApplyDoubleProgression(ex.id)}>
+                          <TrendingUp className="mr-2 h-4 w-4" />
+                          Apply overload
+                        </DropdownMenuItem>
                         <DropdownMenuItem
                           onClick={() => {
                             setSupersetStatus((prev) => ({ ...prev, [ex.id]: !prev[ex.id] }));
@@ -816,17 +985,18 @@ export const ActiveWorkout = ({
             <div className="space-y-3 p-4">
               {ex.type === ExerciseType.CARDIO ? (
                 <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-4 text-sm font-medium">
-                  <div className="w-8 text-center">#</div>
-                  <div>Minutes</div>
-                  <div>Km</div>
-                  <div>Calories</div>
+                  <div className="w-6 text-center">#</div>
+                  <div className="text-center">Minutes</div>
+                  <div className="text-center">Km</div>
+                  <div className="text-center">Calories</div>
                   <div className="w-8"></div>
                 </div>
               ) : (
-                <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_auto] gap-4 text-sm font-medium">
+                <div className="text-muted-foreground grid grid-cols-[auto_auto_1fr_1fr_auto] gap-4 text-sm font-medium">
+                  <div className="w-6"></div> {/* Tick column */}
                   <div className="w-8 text-center">#</div>
-                  <div>kg</div>
-                  <div>Reps</div>
+                  <div className="text-center">Kg</div>
+                  <div className="text-center">Reps</div>
                   <div className="w-8"></div>
                 </div>
               )}
@@ -834,12 +1004,36 @@ export const ActiveWorkout = ({
               {(sets[ex.id] || [createEmptySet(ex.type as ExerciseType)]).map((set, idx) => (
                 <div
                   key={idx}
-                  className={`grid gap-4 items-center ${
+                  className={`grid gap-4 items-center relative ${
                     ex.type === ExerciseType.CARDIO
                       ? "grid-cols-[auto_1fr_1fr_1fr_auto]"
-                      : "grid-cols-[auto_1fr_1fr_auto]"
+                      : "grid-cols-[auto_auto_1fr_1fr_auto]"
                   } ${set.completed ? "opacity-50" : ""}`}
                 >
+                  {/* Strikethrough Line */}
+                  {set.completed && (
+                    <motion.div
+                      initial={{ scaleX: 0 }}
+                      animate={{ scaleX: 1 }}
+                      transition={{ type: "spring", stiffness: 200, damping: 30 }}
+                      className="absolute left-0 right-10 top-1/2 h-0.5 bg-foreground/30 pointer-events-none z-10 origin-left"
+                    />
+                  )}
+
+                  {/* Tick/Complete Toggle - New Column */}
+                  {ex.type !== ExerciseType.CARDIO && (
+                    <div
+                      className="flex items-center justify-center cursor-pointer"
+                      onClick={() => updateSet(ex.id, idx, "completed", !set.completed)}
+                    >
+                      <div
+                        className={`h-6 w-6 rounded-full border flex items-center justify-center transition-colors ${set.completed ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30 hover:border-muted-foreground/50"}`}
+                      >
+                        {set.completed && <Check className="h-3.5 w-3.5" />}
+                      </div>
+                    </div>
+                  )}
+
                   <div
                     className={`flex h-7 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border text-sm font-bold transition-colors select-none ${
                       !set.type || set.type === "NORMAL"
@@ -1069,6 +1263,29 @@ export const ActiveWorkout = ({
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
             >
               Reset
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={missingTargetsAlertOpen} onOpenChange={setMissingTargetsAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Missing targets</AlertDialogTitle>
+            <AlertDialogDescription>
+              Some exercises (
+              {activeExercises
+                .filter((ex) => !ex.targetReps && !ex.targetSets)
+                .map((e) => e.name)
+                .join(", ")}
+              ) need targets set to be able to apply overload progression. We suggest you add them
+              in routine settings.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => navigate(`/routines/${routineGroupId}/${routineId}`)}>
+              Go to Settings
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

@@ -31,22 +31,28 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { navigate } from "astro:transitions/client";
 import { MessageSquareText, MoreVertical, Trash2, X, Zap } from "lucide-react";
-import type { Exercise, WorkoutLogEntry } from "prisma/generated/client";
+import type { Exercise, Routine, RoutineExercise, WorkoutLogEntry } from "prisma/generated/client";
 import React, { useState } from "react";
 import { type SetType } from "./ActiveWorkout";
 import { ExerciseInfoModal } from "./ExerciseInfoModal";
+import { TargetDisplay } from "./TargetDisplay";
 
 type WorkoutLogEntryWithExercise = WorkoutLogEntry & { exercise: Exercise };
 
 interface WorkoutLogEditorProps {
   logId: string;
   initialEntries: WorkoutLogEntryWithExercise[];
+  routine?: Routine & { exercises: RoutineExercise[] };
 }
 
 // Helper type since sets are JSON in Prisma but we use them as objects here
 type WorkoutLogEntryButSetsAny = Omit<WorkoutLogEntryWithExercise, "sets"> & { sets: any[] };
 
-export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({ logId, initialEntries }) => {
+export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
+  logId,
+  initialEntries,
+  routine
+}) => {
   const [entries, setEntries] = useState<WorkoutLogEntryButSetsAny[]>(
     initialEntries.map((e) => ({ ...e, sets: e.sets as any[] }))
   );
@@ -219,6 +225,31 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({ logId, initi
               <Dialog>
                 <DialogTrigger asChild>
                   <div className="mt-2 text-sm cursor-pointer hover:opacity-80 transition-opacity">
+                    {/* Targets Display (Readonly) */}
+                    {routine &&
+                      (() => {
+                        const re = routine.exercises.find((e) => e.exerciseId === entry.exerciseId);
+                        if (re) {
+                          return (
+                            <>
+                              <TargetDisplay
+                                targetSets={re.targetSets}
+                                targetReps={re.targetReps}
+                                targetRepsToFailure={re.targetRepsToFailure}
+                                incrementValue={re.incrementValue}
+                                className="mb-1.5"
+                              />
+                              {re.note && (
+                                <div className="mt-2 mb-2 text-sm text-muted-foreground border-l-4 pl-3 py-1 pr-2 bg-muted/20 w-fit rounded-r">
+                                  {re.note}
+                                </div>
+                              )}
+                            </>
+                          );
+                        }
+                        return null;
+                      })()}
+
                     {entry.note ? (
                       <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-fit">
                         <MessageSquareText className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
@@ -227,7 +258,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({ logId, initi
                     ) : (
                       <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
                         <MessageSquareText className="h-3.5 w-3.5" />
-                        <span className="text-xs">Add Insight</span>
+                        <span className="text-xs">Add insight</span>
                       </div>
                     )}
                   </div>
@@ -254,19 +285,19 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({ logId, initi
 
               {/* Sets Header */}
               {entry.exercise.type === "CARDIO" ? (
-                <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 text-sm font-medium">
-                  <div className="w-8 text-center">#</div>
-                  <div>Minutes</div>
-                  <div>Km</div>
-                  <div>Calories</div>
-                  <div></div>
+                <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-4 text-sm font-medium">
+                  <div className="w-6 text-center">#</div>
+                  <div className="text-center">Minutes</div>
+                  <div className="text-center">Km</div>
+                  <div className="text-center">Calories</div>
+                  <div className="w-8"></div>
                 </div>
               ) : (
-                <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-sm font-medium">
+                <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_auto] gap-4 text-sm font-medium">
                   <div className="w-8 text-center">#</div>
-                  <div>kg</div>
-                  <div>Reps</div>
-                  <div></div>
+                  <div className="text-center">Kg</div>
+                  <div className="text-center">Reps</div>
+                  <div className="w-8"></div>
                 </div>
               )}
 

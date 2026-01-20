@@ -202,7 +202,9 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
   return (
     <form onSubmit={handleSubmit} className="grid gap-6 py-4 max-w-2xl mx-auto">
       <div className="grid gap-2">
-        <Label htmlFor="name">Name *</Label>
+        <Label htmlFor="name">
+          Name <span className="text-destructive">*</span>
+        </Label>
         <Input
           id="name"
           value={formData.name}
@@ -240,7 +242,9 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div className="grid gap-2">
-          <Label>Category *</Label>
+          <Label>
+            Category <span className="text-destructive">*</span>
+          </Label>
           <Combobox
             value={formData.category}
             onChange={(val: string) => setFormData({ ...formData, category: val })}
@@ -268,7 +272,9 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
       </div>
 
       <div className="grid gap-2">
-        <Label>Target Muscle *</Label>
+        <Label>
+          Target Muscle <span className="text-destructive">*</span>
+        </Label>
         <Combobox
           value={formData.target}
           onChange={(val: string) => setFormData({ ...formData, target: val })}

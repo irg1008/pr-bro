@@ -50,6 +50,11 @@ if (!log) {
 			</p>
 		</div>
 
-		<WorkoutLogEditor client:load logId={log.id} initialEntries={log.entries} />
+		<WorkoutLogEditor
+			client:load
+			logId={log.id}
+			initialEntries={log.entries}
+			routine={log.routine}
+		/>
 	</div>
 </BaseLayout>
