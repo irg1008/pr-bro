@@ -2,6 +2,7 @@ import { cn } from "@/lib/utils";
 import { navigate } from "astro:transitions/client";
 import { Dumbbell } from "lucide-react";
 import React from "react";
+import { ThemeToggle } from "./ThemeToggle";
 
 export const Header = () => {
   const [activePath, setActivePath] = React.useState("/");
@@ -25,35 +26,38 @@ export const Header = () => {
           <Dumbbell className="h-6 w-6" />
           <span>PR BRO</span>
         </div>
-        <nav className="hidden items-center gap-6 text-sm font-medium md:flex">
-          <button
-            onClick={() => handleNav("/")}
-            className={cn(
-              "hover:text-foreground/80 transition-colors",
-              activePath === "/" ? "text-foreground" : "text-foreground/60"
-            )}
-          >
-            Home
-          </button>
-          <button
-            onClick={() => handleNav("/history")}
-            className={cn(
-              "hover:text-foreground/80 transition-colors",
-              activePath.startsWith("/history") ? "text-foreground" : "text-foreground/60"
-            )}
-          >
-            History
-          </button>
-          <button
-            onClick={() => handleNav("/stats")}
-            className={cn(
-              "hover:text-foreground/80 transition-colors",
-              activePath.startsWith("/stats") ? "text-foreground" : "text-foreground/60"
-            )}
-          >
-            Stats
-          </button>
-        </nav>
+        <div className="flex items-center gap-2">
+          <nav className="hidden items-center gap-6 text-sm font-medium md:flex mr-4">
+            <button
+              onClick={() => handleNav("/")}
+              className={cn(
+                "hover:text-foreground/80 transition-colors",
+                activePath === "/" ? "text-foreground" : "text-foreground/60"
+              )}
+            >
+              Home
+            </button>
+            <button
+              onClick={() => handleNav("/history")}
+              className={cn(
+                "hover:text-foreground/80 transition-colors",
+                activePath.startsWith("/history") ? "text-foreground" : "text-foreground/60"
+              )}
+            >
+              History
+            </button>
+            <button
+              onClick={() => handleNav("/stats")}
+              className={cn(
+                "hover:text-foreground/80 transition-colors",
+                activePath.startsWith("/stats") ? "text-foreground" : "text-foreground/60"
+              )}
+            >
+              Stats
+            </button>
+          </nav>
+          <ThemeToggle />
+        </div>
       </div>
     </header>
   );

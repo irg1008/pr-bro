@@ -53,7 +53,7 @@ import {
   Zap
 } from "lucide-react";
 import { motion } from "motion/react";
-import type { Exercise } from "prisma/generated/client";
+import type { Exercise, ExerciseType } from "prisma/generated/client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { TargetDisplay } from "./TargetDisplay";
@@ -66,12 +66,6 @@ const CARDIO_OPTIONS = [
   { name: "HIIT", icon: Timer },
   { name: "Other", icon: Dumbbell }
 ];
-
-export const ExerciseType = {
-  WEIGHT: "WEIGHT",
-  CARDIO: "CARDIO"
-} as const;
-export type ExerciseType = (typeof ExerciseType)[keyof typeof ExerciseType];
 
 export type SetType = "NORMAL" | "WARMUP" | "FAILURE";
 
@@ -262,7 +256,7 @@ export const ActiveWorkout = ({
           appliedCount++;
 
           newSets[ex.id] = lastSets.map(() => ({
-            ...createEmptySet(ex.type as ExerciseType),
+            ...createEmptySet(ex.type),
             weight: nextWeight,
             reps: minReps
           }));
@@ -274,7 +268,7 @@ export const ActiveWorkout = ({
               const diff = targetSetCount - newSets[ex.id].length;
               for (let k = 0; k < diff; k++) {
                 newSets[ex.id].push({
-                  ...createEmptySet(ex.type as ExerciseType),
+                  ...createEmptySet(ex.type),
                   weight: nextWeight,
                   reps: minReps
                 });
@@ -302,7 +296,7 @@ export const ActiveWorkout = ({
           if (lastWeight) {
             // Updated Failure Logic: Keep weight, set reps to MIN reps
             newSets[ex.id] = lastSets.map((s: any) => ({
-              ...createEmptySet(ex.type as ExerciseType),
+              ...createEmptySet(ex.type),
               weight: s.weight,
               reps: minReps
             }));
@@ -314,7 +308,7 @@ export const ActiveWorkout = ({
                 const diff = targetSetCount - newSets[ex.id].length;
                 for (let k = 0; k < diff; k++) {
                   newSets[ex.id].push({
-                    ...createEmptySet(ex.type as ExerciseType),
+                    ...createEmptySet(ex.type),
                     weight: lastWeight, // Use last weight
                     reps: minReps
                   });
@@ -340,7 +334,7 @@ export const ActiveWorkout = ({
           } else if (!newSets[ex.id] || newSets[ex.id][0].weight === "") {
             // ... existing fallback ...
             newSets[ex.id] = lastSets.map((s: any) => ({
-              ...createEmptySet(ex.type as ExerciseType),
+              ...createEmptySet(ex.type),
               weight: s.weight,
               reps: ""
             }));
@@ -472,7 +466,7 @@ export const ActiveWorkout = ({
           // we'll just skip adding empty sets if they don't exist in state or trust 'sets' state is mostly up to date.
           // Or better, define createEmptySet outside or trust `sets` deals with it.
           // For safety, let's just save what we have. API should handle it.
-          if (ex.type === ExerciseType.CARDIO) {
+          if (ex.type === "CARDIO") {
             completeSets[ex.id] = [{ duration: "", distance: "", calories: "", completed: false }];
           } else {
             completeSets[ex.id] = [{ weight: "", reps: "", completed: false }];
@@ -543,8 +537,8 @@ export const ActiveWorkout = ({
 
   // const currentExercise = activeExercises[current] || activeExercises[0]; // Removed
 
-  const createEmptySet = (type: ExerciseType = ExerciseType.WEIGHT): WorkoutSet => {
-    if (type === ExerciseType.CARDIO) {
+  const createEmptySet = (type: ExerciseType = "WEIGHT"): WorkoutSet => {
+    if (type === "CARDIO") {
       return { duration: "", distance: "", calories: "", completed: false, type: "NORMAL" };
     }
     return { weight: "", reps: "", completed: false, type: "NORMAL" };
@@ -556,7 +550,7 @@ export const ActiveWorkout = ({
     const currentEx = activeExercises.find((e) => e.id === exerciseId);
     if (!currentEx) return;
 
-    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type as ExerciseType)];
+    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type)];
     const newSets = [...currentExSets];
     newSets[idx] = { ...newSets[idx], [field]: value };
     setSets({ ...sets, [exerciseId]: newSets });
@@ -582,7 +576,7 @@ export const ActiveWorkout = ({
     const currentEx = activeExercises.find((e) => e.id === exerciseId);
     if (!currentEx) return;
 
-    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type as ExerciseType)];
+    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type)];
     const lastSet = currentExSets[currentExSets.length - 1];
     setSets({
       ...sets,
@@ -596,7 +590,7 @@ export const ActiveWorkout = ({
     const currentEx = activeExercises.find((e) => e.id === exerciseId);
     if (!currentEx) return;
 
-    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type as ExerciseType)];
+    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type)];
     if (currentExSets.length <= 1) return;
 
     const newSets = currentExSets.filter((_, i) => i !== idx);
@@ -607,9 +601,9 @@ export const ActiveWorkout = ({
 
   const validateAll = () => {
     return activeExercises.every((ex) => {
-      const exSets = sets[ex.id] || [createEmptySet(ex.type as ExerciseType)];
+      const exSets = sets[ex.id] || [createEmptySet(ex.type)];
       return exSets.every((s) => {
-        if (ex.type === ExerciseType.CARDIO) {
+        if (ex.type === "CARDIO") {
           // User request: Minutes and Calories are required
           return s.duration !== "" && s.calories !== "";
         } else {
@@ -635,7 +629,7 @@ export const ActiveWorkout = ({
     // Ensure data exists for all active exercises
     activeExercises.forEach((ex) => {
       if (!completeSets[ex.id]) {
-        completeSets[ex.id] = [createEmptySet(ex.type as ExerciseType)];
+        completeSets[ex.id] = [createEmptySet(ex.type)];
       }
     });
     return completeSets;
@@ -699,7 +693,7 @@ export const ActiveWorkout = ({
 
         // Reset sets for this slot
         const { [oldExId]: _removed, ...restSets } = sets;
-        setSets({ ...restSets, [exercise.id]: [createEmptySet(exercise.type as ExerciseType)] });
+        setSets({ ...restSets, [exercise.id]: [createEmptySet(exercise.type)] });
       }
     }
     setPickerOpen(false);
@@ -725,7 +719,7 @@ export const ActiveWorkout = ({
 
       if (found) {
         // Enforce CARDIO type to ensure UI renders correctly
-        handleExerciseSelect({ ...found, type: ExerciseType.CARDIO });
+        handleExerciseSelect({ ...found, type: "CARDIO" });
         return;
       }
 
@@ -870,7 +864,7 @@ export const ActiveWorkout = ({
   });
 
   return (
-    <div className="mx-auto flex max-w-md px-4 flex-col gap-6 pt-6">
+    <div className="mx-auto flex max-w-md px-4 flex-col gap-6 py-6 pb-12">
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between lg:px-0">
         <div className="flex flex-wrap items-center gap-2 max-w-[85%]">
@@ -951,7 +945,7 @@ export const ActiveWorkout = ({
                   src={ex.imageUrl}
                   alt={ex.name}
                   onClick={() => {}}
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-contain bg-white"
                 />
               </div>
             )}
@@ -1085,7 +1079,7 @@ export const ActiveWorkout = ({
             </div>
 
             <div className="space-y-3 p-4">
-              {ex.type === ExerciseType.CARDIO ? (
+              {ex.type === "CARDIO" ? (
                 <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-4 text-sm font-medium">
                   <div className="w-6 text-center">#</div>
                   <div className="text-center">Minutes</div>
@@ -1103,11 +1097,11 @@ export const ActiveWorkout = ({
                 </div>
               )}
 
-              {(sets[ex.id] || [createEmptySet(ex.type as ExerciseType)]).map((set, idx) => (
+              {(sets[ex.id] || [createEmptySet(ex.type)]).map((set, idx) => (
                 <div
                   key={idx}
                   className={`grid gap-4 items-center relative ${
-                    ex.type === ExerciseType.CARDIO
+                    ex.type === "CARDIO"
                       ? "grid-cols-[auto_1fr_1fr_1fr_auto]"
                       : "grid-cols-[auto_auto_1fr_1fr_auto]"
                   } ${set.completed ? "opacity-50" : ""}`}
@@ -1123,7 +1117,7 @@ export const ActiveWorkout = ({
                   )}
 
                   {/* Tick/Complete Toggle - New Column */}
-                  {ex.type !== ExerciseType.CARDIO && (
+                  {ex.type !== "CARDIO" && (
                     <div
                       className="flex items-center justify-center cursor-pointer"
                       onClick={() => updateSet(ex.id, idx, "completed", !set.completed)}
@@ -1149,7 +1143,7 @@ export const ActiveWorkout = ({
                   >
                     {idx + 1}
                   </div>
-                  {ex.type === ExerciseType.CARDIO ? (
+                  {ex.type === "CARDIO" ? (
                     <>
                       <Input
                         type="number"
@@ -1281,14 +1275,10 @@ export const ActiveWorkout = ({
         </div>
       </div>
 
-      {/* Footer Actions - Sticky on scroll up */}
-      <div
-        className={`sticky -mx-4 md:mx-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 flex gap-2 shadow-lg z-50 transition-[bottom] duration-200 ${
-          showFooter ? "bottom-19.25 md:bottom-0" : "bottom-0"
-        }`}
-      >
-        <Button className="flex-1" onClick={handleFinish} disabled={!isFormValid}>
-          Finish
+      {/* Finish Workout Button - In page flow */}
+      <div className="flex w-full">
+        <Button size="lg" className="flex-1" onClick={handleFinish} disabled={!isFormValid}>
+          Finish Workout
         </Button>
       </div>
 

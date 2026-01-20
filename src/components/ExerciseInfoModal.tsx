@@ -43,7 +43,7 @@ export const ExerciseInfoModal: React.FC<ExerciseInfoModalProps> = ({ exercise }
                 <img
                   src={exercise.imageUrl}
                   alt={exercise.name}
-                  className="w-full h-auto object-contain max-h-96"
+                  className="w-full h-auto object-contain max-h-96 bg-white"
                   loading="lazy"
                 />
               </div>

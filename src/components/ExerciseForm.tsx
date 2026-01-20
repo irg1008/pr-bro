@@ -228,7 +228,7 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
               <img
                 src={formData.imageUrl}
                 alt="Preview"
-                className="h-full w-full object-contain"
+                className="h-full w-full object-contain bg-white"
                 onError={() => setImageError(true)}
               />
             ) : (

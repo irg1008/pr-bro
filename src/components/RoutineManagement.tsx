@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { navigate } from "astro:transitions/client";
@@ -292,7 +293,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         {routines.map((routine, index) => (
           <Card
             key={routine.id}
-            className="hover:bg-card/50 group relative cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] rounded-xl border-border/40"
+            className="group relative cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] border-border/40 hover:bg-card/50"
             onClick={() => handleSelectRoutine(routine.id)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -306,7 +307,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                       className="text-muted-foreground hover:text-primary z-10 h-8 w-8"
                       onClick={(e) => openEdit(routine, e)}
                     >
-                      <Pencil />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                     <AlertDialogTrigger
                       render={
@@ -316,7 +317,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                           className="text-muted-foreground hover:text-destructive z-10 h-8 w-8"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Trash2 />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       }
                     />
@@ -451,15 +452,13 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                 {availableCategories.map((cat) => (
                   <label
                     key={cat}
-                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded p-1 capitalize"
+                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 capitalize transition-colors"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={editCategories.includes(cat)}
-                      onChange={() => toggleCategory(cat, true)}
-                      className="h-4 w-4 rounded border-gray-300"
+                      onCheckedChange={() => toggleCategory(cat, true)}
                     />
-                    <span className="text-sm">{cat}</span>
+                    <span className="text-sm font-medium leading-none">{cat}</span>
                   </label>
                 ))}
               </div>
