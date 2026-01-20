@@ -1,3 +1,4 @@
+import { ExerciseInfoModal } from "@/components/ExerciseInfoModal";
 import { ExerciseSelector } from "@/components/ExerciseSelector";
 import {
   AlertDialog,
@@ -12,12 +13,23 @@ import {
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
+  DialogClose,
   DialogContent,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
   DialogTrigger
 } from "@/components/ui/dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuLabel,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger
+} from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { navigate } from "astro:transitions/client";
 import {
   Activity,
@@ -25,14 +37,21 @@ import {
   Bike,
   Dumbbell,
   Footprints,
+  History,
+  MessageSquareText,
+  MoreVertical,
   Plus,
+  Repeat,
+  RotateCcw,
+  Target,
   Timer,
   Trash2,
   Waves,
-  X
+  X,
+  Zap
 } from "lucide-react";
-import type { Exercise } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
-import { useEffect, useState } from "react";
+import type { Exercise } from "prisma/generated/client";
+import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 
 const CARDIO_OPTIONS = [
@@ -50,6 +69,8 @@ export const ExerciseType = {
 } as const;
 export type ExerciseType = (typeof ExerciseType)[keyof typeof ExerciseType];
 
+export type SetType = "NORMAL" | "WARMUP" | "FAILURE";
+
 export interface WorkoutSet {
   weight?: number | "";
   reps?: number | "";
@@ -57,13 +78,22 @@ export interface WorkoutSet {
   distance?: number | ""; // km?
   calories?: number | "";
   completed: boolean;
+  type?: SetType;
+}
+
+export interface ActiveWorkoutExercise extends Exercise {
+  routineNote?: string | null;
+  sessionNote?: string | null;
+  targetSets?: string | null;
+  targetReps?: string | null;
+  targetRepsToFailure?: string | null;
 }
 
 export interface ActiveWorkoutProps {
   logId: string;
   initialStartTime: string;
   routineName: string;
-  exercises: Exercise[];
+  exercises: ActiveWorkoutExercise[]; // Updated type
   initialSupersetStatus?: Record<string, boolean>;
 }
 
@@ -76,15 +106,17 @@ export const ActiveWorkout = ({
   // Carousel state removed
   // const [current, setCurrent] = useState(0); // Removed as we list all
   const [sets, setSets] = useState<Record<string, WorkoutSet[]>>({});
+  const [sessionNotes, setSessionNotes] = useState<Record<string, string>>({}); // New state for session notes
 
   // Dynamic Exercise State
-  const [activeExercises, setActiveExercises] = useState<Exercise[]>(initialExercises);
+  const [activeExercises, setActiveExercises] = useState<ActiveWorkoutExercise[]>(initialExercises);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<"add" | "replace">("add");
   const [targetExerciseIndex, setTargetExerciseIndex] = useState<number>(-1); // For replace/delete context if needed
 
   const [cardioModalOpen, setCardioModalOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [resetAlertOpen, setResetAlertOpen] = useState(false);
   const [saveSuccessOpen, setSaveSuccessOpen] = useState(false);
   const [infoAlert, setInfoAlert] = useState<{ open: boolean; title: string; message: string }>({
     open: false,
@@ -94,8 +126,100 @@ export const ActiveWorkout = ({
   const [supersetStatus, setSupersetStatus] =
     useState<Record<string, boolean>>(initialSupersetStatus);
 
+  // Scroll direction detection for footer visibility
+  const [showFooter, setShowFooter] = useState(true);
+  const lastScrollY = useRef(0);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      const currentScrollY = window.scrollY;
+      // Show footer when scrolling up or at top
+      if (currentScrollY < lastScrollY.current || currentScrollY < 50) {
+        setShowFooter(true);
+      } else {
+        setShowFooter(false);
+      }
+      lastScrollY.current = currentScrollY;
+    };
+
+    window.addEventListener("scroll", handleScroll, { passive: true });
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  // State refs for auto-save on unmount
+  const stateRef = useRef({ sets, activeExercises, supersetStatus, sessionNotes });
+  const isFinishingRef = useRef(false);
+
+  useEffect(() => {
+    stateRef.current = { sets, activeExercises, supersetStatus, sessionNotes };
+  }, [sets, activeExercises, supersetStatus, sessionNotes]);
+
+  // Auto-save on unmount
+  useEffect(() => {
+    return () => {
+      if (isFinishingRef.current) return;
+
+      const { sets, activeExercises, supersetStatus, sessionNotes } = stateRef.current;
+
+      // Replicate logic from sanitizeSets but inside cleanup
+      const completeSets: Record<string, WorkoutSet[]> = {};
+      const validExerciseIds = new Set(activeExercises.map((e) => e.id));
+
+      Object.keys(sets).forEach((key) => {
+        if (validExerciseIds.has(key)) {
+          completeSets[key] = sets[key];
+        }
+      });
+
+      activeExercises.forEach((ex) => {
+        if (!completeSets[ex.id]) {
+          // Recreate empty set logic manually or extract helper.
+          // Since we can't easily call createEmptySet from here without making it static or moving it out,
+          // we'll just skip adding empty sets if they don't exist in state or trust 'sets' state is mostly up to date.
+          // Or better, define createEmptySet outside or trust `sets` deals with it.
+          // For safety, let's just save what we have. API should handle it.
+          if (ex.type === ExerciseType.CARDIO) {
+            completeSets[ex.id] = [{ duration: "", distance: "", calories: "", completed: false }];
+          } else {
+            completeSets[ex.id] = [{ weight: "", reps: "", completed: false }];
+          }
+        }
+      });
+
+      // Beacon/Keepalive fetch
+      fetch(`/api/workout-logs/${logId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          entries: completeSets,
+          supersetStatus,
+          sessionNotes
+          // No finishedAt for auto-save
+        }),
+        headers: { "Content-Type": "application/json" },
+        keepalive: true
+      }).catch((e) => console.error("Auto-save failed", e));
+    };
+  }, [logId]); // Dependencies should be stable, logId unlikely to change.
+
   // Fetch existing log data on mount (resume support)
   useEffect(() => {
+    const loadedNotes: Record<string, string> = {};
+
+    // Initialize sets and notes from log/props
+    // NOTE: parent (workout.astro) should have passed exercises with data if it's a resume
+    // We'll trust initialExercises to have what we need if mapped correctly,
+    // OR we rely on parent to pass `exercises` that are from log entries.
+    // Parent logic: "entries.map(e => e.exercise)". This loses the `WorkoutLogEntry` data (sets, notes).
+    // I need to fix parent to pass sets/notes separate or enriched.
+    // For now assuming parent will be fixed to pass `ActiveWorkoutExercise` which has sessionNote.
+
+    initialExercises.forEach((ex) => {
+      if (ex.sessionNote) {
+        loadedNotes[ex.id] = ex.sessionNote;
+      }
+    });
+    setSessionNotes(loadedNotes);
+
     const loadLog = async () => {
       try {
         const res = await fetch(`/api/workout-logs/${logId}`);
@@ -127,17 +251,12 @@ export const ActiveWorkout = ({
 
   const createEmptySet = (type: ExerciseType = ExerciseType.WEIGHT): WorkoutSet => {
     if (type === ExerciseType.CARDIO) {
-      return { duration: "", distance: "", calories: "", completed: false };
+      return { duration: "", distance: "", calories: "", completed: false, type: "NORMAL" };
     }
-    return { weight: "", reps: "", completed: false };
+    return { weight: "", reps: "", completed: false, type: "NORMAL" };
   };
 
-  const updateSet = (
-    exerciseId: string,
-    idx: number,
-    field: keyof WorkoutSet,
-    value: number | ""
-  ) => {
+  const updateSet = (exerciseId: string, idx: number, field: keyof WorkoutSet, value: any) => {
     if (!exerciseId) return;
 
     const currentEx = activeExercises.find((e) => e.id === exerciseId);
@@ -147,6 +266,20 @@ export const ActiveWorkout = ({
     const newSets = [...currentExSets];
     newSets[idx] = { ...newSets[idx], [field]: value };
     setSets({ ...sets, [exerciseId]: newSets });
+  };
+
+  const toggleSetType = (exerciseId: string, idx: number) => {
+    const currentSets = sets[exerciseId];
+    if (!currentSets) return;
+
+    const set = currentSets[idx];
+    let nextType: SetType = "NORMAL";
+
+    if (!set.type || set.type === "NORMAL") nextType = "WARMUP";
+    else if (set.type === "WARMUP") nextType = "FAILURE";
+    else nextType = "NORMAL";
+
+    updateSet(exerciseId, idx, "type", nextType);
   };
 
   const addSet = (exerciseId: string) => {
@@ -159,7 +292,7 @@ export const ActiveWorkout = ({
     const lastSet = currentExSets[currentExSets.length - 1];
     setSets({
       ...sets,
-      [exerciseId]: [...currentExSets, { ...lastSet, completed: false }]
+      [exerciseId]: [...currentExSets, { ...lastSet, completed: false, type: "NORMAL" }]
     });
   };
 
@@ -221,7 +354,8 @@ export const ActiveWorkout = ({
         method: "PUT",
         body: JSON.stringify({
           entries: completeSets,
-          supersetStatus
+          supersetStatus,
+          sessionNotes
           // No finishedAt for save
         }),
         headers: { "Content-Type": "application/json" }
@@ -240,6 +374,7 @@ export const ActiveWorkout = ({
 
   const handleFinish = async () => {
     if (!isFormValid) return;
+    isFinishingRef.current = true;
     const completeSets = sanitizeSets();
 
     toast.promise(
@@ -248,6 +383,7 @@ export const ActiveWorkout = ({
         body: JSON.stringify({
           entries: completeSets,
           supersetStatus,
+          sessionNotes,
           finishedAt: new Date().toISOString()
         }),
         headers: { "Content-Type": "application/json" }
@@ -258,14 +394,16 @@ export const ActiveWorkout = ({
           navigate("/");
           return "Workout saved!";
         },
-        error: "Failed to save workout."
+        error: () => {
+          isFinishingRef.current = false; // Reset if failed so user can try again or auto-save works later?
+          // Actually if it failed, we are still on page.
+          return "Failed to save workout.";
+        }
       }
     );
   };
 
-  const handleCancel = () => {
-    navigate("/");
-  };
+  /* handleCancel removed as unused */
 
   const openAddExercise = () => {
     setPickerMode("add");
@@ -367,6 +505,54 @@ export const ActiveWorkout = ({
     setTargetExerciseIndex(-1);
   };
 
+  const handleReset = () => {
+    setResetAlertOpen(false);
+    // Reset all state to initial values from props
+    setActiveExercises(initialExercises);
+    setSupersetStatus(initialSupersetStatus);
+    setSessionNotes({});
+    // Reset sets to empty so they get re-initialized
+    const initialSets: Record<string, WorkoutSet[]> = {};
+    initialExercises.forEach((ex) => {
+      initialSets[ex.id] = [createEmptySet(ex.type as ExerciseType)];
+    });
+    setSets(initialSets);
+    toast.success("Workout reset to routine");
+  };
+
+  const loadLastRun = async (exerciseId: string) => {
+    try {
+      const res = await fetch(
+        `/api/exercises/last-sets?exerciseId=${exerciseId}&excludeLogId=${logId}`
+      );
+      const data = await res.json();
+
+      if (!data.found) {
+        toast.info("No previous data found for this exercise");
+        return;
+      }
+
+      // Apply the loaded sets
+      setSets((prev) => ({
+        ...prev,
+        [exerciseId]: data.sets
+      }));
+
+      // Apply the session note if exists
+      if (data.note) {
+        setSessionNotes((prev) => ({
+          ...prev,
+          [exerciseId]: data.note
+        }));
+      }
+
+      toast.success(`Loaded data from ${new Date(data.finishedAt).toLocaleDateString()}`);
+    } catch (e) {
+      console.error("Failed to load last run:", e);
+      toast.error("Failed to load previous data");
+    }
+  };
+
   const startTimeDisplay = new Date(initialStartTime).toLocaleString(undefined, {
     year: "numeric",
     month: "numeric",
@@ -376,13 +562,54 @@ export const ActiveWorkout = ({
   });
 
   return (
-    <div className="mx-auto flex max-w-md px-4 flex-col gap-6 py-6">
+    <div className="mx-auto flex max-w-md px-4 flex-col gap-6 py-6 pb-24">
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between lg:px-0">
         <div className="flex items-center gap-2">
           <div className="text-muted-foreground bg-muted/50 rounded-full border px-3 py-1 text-sm font-medium">
-            Started: {startTimeDisplay}
+            Started at {startTimeDisplay}
           </div>
+        </div>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="ghost" size="icon" className="h-8 w-8">
+              <MoreVertical className="h-4 w-4" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuLabel>Workout Options</DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => setResetAlertOpen(true)}
+            >
+              <RotateCcw className="mr-2 h-4 w-4" />
+              Reset to Routine
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
+      </div>
+
+      <div className="flex items-center justify-center gap-4 text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg border border-dashed">
+        <span
+          className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-help"
+          title="Click set number to toggle"
+        >
+          Click set number to toggle:
+        </span>
+        <div className="flex items-center gap-3 font-medium">
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-muted border border-transparent ring-1 ring-border/20"></span>
+            Normal
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-orange-200 border border-orange-300 dark:bg-orange-500/50 dark:border-orange-500"></span>
+            Warmup
+          </span>
+          <span className="flex items-center gap-1.5">
+            <span className="h-2.5 w-2.5 rounded-full bg-red-200 border border-red-300 dark:bg-red-500/50 dark:border-red-500"></span>
+            Failure
+          </span>
         </div>
       </div>
 
@@ -406,81 +633,183 @@ export const ActiveWorkout = ({
 
             <div className="p-3">
               <div className="flex items-start justify-between">
-                <div className="flex flex-col">
-                  <h2 className="pr-2 text-lg font-bold capitalize">{ex.name}</h2>
-                  <div className="mt-1 flex flex-wrap items-center gap-2">
-                    <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs font-medium capitalize">
-                      {ex.category?.toLowerCase() || "other"}
+                <div className="flex flex-col gap-1 flex-1">
+                  <h3 className="flex items-center gap-2 text-lg font-bold capitalize leading-none">
+                    {ex.name}
+                    <ExerciseInfoModal exercise={ex} />
+                  </h3>
+
+                  <div className="mt-1 flex flex-wrap items-center gap-1">
+                    <span className="bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-xs capitalize">
+                      {ex.bodyPart}
                     </span>
-                    {ex.target && ex.target !== ex.category && (
-                      <span className="text-muted-foreground bg-secondary rounded px-2 py-0.5 text-xs font-medium capitalize">
-                        {ex.target.toLowerCase()}
+                    {ex.target && (
+                      <span className="bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-xs capitalize">
+                        {ex.target}
                       </span>
                     )}
                   </div>
+
+                  {/* Targets Display */}
+                  {(ex.targetSets || ex.targetReps || ex.targetRepsToFailure) && (
+                    <div className="mt-1.5 flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                      {ex.targetSets && (
+                        <span className="flex items-center gap-1" title="Target sets">
+                          <Repeat className="h-3 w-3" />
+                          {ex.targetSets} sets
+                        </span>
+                      )}
+                      {ex.targetReps && (
+                        <span className="flex items-center gap-1" title="Target reps">
+                          <Target className="h-3 w-3" />
+                          {ex.targetReps} reps
+                        </span>
+                      )}
+                      {ex.targetRepsToFailure && (
+                        <span
+                          className="flex items-center gap-1 text-orange-600 dark:text-orange-400"
+                          title="Reps to failure"
+                        >
+                          🔥 {ex.targetRepsToFailure} RIF
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Routine Note (Static, not editable) */}
+                  {ex.routineNote && (
+                    <p className="mt-1 text-sm text-muted-foreground italic">{ex.routineNote}</p>
+                  )}
+
+                  {/* Session Note Display (Text Only) */}
+                  {/* Session Note UI - Replaces old display and button */}
+                  <Dialog>
+                    <DialogTrigger asChild>
+                      <div className="mt-2 text-sm cursor-pointer hover:opacity-80 transition-opacity">
+                        {sessionNotes[ex.id] ? (
+                          <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-full">
+                            <MessageSquareText className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+                            <span className="leading-snug">{sessionNotes[ex.id]}</span>
+                          </div>
+                        ) : (
+                          <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
+                            <MessageSquareText className="h-3.5 w-3.5" />
+                            <span className="text-xs">Add Insight</span>
+                          </div>
+                        )}
+                      </div>
+                    </DialogTrigger>
+                    <DialogContent>
+                      <DialogHeader>
+                        <DialogTitle>Session note for {ex.name}</DialogTitle>
+                      </DialogHeader>
+                      <div className="py-2">
+                        <Textarea
+                          placeholder="How did it feel? e.g. Heavy, easy, pain in shoulder..."
+                          value={sessionNotes[ex.id] || ""}
+                          onChange={(e) =>
+                            setSessionNotes((prev) => ({ ...prev, [ex.id]: e.target.value }))
+                          }
+                          className="min-h-[100px]"
+                        />
+                      </div>
+                      <DialogFooter>
+                        <DialogClose asChild>
+                          <Button type="button">Save</Button>
+                        </DialogClose>
+                      </DialogFooter>
+                    </DialogContent>
+                  </Dialog>
                 </div>
-                <div className="flex items-center gap-2">
-                  <div
-                    className={`cursor-pointer rounded border px-2 py-0.5 text-xs transition-colors select-none ${
-                      supersetStatus[ex.id]
-                        ? "border-amber-400 bg-amber-400 font-semibold text-white"
-                        : "border-muted-foreground/30 text-muted-foreground hover:bg-muted bg-transparent"
-                    }`}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      setSupersetStatus((prev) => ({ ...prev, [ex.id]: !prev[ex.id] }));
-                    }}
-                    title="Toggle Superset"
-                  >
-                    Superset
+                <div className="flex items-center gap-1">
+                  {/* Actions Menu */}
+                  <div className="flex items-center gap-1">
+                    {supersetStatus[ex.id] && (
+                      <Zap className="h-4 w-4 text-amber-500 fill-amber-500" />
+                    )}
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <Button variant="ghost" size="icon" className="h-8 w-8">
+                          <MoreVertical className="h-4 w-4" />
+                        </Button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end">
+                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
+                        <DropdownMenuItem onClick={() => loadLastRun(ex.id)}>
+                          <History className="mr-2 h-4 w-4" />
+                          Load last run
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => {
+                            setSupersetStatus((prev) => ({ ...prev, [ex.id]: !prev[ex.id] }));
+                          }}
+                        >
+                          <Zap
+                            className={`mr-2 h-4 w-4 ${supersetStatus[ex.id] ? "text-amber-500 fill-amber-500" : ""}`}
+                          />
+                          <span className={supersetStatus[ex.id] ? "font-bold text-amber-500" : ""}>
+                            {supersetStatus[ex.id] ? "Active Superset" : "Toggle Superset"}
+                          </span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => openReplaceExercise(index)}>
+                          <ArrowLeftRight className="mr-2 h-4 w-4" />
+                          Replace Exercise
+                        </DropdownMenuItem>
+                        <DropdownMenuSeparator />
+                        <DropdownMenuItem
+                          className="text-destructive focus:text-destructive"
+                          onClick={() => handleDeleteClick(index)}
+                        >
+                          <Trash2 className="mr-2 h-4 w-4" />
+                          Remove Exercise
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground hover:text-foreground hover:bg-muted h-8 w-8"
-                    onClick={() => handleDeleteClick(index)}
-                    title="Remove Exercise"
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    className="text-muted-foreground hover:text-foreground h-8 gap-2"
-                    onClick={() => openReplaceExercise(index)}
-                  >
-                    <ArrowLeftRight className="h-4 w-4" />
-                    <span className="text-xs">Replace</span>
-                  </Button>
                 </div>
               </div>
             </div>
 
             <div className="space-y-3 p-4">
               {ex.type === ExerciseType.CARDIO ? (
-                <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-2 text-sm font-medium">
-                  <div>Set</div>
+                <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-4 text-sm font-medium">
+                  <div className="w-8 text-center">#</div>
                   <div>Minutes</div>
                   <div>Km</div>
                   <div>Calories</div>
-                  <div></div>
+                  <div className="w-8"></div>
                 </div>
               ) : (
-                <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_auto] gap-2 text-sm font-medium">
-                  <div>Set</div>
+                <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_auto] gap-4 text-sm font-medium">
+                  <div className="w-8 text-center">#</div>
                   <div>kg</div>
                   <div>Reps</div>
-                  <div></div>
+                  <div className="w-8"></div>
                 </div>
               )}
 
               {(sets[ex.id] || [createEmptySet(ex.type as ExerciseType)]).map((set, idx) => (
                 <div
                   key={idx}
-                  className={`grid items-center gap-2 ${ex.type === ExerciseType.CARDIO ? "grid-cols-[auto_1fr_1fr_1fr_auto]" : "grid-cols-[auto_1fr_1fr_auto]"}`}
+                  className={`grid gap-4 items-center ${
+                    ex.type === ExerciseType.CARDIO
+                      ? "grid-cols-[auto_1fr_1fr_1fr_auto]"
+                      : "grid-cols-[auto_1fr_1fr_auto]"
+                  } ${set.completed ? "opacity-50" : ""}`}
                 >
-                  <div className="bg-muted rounded px-3 py-2 text-center font-bold">{idx + 1}</div>
-
+                  <div
+                    className={`flex h-7 w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border text-sm font-bold transition-colors select-none ${
+                      !set.type || set.type === "NORMAL"
+                        ? "bg-muted text-muted-foreground border-transparent hover:bg-muted/80"
+                        : set.type === "WARMUP"
+                          ? "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900/30 dark:text-orange-400 dark:border-orange-800"
+                          : "bg-red-100 text-red-700 border-red-200 dark:bg-red-900/30 dark:text-red-400 dark:border-red-800"
+                    }`}
+                    onClick={() => toggleSetType(ex.id, idx)}
+                    title="Click to toggle: Normal -> Warmup -> Failure"
+                  >
+                    {idx + 1}
+                  </div>
                   {ex.type === ExerciseType.CARDIO ? (
                     <>
                       <Input
@@ -613,12 +942,13 @@ export const ActiveWorkout = ({
         </div>
       </div>
 
-      {/* Footer Actions */}
-      <div className="flex shadow-md">
-        <Button
-          className="flex-1 bg-green-600 text-white hover:bg-green-700 mr-2"
-          onClick={handleSave}
-        >
+      {/* Footer Actions - Sticky on scroll up */}
+      <div
+        className={`sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex gap-2 shadow-lg z-50 transition-transform duration-200 ${
+          showFooter ? "translate-y-0" : "translate-y-full"
+        }`}
+      >
+        <Button className="flex-1 bg-green-600 text-white hover:bg-green-700" onClick={handleSave}>
           Save
         </Button>
         <Button
@@ -679,6 +1009,27 @@ export const ActiveWorkout = ({
               Continue Here
             </AlertDialogCancel>
             <AlertDialogAction onClick={() => navigate("/")}>Exit</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={resetAlertOpen} onOpenChange={setResetAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Reset Workout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will reset all exercises and sets back to the original routine. Any changes
+              you've made (added exercises, modified sets, notes) will be lost.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleReset}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Reset
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

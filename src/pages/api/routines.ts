@@ -10,12 +10,18 @@ export const POST: APIRoute = async ({ request }) => {
     return new Response("Name and Group ID are required", { status: 400 });
   }
 
+  // Calculate new order
+  const count = await prisma.routine.count({
+    where: { routineGroupId: data.routineGroupId }
+  });
+
   const routine = await prisma.routine.create({
     data: {
       name: data.name,
       description: data.description || "",
       routineGroupId: data.routineGroupId,
-      focusedParts: data.focusedParts || []
+      focusedParts: data.focusedParts || [],
+      order: count
     }
   });
 

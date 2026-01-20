@@ -21,7 +21,10 @@ export const POST: APIRoute = async ({ request }) => {
     data: {
       routineId: data.routineId,
       exerciseId: data.exerciseId,
-      order: newOrder
+      order: newOrder,
+      targetSets: data.targetSets || null,
+      targetReps: data.targetReps || null,
+      targetRepsToFailure: data.targetRepsToFailure || null
     }
   });
 
@@ -48,13 +51,21 @@ export const DELETE: APIRoute = async ({ request }) => {
 
 export const PATCH: APIRoute = async ({ request }) => {
   const data = await request.json();
-  const { id, isSuperset } = data;
+  const { id, isSuperset, note, targetSets, targetReps, targetRepsToFailure } = data;
 
   if (!id) return new Response("ID required", { status: 400 });
 
+  const updateData: any = {};
+  if (isSuperset !== undefined) updateData.isSuperset = isSuperset;
+  if (note !== undefined) updateData.note = note;
+  if (targetSets !== undefined) updateData.targetSets = targetSets || null;
+  if (targetReps !== undefined) updateData.targetReps = targetReps || null;
+  if (targetRepsToFailure !== undefined)
+    updateData.targetRepsToFailure = targetRepsToFailure || null;
+
   await prisma.routineExercise.update({
     where: { id },
-    data: { isSuperset }
+    data: updateData
   });
 
   return new Response(null, { status: 200 });

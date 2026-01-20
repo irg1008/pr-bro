@@ -62,13 +62,17 @@ model Exercise {
 }
 
 model RoutineExercise {
-  id         String   @id @default(cuid())
-  routineId  String
-  exerciseId String
-  order      Int
-  isSuperset Boolean  @default(false)
-  routine    Routine  @relation(fields: [routineId], references: [id])
-  exercise   Exercise @relation(fields: [exerciseId], references: [id])
+  id                  String   @id @default(cuid())
+  routineId           String
+  exerciseId          String
+  order               Int
+  isSuperset          Boolean  @default(false)
+  note                String?
+  targetSets          String? // e.g. "3" or "3-4"
+  targetReps          String? // e.g. "8-12"
+  targetRepsToFailure String? // e.g. "1-2"
+  routine             Routine  @relation(fields: [routineId], references: [id])
+  exercise            Exercise @relation(fields: [exerciseId], references: [id])
 
   @@unique([routineId, exerciseId])
 }
@@ -91,8 +95,8 @@ model WorkoutLogEntry {
   exerciseId   String
   workoutLog   WorkoutLog @relation(fields: [workoutLogId], references: [id])
   exercise     Exercise   @relation(fields: [exerciseId], references: [id])
-  sets         Json // Stores array of { weight: number, reps: number, completed: boolean }
-  notes        String?
+  sets         Json // Stores array of { weight: number, reps: number, completed: boolean, type?: "NORMAL" | "WARMUP" | "FAILURE" }
+  note         String?
   isSuperset   Boolean    @default(false)
   order        Int
   createdAt    DateTime   @default(now())
