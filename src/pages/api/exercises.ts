@@ -118,6 +118,37 @@ export const GET: APIRoute = async ({ request }) => {
   }
 };
 
+export const POST: APIRoute = async ({ request }) => {
+  try {
+    const body = await request.json();
+    const { name, category, bodyPart, target, imageUrl, description, equipment } = body;
+
+    if (!name) {
+      return new Response("Name is required", { status: 400 });
+    }
+
+    const exercise = await prisma.exercise.create({
+      data: {
+        name,
+        category: category || "Other",
+        bodyPart: bodyPart || null,
+        target: target || null,
+        imageUrl: imageUrl || null,
+        description: description || null,
+        equipment: equipment || null
+      }
+    });
+
+    return new Response(JSON.stringify(exercise), {
+      status: 201,
+      headers: { "Content-Type": "application/json" }
+    });
+  } catch (e) {
+    console.error("Error creating exercise:", e);
+    return new Response("Error creating exercise", { status: 500 });
+  }
+};
+
 function jsonResponse(data: any, total: number, page: number, limit: number) {
   return new Response(
     JSON.stringify({

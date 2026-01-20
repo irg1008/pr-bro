@@ -618,8 +618,11 @@ export const ActiveWorkout = ({
         {activeExercises.map((ex, index) => (
           <div
             key={`${ex.id}-${index}`}
-            className="carousel-visual-content bg-card overflow-hidden rounded-xl shadow-sm transition-none will-change-transform border"
+            className="carousel-visual-content bg-card overflow-hidden rounded-xl shadow-sm transition-none will-change-transform border relative"
           >
+            <div className="absolute top-3 left-3 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/60 text-white backdrop-blur-sm text-sm font-bold shadow-sm border border-white/10">
+              {index + 1}
+            </div>
             {ex.imageUrl && (
               <div className="bg-muted h-48 w-full shrink-0">
                 <img

@@ -11,6 +11,9 @@ import {
   XAxis,
   YAxis
 } from "recharts";
+import { ExerciseInfoModal } from "./ExerciseInfoModal";
+
+import type { Exercise } from "prisma/generated/client"; // Import Exercise type
 
 interface ExerciseStat {
   id: string;
@@ -23,6 +26,7 @@ interface ExerciseStat {
   pr: number;
   improvement: number;
   lastTrained: string;
+  exercise: Exercise; // Add exercise field
 }
 
 interface StatsViewProps {
@@ -84,7 +88,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
 
       {sortedCategories.map((category) => (
         <div key={category} className="space-y-4">
-          <h2 className="border-b pb-2 text-2xl font-bold capitalize">{category}</h2>
+          <h2 className="text-lg font-semibold capitalize text-muted-foreground">{category}</h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {groupedStats[category].map((stat) => {
               const filteredHistory = filterHistory(stat.history);
@@ -97,7 +101,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
-                      <div className="flex gap-3">
+                      <div className="flex gap-3 min-w-0">
                         {stat.imageUrl && (
                           <div className="bg-muted h-12 w-12 shrink-0 overflow-hidden rounded-md border">
                             <img
@@ -107,25 +111,29 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                             />
                           </div>
                         )}
-                        <div className="flex flex-col gap-1">
-                          <CardTitle className="line-clamp-2 text-xl capitalize" title={stat.name}>
+                        <div className="flex flex-col gap-1 md:gap-2 min-w-0">
+                          <CardTitle
+                            className="line-clamp-1 font-bold capitalize flex items-center gap-2 text-sm sm:text-base leading-tight"
+                            title={stat.name}
+                          >
                             {stat.name}
+                            <ExerciseInfoModal exercise={stat.exercise} />
                           </CardTitle>
-                          <div className="flex flex-wrap gap-2">
+                          <div className="flex flex-wrap gap-1">
                             {stat.category && (
-                              <span className="text-muted-foreground bg-secondary rounded px-1.5 py-0.5 text-[10px] font-medium capitalize">
+                              <span className="text-muted-foreground bg-secondary rounded px-1.5 py-0.5 text-[10px] capitalize">
                                 {stat.category.toLowerCase()}
                               </span>
                             )}
                             {stat.target && stat.target !== stat.category && (
-                              <span className="text-muted-foreground bg-secondary rounded px-1.5 py-0.5 text-[10px] font-medium capitalize">
+                              <span className="text-muted-foreground bg-secondary rounded px-1.5 py-0.5 text-[10px] capitalize">
                                 {stat.target.toLowerCase()}
                               </span>
                             )}
                           </div>
                         </div>
                       </div>
-                      <div className="shrink-0 text-right">
+                      <div className="shrink-0 text-right ml-2">
                         <div className="text-2xl font-bold">{stat.currentMax} kg</div>
                         {stat.improvement !== 0 && (
                           <div

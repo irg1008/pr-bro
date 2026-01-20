@@ -325,8 +325,9 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
 
         <ExerciseSelector
           onSelect={handleAdd}
-          selectedExerciseIds={exercises.map((e) => e.exerciseId)}
+          selectedExerciseIds={exercises.map((e) => e.exercise.id)}
           preferredCategories={focusedParts}
+          allowCustomExerciseCreation={true}
         />
       </div>
 
