@@ -39,13 +39,13 @@ const routines: RoutineWithCount[] = group.routines.map((r) => ({
 				<a
 					href="/routines"
 					class="text-sm text-muted-foreground hover:underline"
-					>← Back to Groups</a
+					>← Back to groups</a
 				>
 			</div>
 			{
 				!group.isActive && (
 					<Button id="set-active-btn" data-group-id={group.id} variant="accent">
-						Set as Active Cycle
+						Set as active cycle
 					</Button>
 				)
 			}

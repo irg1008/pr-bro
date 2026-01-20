@@ -103,6 +103,7 @@ export interface ActiveWorkoutProps {
   routineName: string;
   routineId: string;
   routineGroupId: string;
+  routineExerciseIds: string[];
   exercises: ActiveWorkoutExercise[]; // Updated type
   initialSupersetStatus?: Record<string, boolean>;
 }
@@ -113,6 +114,7 @@ export const ActiveWorkout = ({
   routineName,
   routineId,
   routineGroupId,
+  routineExerciseIds,
   exercises: initialExercises,
   initialSupersetStatus = {}
 }: ActiveWorkoutProps) => {
@@ -129,7 +131,10 @@ export const ActiveWorkout = ({
 
   const [cardioModalOpen, setCardioModalOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
-  const [missingTargetsAlertOpen, setMissingTargetsAlertOpen] = useState(false); // New Alert for Double Progression
+  const [missingTargetsAlertOpen, setMissingTargetsAlertOpen] = useState(false);
+  const [missingTargetsExercises, setMissingTargetsExercises] = useState<ActiveWorkoutExercise[]>(
+    []
+  ); // Track for alert
 
   const [loadLastRunAlertOpen, setLoadLastRunAlertOpen] = useState(false);
 
@@ -160,17 +165,32 @@ export const ActiveWorkout = ({
     }
   };
 
-  const handleApplyDoubleProgression = async (targetExerciseId?: string) => {
+  const handleApplyDoubleProgression = async (
+    targetExerciseId?: string,
+    forceSkipInvalid = false
+  ) => {
     try {
       // Determine scope: all exercises or specific one
       // Helper to avoid event object being passed as string if called from onClick without arrow func
       const actualTargetId = typeof targetExerciseId === "string" ? targetExerciseId : undefined;
 
-      const exercisesToProcess = actualTargetId
-        ? activeExercises.filter((ex) => ex.id === actualTargetId)
-        : activeExercises;
+      // Filter: Only include NON-AD-HOC exercises and active ones
+      let exercisesToProcess = activeExercises.filter((ex) => {
+        // If specific ID requested, match it
+        if (actualTargetId && ex.id !== actualTargetId) return false;
+        // Check if part of original routine
+        const isAdHoc = !routineExerciseIds.includes(ex.id);
+        if (isAdHoc) return false;
+        return true;
+      });
 
-      if (exercisesToProcess.length === 0) return;
+      if (exercisesToProcess.length === 0) {
+        if (actualTargetId) {
+          // If user clicked overloading on an ad-hoc exercise explicitly (should be hidden in UI though)
+          toast.info("This exercise is not part of the original routine.");
+        }
+        return;
+      }
 
       // 1. Validate: Check which exercises have targets
       const exercisesWithoutTargets = exercisesToProcess.filter(
@@ -178,8 +198,21 @@ export const ActiveWorkout = ({
       );
 
       if (exercisesWithoutTargets.length > 0) {
-        setMissingTargetsAlertOpen(true);
-        return;
+        if (forceSkipInvalid) {
+          // Filter them out and proceed
+          exercisesToProcess = exercisesToProcess.filter(
+            (ex) => !!ex.targetReps || !!ex.targetSets
+          );
+          if (exercisesToProcess.length === 0) {
+            toast.info("No valid exercises to overload.");
+            return;
+          }
+        } else {
+          setMissingTargetsExercises(exercisesWithoutTargets);
+          setMissingTargetsAlertOpen(true);
+          // We pause here. The dialog will allow user to "skip invalid" which calls this function recursively or a dedicated handler.
+          return;
+        }
       }
 
       // 2. Fetch last run data
@@ -1043,10 +1076,12 @@ export const ActiveWorkout = ({
                           <History className="mr-2 h-4 w-4" />
                           Load last run
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleApplyDoubleProgression(ex.id)}>
-                          <TrendingUp className="mr-2 h-4 w-4" />
-                          Apply overload
-                        </DropdownMenuItem>
+                        {routineExerciseIds.includes(ex.id) && (
+                          <DropdownMenuItem onClick={() => handleApplyDoubleProgression(ex.id)}>
+                            <TrendingUp className="mr-2 h-4 w-4" />
+                            Apply overload
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() => {
                             setSupersetStatus((prev) => ({ ...prev, [ex.id]: !prev[ex.id] }));
@@ -1278,7 +1313,7 @@ export const ActiveWorkout = ({
       {/* Finish Workout Button - In page flow */}
       <div className="flex w-full">
         <Button size="lg" className="flex-1" onClick={handleFinish} disabled={!isFormValid}>
-          Finish Workout
+          Finish workout
         </Button>
       </div>
 
@@ -1366,20 +1401,29 @@ export const ActiveWorkout = ({
                   The following exercises need targets (sets/reps) to enable progressive overload:
                 </span>
                 <ul className="list-disc pl-5 space-y-1 font-medium text-foreground/90 my-2 text-sm">
-                  {activeExercises
-                    .filter((ex) => !ex.targetReps && !ex.targetSets)
-                    .map((e) => (
-                      <li key={e.id} className="capitalize">
-                        {e.name}
-                      </li>
-                    ))}
+                  {missingTargetsExercises.map((e) => (
+                    <li key={e.id} className="capitalize">
+                      {e.name}
+                    </li>
+                  ))}
                 </ul>
-                <span>We suggest adding them in the routine settings.</span>
+                <span>
+                  You can skip these and apply overload to the rest, or go to settings to fix them.
+                </span>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setMissingTargetsAlertOpen(false);
+                handleApplyDoubleProgression(undefined, true);
+              }}
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            >
+              Skip & Apply to Others
+            </AlertDialogAction>
             <AlertDialogAction onClick={() => navigate(`/routines/${routineGroupId}/${routineId}`)}>
               Go to Settings
             </AlertDialogAction>

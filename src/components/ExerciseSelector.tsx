@@ -46,7 +46,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
 
   const handleEditClick = async (e: React.MouseEvent, ex: Exercise) => {
     // e.preventDefault/stopPropagation handled in onClick
-    const returnUrl = encodeURIComponent(window.location.pathname);
+    const returnUrl = encodeURIComponent(window.location.pathname + window.location.search);
     navigate(`/exercises/${ex.id}/edit?returnUrl=${returnUrl}`);
   };
 
@@ -136,7 +136,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
         </DialogTrigger>
         <DialogContent className="flex h-[80vh] max-w-4xl flex-col p-6">
           <DialogHeader>
-            <DialogTitle>Select Exercise</DialogTitle>
+            <DialogTitle>Select exercise</DialogTitle>
             <DialogDescription>
               Search and select exercises to add to your routine.
             </DialogDescription>
@@ -208,7 +208,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                           handleEditClick(e, ex);
                         }}
                         className="bg-background/80 hover:bg-background absolute top-2 right-2 z-30 rounded-full p-1.5 shadow-sm backdrop-blur-sm transition-opacity opacity-70 hover:opacity-100"
-                        title="Edit Exercise"
+                        title="Edit exercise"
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>

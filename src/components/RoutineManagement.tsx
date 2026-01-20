@@ -219,7 +219,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             {groupDescription || "Manage your routines for this group."}
           </p>
         </div>
-        <Button onClick={() => setIsCreating(true)}>New Routine</Button>
+        <Button onClick={() => setIsCreating(true)}>New routine</Button>
       </div>
 
       {isCreating && (
@@ -248,7 +248,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             </div>
 
             <div className="grid w-full max-w-sm items-center gap-1.5">
-              <Label>Focused Parts / Categories</Label>
+              <Label>Focused parts / Categories</Label>
               <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
                 {availableCategories.length === 0 && (
                   <span className="text-muted-foreground text-sm">Loading categories...</span>
@@ -424,7 +424,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
       <Dialog open={!!editingRoutine} onOpenChange={(open) => !open && setEditingRoutine(null)}>
         <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
-            <DialogTitle>Edit Routine</DialogTitle>
+            <DialogTitle>Edit routine</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid w-full items-center gap-1.5">
@@ -444,7 +444,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
               />
             </div>
             <div className="grid w-full items-center gap-1.5">
-              <Label>Focused Parts / Categories</Label>
+              <Label>Focused parts / Categories</Label>
               <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
                 {availableCategories.length === 0 && (
                   <span className="text-muted-foreground text-sm">Loading categories...</span>
@@ -477,7 +477,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             <Button variant="outline" onClick={() => setEditingRoutine(null)}>
               Cancel
             </Button>
-            <Button onClick={handleEdit}>Save Changes</Button>
+            <Button onClick={handleEdit}>Save changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -485,7 +485,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
       <Dialog open={isEditingGroup} onOpenChange={setIsEditingGroup}>
         <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
-            <DialogTitle>Edit Routine Group</DialogTitle>
+            <DialogTitle>Edit routine group</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid w-full items-center gap-1.5">
@@ -509,7 +509,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             <Button variant="outline" onClick={() => setIsEditingGroup(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdateGroup}>Save Changes</Button>
+            <Button onClick={handleUpdateGroup}>Save changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

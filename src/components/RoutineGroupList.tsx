@@ -100,7 +100,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-2xl font-bold tracking-tight">Routine Groups</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Routine groups</h2>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -131,7 +131,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
           <AlertDialog open={!!importFile} onOpenChange={(open) => !open && setImportFile(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Import Routine Groups</AlertDialogTitle>
+                <AlertDialogTitle>Import Routine groups</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will add any new routine groups from the file. Existing groups with the same
                   ID will be skipped.
@@ -183,7 +183,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
             </AlertDialogContent>
           </AlertDialog>
 
-          <Button onClick={() => setIsCreating(true)}>New Group</Button>
+          <Button onClick={() => setIsCreating(true)}>New group</Button>
         </div>
       </div>
 
@@ -191,7 +191,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
       <Dialog open={!!editingGroup} onOpenChange={(open) => !open && setEditingGroup(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Group Name</DialogTitle>
+            <DialogTitle>Edit group name</DialogTitle>
             <DialogDescription>Enter a new name for this routine group.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -208,7 +208,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleEdit}>Save Changes</Button>
+            <Button onClick={handleEdit}>Save changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

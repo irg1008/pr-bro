@@ -58,7 +58,7 @@ export const ExerciseInfoModal: React.FC<ExerciseInfoModalProps> = ({ exercise }
             {/* Performance Targets removed as per user request */}
 
             <div className="space-y-2">
-              <h4 className="text-sm font-semibold">Muscle Targets</h4>
+              <h4 className="text-sm font-semibold">Muscle targets</h4>
               <div className="flex flex-wrap gap-1">
                 {exercise.target && <Badge className="capitalize">{exercise.target}</Badge>}
                 {exercise.secondaryMuscles &&

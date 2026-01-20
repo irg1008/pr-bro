@@ -347,16 +347,11 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
               ))}
             </div>
           )}
-          <div className="mt-4">
-            <Button variant="outline" size="sm" className="gap-2" onClick={handleSortByCategory}>
-              <ListOrdered className="h-4 w-4" /> Sort by Category
-            </Button>
-          </div>
         </div>
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <Button
             variant="outline"
-            className="w-full gap-2 sm:w-auto flex items-center justify-start"
+            className="w-full gap-2 sm:w-auto flex items-center justify-center"
             onClick={async () => {
               const returnUrl = encodeURIComponent(window.location.pathname);
               await navigate(
@@ -364,7 +359,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
               );
             }}
           >
-            <Plus className="h-4 w-4" /> Create Custom Exercise
+            <Plus className="h-4 w-4" /> Create custom exercise
           </Button>
           <ExerciseSelector
             onSelect={handleAdd}
@@ -374,6 +369,11 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
         </div>
       </div>
 
+      <div className="mt-4">
+        <Button variant="outline" size="sm" className="gap-2" onClick={handleSortByCategory}>
+          <ListOrdered className="h-4 w-4" /> Sort by category
+        </Button>
+      </div>
       <div className="space-y-4">
         {exercises.map((re, index) => (
           <Card key={re.id} className="overflow-hidden">
@@ -635,7 +635,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
               <Target className="h-5 w-5" />
-              Set Targets
+              Set targets
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">

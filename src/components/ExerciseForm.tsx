@@ -288,7 +288,7 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
       </div>
 
       <div className="grid gap-2">
-        <Label>Secondary Muscles</Label>
+        <Label>Secondary muscles</Label>
         <MultiCombobox
           value={formData.secondaryMuscles}
           onChange={(val: string[]) => setFormData({ ...formData, secondaryMuscles: val })}
@@ -349,7 +349,7 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
             type="submit"
             disabled={loading || !formData.name?.trim() || !formData.category || !formData.target}
           >
-            {loading ? "Saving..." : "Save Exercise"}
+            {loading ? "Saving..." : "Save exercise"}
           </Button>
         </div>
       </div>
