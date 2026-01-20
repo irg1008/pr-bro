@@ -30,6 +30,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { useHaptic } from "@/hooks/useHaptic";
 import { navigate } from "astro:transitions/client";
 import {
   Activity,
@@ -137,6 +138,7 @@ export const ActiveWorkout = ({
   ); // Track for alert
 
   const [loadLastRunAlertOpen, setLoadLastRunAlertOpen] = useState(false);
+  const haptic = useHaptic();
 
   /* ... inside ActiveWorkout component ... */
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
@@ -1155,7 +1157,12 @@ export const ActiveWorkout = ({
                   {ex.type !== "CARDIO" && (
                     <div
                       className="flex items-center justify-center cursor-pointer"
-                      onClick={() => updateSet(ex.id, idx, "completed", !set.completed)}
+                      onClick={() => {
+                        const newCompleted = !set.completed;
+                        if (newCompleted) haptic.success();
+                        else haptic.impactLight();
+                        updateSet(ex.id, idx, "completed", newCompleted);
+                      }}
                     >
                       <div
                         className={`h-6 w-6 rounded-full border flex items-center justify-center transition-colors ${set.completed ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30 hover:border-muted-foreground/50"}`}
