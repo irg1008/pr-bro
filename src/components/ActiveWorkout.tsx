@@ -133,8 +133,11 @@ export const ActiveWorkout = ({
   useEffect(() => {
     const handleScroll = () => {
       const currentScrollY = window.scrollY;
-      // Show footer when scrolling up or at top
-      if (currentScrollY < lastScrollY.current || currentScrollY < 50) {
+      // Show footer when scrolling up, at top, or at bottom
+      const isAtBottom =
+        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 50;
+
+      if (currentScrollY < lastScrollY.current || currentScrollY < 50 || isAtBottom) {
         setShowFooter(true);
       } else {
         setShowFooter(false);
@@ -947,7 +950,7 @@ export const ActiveWorkout = ({
 
       {/* Footer Actions - Sticky on scroll up */}
       <div
-        className={`sticky bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex gap-2 shadow-lg z-50 transition-transform duration-200 ${
+        className={`sticky -mx-4 md:mx-0 bottom-19.25 md:bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex gap-2 shadow-lg z-50 transition-transform duration-200 ${
           showFooter ? "translate-y-0" : "translate-y-full"
         }`}
       >

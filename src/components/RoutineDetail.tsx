@@ -37,6 +37,7 @@ import {
   ListOrdered,
   MoreVertical,
   Pencil,
+  Plus,
   Repeat,
   StickyNote,
   Target,
@@ -322,13 +323,25 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             </Button>
           </div>
         </div>
-
-        <ExerciseSelector
-          onSelect={handleAdd}
-          selectedExerciseIds={exercises.map((e) => e.exercise.id)}
-          preferredCategories={focusedParts}
-          allowCustomExerciseCreation={true}
-        />
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button
+            variant="outline"
+            className="w-full gap-2 sm:w-auto flex items-center justify-start"
+            onClick={async () => {
+              const returnUrl = encodeURIComponent(window.location.pathname);
+              await navigate(
+                `/exercises/create?returnUrl=${returnUrl}&addToRoutineId=${routineId}`
+              );
+            }}
+          >
+            <Plus className="h-4 w-4" /> Create Custom Exercise
+          </Button>
+          <ExerciseSelector
+            onSelect={handleAdd}
+            selectedExerciseIds={exercises.map((e) => e.exerciseId)}
+            preferredCategories={focusedParts}
+          />
+        </div>
       </div>
 
       <div className="space-y-4">

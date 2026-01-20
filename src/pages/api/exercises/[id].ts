@@ -14,11 +14,13 @@ export const PUT: APIRoute = async ({ params, request }) => {
       data: {
         name,
         category,
-        bodyPart,
+        bodyPart: category ? category.toLowerCase() : undefined, // Auto-fill bodyPart from category
         target,
         imageUrl,
         description,
-        equipment
+        equipment,
+        secondaryMuscles: body.secondaryMuscles,
+        instructions: body.instructions
       }
     });
 
@@ -37,9 +39,11 @@ export const DELETE: APIRoute = async ({ params }) => {
   if (!id) return new Response("Exercise ID is required", { status: 400 });
 
   try {
-    await prisma.exercise.delete({
-      where: { id }
-    });
+    await prisma.$transaction([
+      prisma.routineExercise.deleteMany({ where: { exerciseId: id } }),
+      prisma.workoutLogEntry.deleteMany({ where: { exerciseId: id } }),
+      prisma.exercise.delete({ where: { id } })
+    ]);
 
     return new Response(null, { status: 204 });
   } catch (e) {

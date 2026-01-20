@@ -1,0 +1,39 @@
+---
+import { ExerciseForm } from "@/components/ExerciseForm";
+import BaseLayout from "@/layouts/BaseLayout.astro";
+import { db } from "@/lib/db";
+
+const { id } = Astro.params;
+const returnUrl = Astro.url.searchParams.get("returnUrl") || "/routines";
+
+if (!id) {
+	return Astro.redirect("/routines");
+}
+
+const exercise = await db.exercise.findUnique({
+	where: { id },
+});
+
+if (!exercise) {
+	return new Response(null, {
+		status: 404,
+		statusText: "Not Found",
+	});
+}
+---
+
+<BaseLayout title={`Edit ${exercise.name}`}>
+	<div class="container max-w-2xl py-8">
+		<div class="mb-6 flex items-center justify-between">
+			<h1 class="text-3xl font-bold">Edit Exercise</h1>
+		</div>
+
+		<div class="rounded-lg border bg-card p-6 shadow-sm">
+			<ExerciseForm
+				client:load
+				exerciseToEdit={exercise}
+				returnUrl={returnUrl}
+			/>
+		</div>
+	</div>
+</BaseLayout>

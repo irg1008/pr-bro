@@ -121,7 +121,7 @@ export const GET: APIRoute = async ({ request }) => {
 export const POST: APIRoute = async ({ request }) => {
   try {
     const body = await request.json();
-    const { name, category, bodyPart, target, imageUrl, description, equipment } = body;
+    const { name, category, target, imageUrl, equipment, secondaryMuscles, instructions } = body;
 
     if (!name) {
       return new Response("Name is required", { status: 400 });
@@ -131,11 +131,12 @@ export const POST: APIRoute = async ({ request }) => {
       data: {
         name,
         category: category || "Other",
-        bodyPart: bodyPart || null,
+        bodyPart: category ? category.toLowerCase() : "other",
         target: target || null,
+        equipment: equipment || null,
         imageUrl: imageUrl || null,
-        description: description || null,
-        equipment: equipment || null
+        secondaryMuscles: secondaryMuscles || [],
+        instructions: instructions || []
       }
     });
 
