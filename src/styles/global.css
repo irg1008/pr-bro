@@ -253,6 +253,17 @@
 	::-webkit-scrollbar-thumb {
 		@apply bg-muted-foreground/20 hover:bg-muted-foreground/40 rounded-full transition-colors;
 	}
+
+	/* Global Fix: Hide number input spinners for perfect alignment */
+	input[type="number"]::-webkit-inner-spin-button,
+	input[type="number"]::-webkit-outer-spin-button {
+		-webkit-appearance: none;
+		margin: 0;
+	}
+
+	input[type="number"] {
+		-moz-appearance: textfield;
+	}
 }
 
 @utility section-soft {
