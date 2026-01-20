@@ -234,15 +234,13 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
         {groups.map((group) => (
           <div
             key={group.id}
-            className={`bg-card text-card-foreground hover:bg-card/50 group relative cursor-pointer rounded-lg border shadow-sm transition-colors ${group.isActive ? "border-blue-500 bg-blue-500/5" : ""}`}
+            className={`bg-card text-card-foreground hover:bg-card/50 group relative cursor-pointer rounded-xl border border-border/40 shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] ${group.isActive ? "border-blue-500 bg-blue-500/5" : ""}`}
             onClick={() => handleSelectGroup(group.id)}
           >
             <div className="flex flex-col space-y-1.5 p-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-md leading-none font-semibold tracking-tight md:text-xl">
-                    {group.name}
-                  </h3>
+                  <h3 className="text-base font-bold tracking-tight">{group.name}</h3>
                   {group.isActive && (
                     <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>
                   )}
