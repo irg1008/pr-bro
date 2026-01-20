@@ -12,6 +12,7 @@
 	font-weight: normal;
 	font-style: normal;
 	font-display: swap;
+	ascent-override: 80%;
 }
 
 @custom-variant dark (&:is(.dark *));
@@ -79,6 +80,8 @@
 
 	--color-selection: var(--selection);
 	--color-selection-foreground: var(--selection-foreground);
+
+	--font-elika: "Elika Gorica", sans-serif;
 }
 
 :root {
