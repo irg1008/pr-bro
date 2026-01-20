@@ -224,7 +224,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
               {/* Session Note UI */}
               <Dialog>
                 <DialogTrigger asChild>
-                  <div className="mt-2 text-sm cursor-pointer hover:opacity-80 transition-opacity">
+                  <div className="mt-2 text-sm cursor-pointer hover:opacity-80 transition-opacity w-fit">
                     {/* Targets Display (Readonly) */}
                     {routine &&
                       (() => {

@@ -467,7 +467,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                     </div>
 
                     {/* Note Area - Clickable Card */}
-                    <div className="cursor-pointer group" onClick={() => openNoteDialog(re)}>
+                    <div className="cursor-pointer group w-fit" onClick={() => openNoteDialog(re)}>
                       {re.note ? (
                         <div className="text-sm text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border hover:bg-muted/30 transition-colors w-fit">
                           <StickyNote className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />

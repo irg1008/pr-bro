@@ -995,7 +995,7 @@ export const ActiveWorkout = ({
                   {/* Session Note UI - Replaces old display and button */}
                   <Dialog>
                     <DialogTrigger asChild>
-                      <div className="mt-2 text-sm cursor-pointer hover:opacity-80 transition-opacity">
+                      <div className="mt-2 text-sm cursor-pointer hover:opacity-80 transition-opacity w-fit">
                         {sessionNotes[ex.id] ? (
                           <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-fit">
                             <MessageSquareText className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
