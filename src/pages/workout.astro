@@ -25,6 +25,9 @@ if (logId) {
 		});
 
 		if (log) {
+			if (log.finishedAt) {
+				return Astro.redirect("/");
+			}
 			const routine = await prisma.routine.findUnique({
 				where: { id: log.routineId },
 				include: {

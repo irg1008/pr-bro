@@ -34,6 +34,7 @@ import { navigate } from "astro:transitions/client";
 import {
   Activity,
   ArrowLeftRight,
+  ArrowRight,
   Bike,
   Check,
   Dumbbell,
@@ -43,6 +44,7 @@ import {
   MoreVertical,
   Plus,
   RotateCcw,
+  Target,
   Timer,
   Trash2,
   TrendingUp,
@@ -92,6 +94,15 @@ export interface ActiveWorkoutExercise extends Exercise {
   incrementValue?: number | null;
 }
 
+export interface ProgressionDifference {
+  exerciseName: string;
+  oldWeight: number;
+  oldReps: number;
+  newWeight: number;
+  newReps: number;
+  type: "PROMOTION" | "RESET";
+}
+
 export interface ActiveWorkoutProps {
   logId: string;
   initialStartTime: string;
@@ -130,6 +141,10 @@ export const ActiveWorkout = ({
 
   /* ... inside ActiveWorkout component ... */
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
+
+  // Double Progression Summary State
+  const [progressionDiffs, setProgressionDiffs] = useState<ProgressionDifference[]>([]);
+  const [summaryModalOpen, setSummaryModalOpen] = useState(false);
 
   const handleLoadLastRoutineRun = async () => {
     // Check if there is any data entered
@@ -216,9 +231,10 @@ export const ActiveWorkout = ({
       }
 
       const newSets = { ...sets };
-      let updatedCount = 0;
+      let updatedCount = 0; // Keeping for reference/logging if needed
       let appliedCount = 0; // Tracks any application (success or failure-reset)
       let failureReason = "";
+      const diffs: ProgressionDifference[] = [];
 
       exercisesToProcess.forEach((ex) => {
         if (!ex.targetReps) return;
@@ -253,7 +269,31 @@ export const ActiveWorkout = ({
             reps: minReps
           }));
 
-          toast.success(`Promoted ${ex.name}: ${lastWeight}kg -> ${nextWeight}kg`);
+          // Logic Update: Fillsets if less than target
+          if (ex.targetSets) {
+            const targetSetCount = parseInt(ex.targetSets);
+            if (!isNaN(targetSetCount) && newSets[ex.id].length < targetSetCount) {
+              const diff = targetSetCount - newSets[ex.id].length;
+              for (let k = 0; k < diff; k++) {
+                newSets[ex.id].push({
+                  ...createEmptySet(ex.type as ExerciseType),
+                  weight: nextWeight,
+                  reps: minReps
+                });
+              }
+            }
+          }
+
+          diffs.push({
+            exerciseName: ex.name,
+            oldWeight: Number(lastWeight),
+            oldReps: maxReps, // They hit max reps
+            newWeight: nextWeight,
+            newReps: minReps,
+            type: "PROMOTION"
+          });
+
+          // toast.success(`Promoted ${ex.name}: ${lastWeight}kg -> ${nextWeight}kg`);
         } else {
           // Failure reason tracking
           if (exercisesToProcess.length === 1) {
@@ -268,6 +308,36 @@ export const ActiveWorkout = ({
               weight: s.weight,
               reps: minReps
             }));
+
+            // Logic Update: Fillsets if less than target (Failure Case)
+            if (ex.targetSets) {
+              const targetSetCount = parseInt(ex.targetSets);
+              if (!isNaN(targetSetCount) && newSets[ex.id].length < targetSetCount) {
+                const diff = targetSetCount - newSets[ex.id].length;
+                for (let k = 0; k < diff; k++) {
+                  newSets[ex.id].push({
+                    ...createEmptySet(ex.type as ExerciseType),
+                    weight: lastWeight, // Use last weight
+                    reps: minReps
+                  });
+                }
+              }
+            }
+
+            // Note: oldReps here is ambiguous (it varies per set).
+            // We'll show the TARGET max reps as context, or maybe just "Min Range".
+            // Let's use MIN reps as old reference for failure context, or better,
+            // user wants "Old value under min range => +x reps"?
+            // We just show Weight stays same.
+            diffs.push({
+              exerciseName: ex.name,
+              oldWeight: Number(lastWeight),
+              oldReps: minReps, // Resetting to min
+              newWeight: Number(lastWeight),
+              newReps: minReps,
+              type: "RESET"
+            });
+
             appliedCount++; // We applied the "reset" logic
           } else if (!newSets[ex.id] || newSets[ex.id][0].weight === "") {
             // ... existing fallback ...
@@ -276,20 +346,20 @@ export const ActiveWorkout = ({
               weight: s.weight,
               reps: ""
             }));
-            // appliedCount++? No, this is just basic loading.
           }
         }
       });
 
       if (appliedCount > 0) {
         setSets(newSets);
-        if (exercisesToProcess.length > 1) {
-          if (updatedCount > 0) {
-            toast.success(`Promoted ${updatedCount} exercises!`);
-          } else {
-            toast.info("Targets reset to min range values. You can do it! 💪");
+        setProgressionDiffs(diffs);
+
+        toast.success("Applied Progressive Overload", {
+          action: {
+            label: "See details",
+            onClick: () => setSummaryModalOpen(true)
           }
-        }
+        });
       } else {
         if (exercisesToProcess.length === 1 && failureReason) {
           toast.info(`Progression not applied: ${failureReason}`);
@@ -1290,7 +1360,7 @@ export const ActiveWorkout = ({
           <AlertDialogHeader>
             <AlertDialogTitle>Missing targets</AlertDialogTitle>
             <AlertDialogDescription>
-              <div className="space-y-3">
+              <div className="space-y-3 text-start">
                 <span>
                   The following exercises need targets (sets/reps) to enable progressive overload:
                 </span>
@@ -1312,6 +1382,70 @@ export const ActiveWorkout = ({
             <AlertDialogAction onClick={() => navigate(`/routines/${routineGroupId}/${routineId}`)}>
               Go to Settings
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={summaryModalOpen} onOpenChange={setSummaryModalOpen}>
+        <AlertDialogContent className="max-w-md">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Progression Summary</AlertDialogTitle>
+            <AlertDialogDescription>
+              Here's how your targets have changed based on your last performance:
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="py-2 space-y-4 max-h-[60vh] overflow-y-auto">
+            {progressionDiffs.map((diff, i) => (
+              <div key={i} className="flex flex-col gap-1 border-b pb-2 last:border-0 last:pb-0">
+                <span className="font-semibold text-sm capitalize">{diff.exerciseName}</span>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                  {diff.type === "PROMOTION" ? (
+                    <>
+                      <div className="flex items-center gap-1 line-through decoration-destructive/50">
+                        <span className="flex items-center gap-1">
+                          <Dumbbell className="h-3 w-3" />
+                          {diff.oldWeight}kg
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Target className="h-3 w-3" />
+                          {diff.oldReps} reps
+                        </span>
+                      </div>
+                      <ArrowRight className="h-3 w-3" />
+                      <div className="flex items-center gap-2 font-bold text-green-600 dark:text-green-400">
+                        <span className="flex items-center gap-1">
+                          <Dumbbell className="h-3.5 w-3.5" />
+                          {diff.newWeight}kg
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Target className="h-3.5 w-3.5" />
+                          {diff.newReps} reps
+                        </span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex flex-col gap-2">
+                      <span className="text-muted-foreground text-xs">
+                        Target set to min range. Hit min reps to progress:
+                      </span>
+                      <div className="flex items-center gap-2 font-medium text-foreground">
+                        <span className="flex items-center gap-1">
+                          <Dumbbell className="h-3.5 w-3.5" />
+                          {diff.newWeight}kg
+                        </span>
+                        <span className="flex items-center gap-1">
+                          <Target className="h-3.5 w-3.5" />
+                          {diff.newReps} reps
+                        </span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogAction onClick={() => setSummaryModalOpen(false)}>Got it</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
