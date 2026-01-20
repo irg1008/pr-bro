@@ -16,7 +16,7 @@ export const Header = () => {
   };
 
   return (
-    <header className="bg-background/95 supports-backdrop-filter:bg-background/60 sticky top-0 z-50 w-full border-b backdrop-blur">
+    <header className="bg-background/95 supports-backdrop-filter:bg-background/60 relative md:sticky md:top-0 z-50 w-full border-b backdrop-blur">
       <div className="container flex h-14 items-center justify-between px-4">
         <div
           className="flex cursor-pointer items-center gap-2 font-bold"

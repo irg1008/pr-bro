@@ -45,6 +45,7 @@ import {
 } from "lucide-react";
 import type { Exercise, RoutineExercise } from "prisma/generated/client";
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
 import { TargetDisplay } from "./TargetDisplay";
 import { Badge } from "./ui/badge";
 
@@ -233,6 +234,27 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
 
   const handleSaveTargets = async () => {
     if (!targetDialog.id) return;
+
+    // Validation
+    if (targetDialog.targetReps && targetDialog.targetReps.trim() !== "") {
+      // Regex: 'X' or 'X-Y' where X,Y are numbers.
+      const isValid = /^\d+(-\d+)?$/.test(targetDialog.targetReps.trim());
+      if (!isValid) {
+        toast.error(
+          "Invalid Reps format. Use a single number (e.g. '8') or a range (e.g. '8-12')."
+        );
+        return;
+      }
+
+      // Range check: Min <= Max
+      if (targetDialog.targetReps.includes("-")) {
+        const parts = targetDialog.targetReps.split("-").map((p) => parseInt(p.trim()));
+        if (parts[0] > parts[1]) {
+          toast.error("Invalid Reps range. Min must be <= Max (e.g. '8-12').");
+          return;
+        }
+      }
+    }
 
     const newExercises = exercises.map((e) =>
       e.id === targetDialog.id

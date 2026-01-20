@@ -73,7 +73,7 @@ export function Combobox({
                   <div
                     className={cn(
                       buttonVariants({ variant: "secondary", size: "sm" }),
-                      "w-full cursor-pointer justify-start h-8 px-2"
+                      "max-w-52 cursor-pointer justify-start min-h-8 px-2"
                     )}
                     onClick={() => {
                       const newValue = inputValue.trim();
@@ -86,7 +86,7 @@ export function Combobox({
                     }}
                   >
                     <Plus className="mr-2 h-4 w-4" />
-                    Create "{inputValue}"
+                    <span className="truncate">Create "{inputValue}</span>"
                   </div>
                 </div>
               ) : (

@@ -217,6 +217,7 @@ export const ActiveWorkout = ({
 
       const newSets = { ...sets };
       let updatedCount = 0;
+      let appliedCount = 0; // Tracks any application (success or failure-reset)
       let failureReason = "";
 
       exercisesToProcess.forEach((ex) => {
@@ -244,11 +245,12 @@ export const ActiveWorkout = ({
           const nextWeight = Number(lastWeight) + increment;
 
           updatedCount++;
+          appliedCount++;
 
           newSets[ex.id] = lastSets.map((s: any) => ({
             ...createEmptySet(ex.type as ExerciseType),
             weight: nextWeight,
-            reps: ""
+            reps: minReps
           }));
 
           toast.success(`Promoted ${ex.name}: ${lastWeight}kg -> ${nextWeight}kg`);
@@ -259,20 +261,34 @@ export const ActiveWorkout = ({
             else failureReason = `Did not hit max reps (${maxReps}) on all sets last time.`;
           }
 
-          if (!newSets[ex.id] || newSets[ex.id][0].weight === "") {
+          if (lastWeight) {
+            // Updated Failure Logic: Keep weight, set reps to MIN reps
+            newSets[ex.id] = lastSets.map((s: any) => ({
+              ...createEmptySet(ex.type as ExerciseType),
+              weight: s.weight,
+              reps: minReps
+            }));
+            appliedCount++; // We applied the "reset" logic
+          } else if (!newSets[ex.id] || newSets[ex.id][0].weight === "") {
+            // ... existing fallback ...
             newSets[ex.id] = lastSets.map((s: any) => ({
               ...createEmptySet(ex.type as ExerciseType),
               weight: s.weight,
               reps: ""
             }));
+            // appliedCount++? No, this is just basic loading.
           }
         }
       });
 
-      if (updatedCount > 0) {
+      if (appliedCount > 0) {
         setSets(newSets);
         if (exercisesToProcess.length > 1) {
-          toast.success(`Applied Double Progression to ${updatedCount} exercises!`);
+          if (updatedCount > 0) {
+            toast.success(`Promoted ${updatedCount} exercises!`);
+          } else {
+            toast.info("Targets reset to min range values. You can do it! 💪");
+          }
         }
       } else {
         if (exercisesToProcess.length === 1 && failureReason) {
@@ -772,9 +788,10 @@ export const ActiveWorkout = ({
     <div className="mx-auto flex max-w-md px-4 flex-col gap-6 py-6">
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between lg:px-0">
-        <div className="flex items-center gap-2">
-          <div className="text-muted-foreground bg-muted/50 rounded-full border px-3 py-1 text-sm font-medium">
-            Started at {startTimeDisplay}
+        <div className="flex flex-wrap items-center gap-2 max-w-[85%]">
+          <div className="text-muted-foreground bg-muted/50 rounded-full border px-3 py-1 text-sm font-medium flex flex-wrap items-center gap-x-2 leading-tight">
+            <span className="font-semibold text-foreground">{routineName}</span>
+            <span>Started at {startTimeDisplay}</span>
           </div>
         </div>
 
