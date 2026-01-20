@@ -26,9 +26,12 @@ import { Pencil, Trash2 } from "lucide-react";
 import type { RoutineGroup } from "prisma/generated/client";
 import React, { useState } from "react";
 
+import { toast } from "sonner";
+
 export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups }) => {
   const [isCreating, setIsCreating] = useState(false);
   const [newGroupName, setNewGroupName] = useState("");
+  const [importFile, setImportFile] = useState<File | null>(null);
 
   // Edit State
   const [editingGroup, setEditingGroup] = useState<RoutineGroup | null>(null);
@@ -97,7 +100,90 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <h2 className="text-2xl font-bold tracking-tight">Routine Groups</h2>
-        <Button onClick={() => setIsCreating(true)}>New Group</Button>
+        <div className="flex gap-2">
+          <Button
+            variant="outline"
+            disabled={groups.length === 0}
+            onClick={() => window.open("/api/backup/routine-groups", "_blank")}
+          >
+            Export
+          </Button>
+          <div className="relative">
+            <input
+              type="file"
+              accept=".json"
+              className="hidden"
+              id="import-file"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) setImportFile(file);
+              }}
+            />
+            <Button
+              variant="outline"
+              onClick={() => document.getElementById("import-file")?.click()}
+            >
+              Import
+            </Button>
+          </div>
+
+          <AlertDialog open={!!importFile} onOpenChange={(open) => !open && setImportFile(null)}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Import Routine Groups</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will add any new routine groups from the file. Existing groups with the same
+                  ID will be skipped.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel
+                  onClick={() => {
+                    setImportFile(null);
+                    const input = document.getElementById("import-file") as HTMLInputElement;
+                    if (input) input.value = "";
+                  }}
+                >
+                  Cancel
+                </AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                  onClick={async () => {
+                    if (!importFile) return;
+                    const reader = new FileReader();
+                    reader.onload = async (ev) => {
+                      const json = JSON.parse(ev.target?.result as string);
+
+                      toast.promise(
+                        fetch("/api/backup/routine-groups", {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify(json)
+                        }),
+                        {
+                          loading: "Importing routines...",
+                          success: () => {
+                            navigate(location.pathname);
+                            return "Routines imported successfully!";
+                          },
+                          error: "Import failed"
+                        }
+                      );
+                      setImportFile(null);
+                      const input = document.getElementById("import-file") as HTMLInputElement;
+                      if (input) input.value = "";
+                    };
+                    reader.readAsText(importFile);
+                  }}
+                >
+                  Confirm Import
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+
+          <Button onClick={() => setIsCreating(true)}>New Group</Button>
+        </div>
       </div>
 
       {/* Edit Dialog */}
@@ -211,6 +297,13 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
           </div>
         ))}
       </div>
+
+      {groups.length === 0 && !isCreating && (
+        <div className="bg-muted/20 text-muted-foreground rounded-lg border-2 border-dashed px-4 py-12 text-center">
+          <p className="mb-2 text-lg font-medium">No routine groups found</p>
+          <p className="text-sm">Create a new group to get started!</p>
+        </div>
+      )}
     </div>
   );
 };
