@@ -3,7 +3,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { navigate } from "astro:transitions/client";
-import type { Exercise, Routine, RoutineExercise } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
+import type { Exercise, Routine, RoutineExercise, WorkoutLog } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
 import React, { useEffect, useState } from "react";
 
 // Define the composite type for the joined query result
@@ -33,10 +33,10 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
         // Fetch recent logs to see if one is active
         const res = await fetch("/api/workout-logs");
         if (res.ok) {
-          const logs = await res.json();
+          const logs: WorkoutLog[] = await res.json();
           // Find the most recent log for this routine that hasn't officially finished
           // Note: Ideally we'd filter on the server, but for now client-side is okay
-          const activeLog = logs.find((l: any) => l.routineId === nextRoutine.id && !l.finishedAt);
+          const activeLog = logs.find((l) => l.routineId === nextRoutine.id && !l.finishedAt);
 
           if (activeLog) {
             setActiveLogId(activeLog.id);
@@ -86,7 +86,7 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
         <h2 className="mb-4 text-2xl font-bold">Welcome to PR Bro</h2>
         <p className="text-muted-foreground mb-8">Select a routine group to get started.</p>
         <Button asChild>
-          <a href="/routines">Manage Routines</a>
+          <a href="/routines">Manage routines</a>
         </Button>
       </div>
     );
@@ -98,7 +98,7 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
         <h2 className="mb-4 text-2xl font-bold capitalize">Active: {activeGroupName}</h2>
         <p className="text-muted-foreground mb-4">No routines found in this group.</p>
         <Button asChild>
-          <a href="/routines">Manage Routines</a>
+          <a href="/routines">Manage routines</a>
         </Button>
       </div>
     );
@@ -109,7 +109,7 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
       <ThreeBackground />
       <div className="relative z-10 mx-auto max-w-2xl space-y-6 py-8">
         <div className="flex flex-col gap-1">
-          <h1 className="text-xl font-semibold tracking-tight">Today's Workout</h1>
+          <h1 className="text-xl font-semibold tracking-tight">Today's workout</h1>
           <p className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
             Cycle:{" "}
             <Badge variant="outline" className="font-normal capitalize">
@@ -132,7 +132,7 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
           </CardHeader>
           <CardContent>
             <div className="mb-6 space-y-3">
-              <h3 className="text-muted-foreground text-xs font-medium uppercase">Workout Plan</h3>
+              <h3 className="text-muted-foreground text-xs font-medium uppercase">Workout plan</h3>
               <div className="grid gap-2">
                 {nextRoutine.exercises.map((ex: any) => (
                   <div
@@ -153,7 +153,8 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
               </div>
             </div>
             <Button
-              size="default"
+              size="lg"
+              variant="accent"
               className="w-full text-sm font-semibold shadow-none"
               onClick={activeLogId ? handleResumeWorkout : handleStartWorkout}
               disabled={!nextRoutine.exercises || nextRoutine.exercises.length === 0}
@@ -161,15 +162,15 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
               {!nextRoutine.exercises || nextRoutine.exercises.length === 0
                 ? "Add exercises to start"
                 : activeLogId
-                  ? "Resume Workout"
-                  : "Start Workout"}
+                  ? "Resume workout"
+                  : "Start workout"}
             </Button>
           </CardContent>
         </Card>
 
         <Button variant="ghost" asChild>
           <a className="w-full" href="/routines">
-            Switch Routine Group
+            Switch routine group
           </a>
         </Button>
       </div>

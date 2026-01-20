@@ -411,7 +411,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                   setEntries(newEntries);
                 }}
               >
-                + Add Set
+                + Add set
               </Button>
             </div>
           </CardContent>
@@ -422,7 +422,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
         <Button variant="outline" onClick={() => navigate("/history")}>
           Cancel
         </Button>
-        <Button onClick={handleSave}>Save Changes</Button>
+        <Button onClick={handleSave}>Save changes</Button>
       </div>
     </div>
   );

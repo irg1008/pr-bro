@@ -53,7 +53,7 @@ import {
   Zap
 } from "lucide-react";
 import { motion } from "motion/react";
-import type { Exercise } from "prisma/generated/client";
+import type { Exercise, ExerciseType } from "prisma/generated/client";
 import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { TargetDisplay } from "./TargetDisplay";
@@ -66,12 +66,6 @@ const CARDIO_OPTIONS = [
   { name: "HIIT", icon: Timer },
   { name: "Other", icon: Dumbbell }
 ];
-
-export const ExerciseType = {
-  WEIGHT: "WEIGHT",
-  CARDIO: "CARDIO"
-} as const;
-export type ExerciseType = (typeof ExerciseType)[keyof typeof ExerciseType];
 
 export type SetType = "NORMAL" | "WARMUP" | "FAILURE";
 
@@ -109,6 +103,7 @@ export interface ActiveWorkoutProps {
   routineName: string;
   routineId: string;
   routineGroupId: string;
+  routineExerciseIds: string[];
   exercises: ActiveWorkoutExercise[]; // Updated type
   initialSupersetStatus?: Record<string, boolean>;
 }
@@ -119,6 +114,7 @@ export const ActiveWorkout = ({
   routineName,
   routineId,
   routineGroupId,
+  routineExerciseIds,
   exercises: initialExercises,
   initialSupersetStatus = {}
 }: ActiveWorkoutProps) => {
@@ -135,7 +131,10 @@ export const ActiveWorkout = ({
 
   const [cardioModalOpen, setCardioModalOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
-  const [missingTargetsAlertOpen, setMissingTargetsAlertOpen] = useState(false); // New Alert for Double Progression
+  const [missingTargetsAlertOpen, setMissingTargetsAlertOpen] = useState(false);
+  const [missingTargetsExercises, setMissingTargetsExercises] = useState<ActiveWorkoutExercise[]>(
+    []
+  ); // Track for alert
 
   const [loadLastRunAlertOpen, setLoadLastRunAlertOpen] = useState(false);
 
@@ -166,17 +165,32 @@ export const ActiveWorkout = ({
     }
   };
 
-  const handleApplyDoubleProgression = async (targetExerciseId?: string) => {
+  const handleApplyDoubleProgression = async (
+    targetExerciseId?: string,
+    forceSkipInvalid = false
+  ) => {
     try {
       // Determine scope: all exercises or specific one
       // Helper to avoid event object being passed as string if called from onClick without arrow func
       const actualTargetId = typeof targetExerciseId === "string" ? targetExerciseId : undefined;
 
-      const exercisesToProcess = actualTargetId
-        ? activeExercises.filter((ex) => ex.id === actualTargetId)
-        : activeExercises;
+      // Filter: Only include NON-AD-HOC exercises and active ones
+      let exercisesToProcess = activeExercises.filter((ex) => {
+        // If specific ID requested, match it
+        if (actualTargetId && ex.id !== actualTargetId) return false;
+        // Check if part of original routine
+        const isAdHoc = !routineExerciseIds.includes(ex.id);
+        if (isAdHoc) return false;
+        return true;
+      });
 
-      if (exercisesToProcess.length === 0) return;
+      if (exercisesToProcess.length === 0) {
+        if (actualTargetId) {
+          // If user clicked overloading on an ad-hoc exercise explicitly (should be hidden in UI though)
+          toast.info("This exercise is not part of the original routine.");
+        }
+        return;
+      }
 
       // 1. Validate: Check which exercises have targets
       const exercisesWithoutTargets = exercisesToProcess.filter(
@@ -184,8 +198,21 @@ export const ActiveWorkout = ({
       );
 
       if (exercisesWithoutTargets.length > 0) {
-        setMissingTargetsAlertOpen(true);
-        return;
+        if (forceSkipInvalid) {
+          // Filter them out and proceed
+          exercisesToProcess = exercisesToProcess.filter(
+            (ex) => !!ex.targetReps || !!ex.targetSets
+          );
+          if (exercisesToProcess.length === 0) {
+            toast.info("No valid exercises to overload.");
+            return;
+          }
+        } else {
+          setMissingTargetsExercises(exercisesWithoutTargets);
+          setMissingTargetsAlertOpen(true);
+          // We pause here. The dialog will allow user to "skip invalid" which calls this function recursively or a dedicated handler.
+          return;
+        }
       }
 
       // 2. Fetch last run data
@@ -262,7 +289,7 @@ export const ActiveWorkout = ({
           appliedCount++;
 
           newSets[ex.id] = lastSets.map(() => ({
-            ...createEmptySet(ex.type as ExerciseType),
+            ...createEmptySet(ex.type),
             weight: nextWeight,
             reps: minReps
           }));
@@ -274,7 +301,7 @@ export const ActiveWorkout = ({
               const diff = targetSetCount - newSets[ex.id].length;
               for (let k = 0; k < diff; k++) {
                 newSets[ex.id].push({
-                  ...createEmptySet(ex.type as ExerciseType),
+                  ...createEmptySet(ex.type),
                   weight: nextWeight,
                   reps: minReps
                 });
@@ -302,7 +329,7 @@ export const ActiveWorkout = ({
           if (lastWeight) {
             // Updated Failure Logic: Keep weight, set reps to MIN reps
             newSets[ex.id] = lastSets.map((s: any) => ({
-              ...createEmptySet(ex.type as ExerciseType),
+              ...createEmptySet(ex.type),
               weight: s.weight,
               reps: minReps
             }));
@@ -314,7 +341,7 @@ export const ActiveWorkout = ({
                 const diff = targetSetCount - newSets[ex.id].length;
                 for (let k = 0; k < diff; k++) {
                   newSets[ex.id].push({
-                    ...createEmptySet(ex.type as ExerciseType),
+                    ...createEmptySet(ex.type),
                     weight: lastWeight, // Use last weight
                     reps: minReps
                   });
@@ -340,7 +367,7 @@ export const ActiveWorkout = ({
           } else if (!newSets[ex.id] || newSets[ex.id][0].weight === "") {
             // ... existing fallback ...
             newSets[ex.id] = lastSets.map((s: any) => ({
-              ...createEmptySet(ex.type as ExerciseType),
+              ...createEmptySet(ex.type),
               weight: s.weight,
               reps: ""
             }));
@@ -472,7 +499,7 @@ export const ActiveWorkout = ({
           // we'll just skip adding empty sets if they don't exist in state or trust 'sets' state is mostly up to date.
           // Or better, define createEmptySet outside or trust `sets` deals with it.
           // For safety, let's just save what we have. API should handle it.
-          if (ex.type === ExerciseType.CARDIO) {
+          if (ex.type === "CARDIO") {
             completeSets[ex.id] = [{ duration: "", distance: "", calories: "", completed: false }];
           } else {
             completeSets[ex.id] = [{ weight: "", reps: "", completed: false }];
@@ -543,8 +570,8 @@ export const ActiveWorkout = ({
 
   // const currentExercise = activeExercises[current] || activeExercises[0]; // Removed
 
-  const createEmptySet = (type: ExerciseType = ExerciseType.WEIGHT): WorkoutSet => {
-    if (type === ExerciseType.CARDIO) {
+  const createEmptySet = (type: ExerciseType = "WEIGHT"): WorkoutSet => {
+    if (type === "CARDIO") {
       return { duration: "", distance: "", calories: "", completed: false, type: "NORMAL" };
     }
     return { weight: "", reps: "", completed: false, type: "NORMAL" };
@@ -556,7 +583,7 @@ export const ActiveWorkout = ({
     const currentEx = activeExercises.find((e) => e.id === exerciseId);
     if (!currentEx) return;
 
-    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type as ExerciseType)];
+    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type)];
     const newSets = [...currentExSets];
     newSets[idx] = { ...newSets[idx], [field]: value };
     setSets({ ...sets, [exerciseId]: newSets });
@@ -582,7 +609,7 @@ export const ActiveWorkout = ({
     const currentEx = activeExercises.find((e) => e.id === exerciseId);
     if (!currentEx) return;
 
-    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type as ExerciseType)];
+    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type)];
     const lastSet = currentExSets[currentExSets.length - 1];
     setSets({
       ...sets,
@@ -596,7 +623,7 @@ export const ActiveWorkout = ({
     const currentEx = activeExercises.find((e) => e.id === exerciseId);
     if (!currentEx) return;
 
-    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type as ExerciseType)];
+    const currentExSets = sets[exerciseId] || [createEmptySet(currentEx.type)];
     if (currentExSets.length <= 1) return;
 
     const newSets = currentExSets.filter((_, i) => i !== idx);
@@ -607,9 +634,9 @@ export const ActiveWorkout = ({
 
   const validateAll = () => {
     return activeExercises.every((ex) => {
-      const exSets = sets[ex.id] || [createEmptySet(ex.type as ExerciseType)];
+      const exSets = sets[ex.id] || [createEmptySet(ex.type)];
       return exSets.every((s) => {
-        if (ex.type === ExerciseType.CARDIO) {
+        if (ex.type === "CARDIO") {
           // User request: Minutes and Calories are required
           return s.duration !== "" && s.calories !== "";
         } else {
@@ -635,7 +662,7 @@ export const ActiveWorkout = ({
     // Ensure data exists for all active exercises
     activeExercises.forEach((ex) => {
       if (!completeSets[ex.id]) {
-        completeSets[ex.id] = [createEmptySet(ex.type as ExerciseType)];
+        completeSets[ex.id] = [createEmptySet(ex.type)];
       }
     });
     return completeSets;
@@ -699,7 +726,7 @@ export const ActiveWorkout = ({
 
         // Reset sets for this slot
         const { [oldExId]: _removed, ...restSets } = sets;
-        setSets({ ...restSets, [exercise.id]: [createEmptySet(exercise.type as ExerciseType)] });
+        setSets({ ...restSets, [exercise.id]: [createEmptySet(exercise.type)] });
       }
     }
     setPickerOpen(false);
@@ -725,7 +752,7 @@ export const ActiveWorkout = ({
 
       if (found) {
         // Enforce CARDIO type to ensure UI renders correctly
-        handleExerciseSelect({ ...found, type: ExerciseType.CARDIO });
+        handleExerciseSelect({ ...found, type: "CARDIO" });
         return;
       }
 
@@ -870,7 +897,7 @@ export const ActiveWorkout = ({
   });
 
   return (
-    <div className="mx-auto flex max-w-md px-4 flex-col gap-6 pt-6">
+    <div className="mx-auto flex max-w-md px-4 flex-col gap-6 py-6 pb-12">
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between lg:px-0">
         <div className="flex flex-wrap items-center gap-2 max-w-[85%]">
@@ -951,7 +978,7 @@ export const ActiveWorkout = ({
                   src={ex.imageUrl}
                   alt={ex.name}
                   onClick={() => {}}
-                  className="h-full w-full object-contain"
+                  className="h-full w-full object-contain bg-white"
                 />
               </div>
             )}
@@ -1049,10 +1076,12 @@ export const ActiveWorkout = ({
                           <History className="mr-2 h-4 w-4" />
                           Load last run
                         </DropdownMenuItem>
-                        <DropdownMenuItem onClick={() => handleApplyDoubleProgression(ex.id)}>
-                          <TrendingUp className="mr-2 h-4 w-4" />
-                          Apply overload
-                        </DropdownMenuItem>
+                        {routineExerciseIds.includes(ex.id) && (
+                          <DropdownMenuItem onClick={() => handleApplyDoubleProgression(ex.id)}>
+                            <TrendingUp className="mr-2 h-4 w-4" />
+                            Apply overload
+                          </DropdownMenuItem>
+                        )}
                         <DropdownMenuItem
                           onClick={() => {
                             setSupersetStatus((prev) => ({ ...prev, [ex.id]: !prev[ex.id] }));
@@ -1085,7 +1114,7 @@ export const ActiveWorkout = ({
             </div>
 
             <div className="space-y-3 p-4">
-              {ex.type === ExerciseType.CARDIO ? (
+              {ex.type === "CARDIO" ? (
                 <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_1fr_auto] gap-4 text-sm font-medium">
                   <div className="w-6 text-center">#</div>
                   <div className="text-center">Minutes</div>
@@ -1103,11 +1132,11 @@ export const ActiveWorkout = ({
                 </div>
               )}
 
-              {(sets[ex.id] || [createEmptySet(ex.type as ExerciseType)]).map((set, idx) => (
+              {(sets[ex.id] || [createEmptySet(ex.type)]).map((set, idx) => (
                 <div
                   key={idx}
                   className={`grid gap-4 items-center relative ${
-                    ex.type === ExerciseType.CARDIO
+                    ex.type === "CARDIO"
                       ? "grid-cols-[auto_1fr_1fr_1fr_auto]"
                       : "grid-cols-[auto_auto_1fr_1fr_auto]"
                   } ${set.completed ? "opacity-50" : ""}`}
@@ -1123,7 +1152,7 @@ export const ActiveWorkout = ({
                   )}
 
                   {/* Tick/Complete Toggle - New Column */}
-                  {ex.type !== ExerciseType.CARDIO && (
+                  {ex.type !== "CARDIO" && (
                     <div
                       className="flex items-center justify-center cursor-pointer"
                       onClick={() => updateSet(ex.id, idx, "completed", !set.completed)}
@@ -1149,7 +1178,7 @@ export const ActiveWorkout = ({
                   >
                     {idx + 1}
                   </div>
-                  {ex.type === ExerciseType.CARDIO ? (
+                  {ex.type === "CARDIO" ? (
                     <>
                       <Input
                         type="number"
@@ -1281,14 +1310,10 @@ export const ActiveWorkout = ({
         </div>
       </div>
 
-      {/* Footer Actions - Sticky on scroll up */}
-      <div
-        className={`sticky -mx-4 md:mx-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 flex gap-2 shadow-lg z-50 transition-[bottom] duration-200 ${
-          showFooter ? "bottom-19.25 md:bottom-0" : "bottom-0"
-        }`}
-      >
-        <Button className="flex-1" onClick={handleFinish} disabled={!isFormValid}>
-          Finish
+      {/* Finish Workout Button - In page flow */}
+      <div className="flex w-full">
+        <Button size="lg" className="flex-1" onClick={handleFinish} disabled={!isFormValid}>
+          Finish workout
         </Button>
       </div>
 
@@ -1376,20 +1401,29 @@ export const ActiveWorkout = ({
                   The following exercises need targets (sets/reps) to enable progressive overload:
                 </span>
                 <ul className="list-disc pl-5 space-y-1 font-medium text-foreground/90 my-2 text-sm">
-                  {activeExercises
-                    .filter((ex) => !ex.targetReps && !ex.targetSets)
-                    .map((e) => (
-                      <li key={e.id} className="capitalize">
-                        {e.name}
-                      </li>
-                    ))}
+                  {missingTargetsExercises.map((e) => (
+                    <li key={e.id} className="capitalize">
+                      {e.name}
+                    </li>
+                  ))}
                 </ul>
-                <span>We suggest adding them in the routine settings.</span>
+                <span>
+                  You can skip these and apply overload to the rest, or go to settings to fix them.
+                </span>
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
             <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                setMissingTargetsAlertOpen(false);
+                handleApplyDoubleProgression(undefined, true);
+              }}
+              className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
+            >
+              Skip & Apply to Others
+            </AlertDialogAction>
             <AlertDialogAction onClick={() => navigate(`/routines/${routineGroupId}/${routineId}`)}>
               Go to Settings
             </AlertDialogAction>

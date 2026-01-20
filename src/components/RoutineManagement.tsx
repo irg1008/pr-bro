@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { navigate } from "astro:transitions/client";
@@ -218,7 +219,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             {groupDescription || "Manage your routines for this group."}
           </p>
         </div>
-        <Button onClick={() => setIsCreating(true)}>New Routine</Button>
+        <Button onClick={() => setIsCreating(true)}>New routine</Button>
       </div>
 
       {isCreating && (
@@ -247,7 +248,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             </div>
 
             <div className="grid w-full max-w-sm items-center gap-1.5">
-              <Label>Focused Parts / Categories</Label>
+              <Label>Focused parts / Categories</Label>
               <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
                 {availableCategories.length === 0 && (
                   <span className="text-muted-foreground text-sm">Loading categories...</span>
@@ -292,7 +293,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         {routines.map((routine, index) => (
           <Card
             key={routine.id}
-            className="hover:bg-card/50 group relative cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] rounded-xl border-border/40"
+            className="group relative cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] border-border/40 hover:bg-card/50"
             onClick={() => handleSelectRoutine(routine.id)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -306,7 +307,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                       className="text-muted-foreground hover:text-primary z-10 h-8 w-8"
                       onClick={(e) => openEdit(routine, e)}
                     >
-                      <Pencil />
+                      <Pencil className="h-4 w-4" />
                     </Button>
                     <AlertDialogTrigger
                       render={
@@ -316,7 +317,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                           className="text-muted-foreground hover:text-destructive z-10 h-8 w-8"
                           onClick={(e) => e.stopPropagation()}
                         >
-                          <Trash2 />
+                          <Trash2 className="h-4 w-4" />
                         </Button>
                       }
                     />
@@ -423,7 +424,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
       <Dialog open={!!editingRoutine} onOpenChange={(open) => !open && setEditingRoutine(null)}>
         <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
-            <DialogTitle>Edit Routine</DialogTitle>
+            <DialogTitle>Edit routine</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid w-full items-center gap-1.5">
@@ -443,7 +444,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
               />
             </div>
             <div className="grid w-full items-center gap-1.5">
-              <Label>Focused Parts / Categories</Label>
+              <Label>Focused parts / Categories</Label>
               <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
                 {availableCategories.length === 0 && (
                   <span className="text-muted-foreground text-sm">Loading categories...</span>
@@ -451,15 +452,13 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                 {availableCategories.map((cat) => (
                   <label
                     key={cat}
-                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded p-1 capitalize"
+                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 capitalize transition-colors"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={editCategories.includes(cat)}
-                      onChange={() => toggleCategory(cat, true)}
-                      className="h-4 w-4 rounded border-gray-300"
+                      onCheckedChange={() => toggleCategory(cat, true)}
                     />
-                    <span className="text-sm">{cat}</span>
+                    <span className="text-sm font-medium leading-none">{cat}</span>
                   </label>
                 ))}
               </div>
@@ -478,7 +477,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             <Button variant="outline" onClick={() => setEditingRoutine(null)}>
               Cancel
             </Button>
-            <Button onClick={handleEdit}>Save Changes</Button>
+            <Button onClick={handleEdit}>Save changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -486,7 +485,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
       <Dialog open={isEditingGroup} onOpenChange={setIsEditingGroup}>
         <DialogContent className="sm:max-w-106.25">
           <DialogHeader>
-            <DialogTitle>Edit Routine Group</DialogTitle>
+            <DialogTitle>Edit routine group</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid w-full items-center gap-1.5">
@@ -510,7 +509,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             <Button variant="outline" onClick={() => setIsEditingGroup(false)}>
               Cancel
             </Button>
-            <Button onClick={handleUpdateGroup}>Save Changes</Button>
+            <Button onClick={handleUpdateGroup}>Save changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

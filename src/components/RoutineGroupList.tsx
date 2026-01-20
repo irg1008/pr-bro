@@ -11,6 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
@@ -99,7 +100,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
   return (
     <div className="space-y-4">
       <div className="flex items-center justify-between flex-wrap gap-2">
-        <h2 className="text-2xl font-bold tracking-tight">Routine Groups</h2>
+        <h2 className="text-2xl font-bold tracking-tight">Routine groups</h2>
         <div className="flex gap-2">
           <Button
             variant="outline"
@@ -130,7 +131,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
           <AlertDialog open={!!importFile} onOpenChange={(open) => !open && setImportFile(null)}>
             <AlertDialogContent>
               <AlertDialogHeader>
-                <AlertDialogTitle>Import Routine Groups</AlertDialogTitle>
+                <AlertDialogTitle>Import Routine groups</AlertDialogTitle>
                 <AlertDialogDescription>
                   This will add any new routine groups from the file. Existing groups with the same
                   ID will be skipped.
@@ -182,7 +183,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
             </AlertDialogContent>
           </AlertDialog>
 
-          <Button onClick={() => setIsCreating(true)}>New Group</Button>
+          <Button onClick={() => setIsCreating(true)}>New group</Button>
         </div>
       </div>
 
@@ -190,7 +191,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
       <Dialog open={!!editingGroup} onOpenChange={(open) => !open && setEditingGroup(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Group Name</DialogTitle>
+            <DialogTitle>Edit group name</DialogTitle>
             <DialogDescription>Enter a new name for this routine group.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
@@ -207,7 +208,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
             </div>
           </div>
           <DialogFooter>
-            <Button onClick={handleEdit}>Save Changes</Button>
+            <Button onClick={handleEdit}>Save changes</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
@@ -232,17 +233,21 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {groups.map((group) => (
-          <div
+          <Card
             key={group.id}
-            className={`bg-card text-card-foreground hover:bg-card/50 group relative cursor-pointer rounded-xl border border-border/40 shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] ${group.isActive ? "border-blue-500 bg-blue-500/5" : ""}`}
+            className={`group relative cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] hover:bg-card/50 ${
+              group.isActive ? "border-primary/50 bg-primary/5" : "border-border/40"
+            }`}
             onClick={() => handleSelectGroup(group.id)}
           >
-            <div className="flex flex-col space-y-1.5 p-6">
+            <CardHeader className="p-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-base font-bold tracking-tight">{group.name}</h3>
+                  <CardTitle className="text-base font-bold tracking-tight">{group.name}</CardTitle>
                   {group.isActive && (
-                    <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>
+                    <Badge className="h-5 px-1.5 text-[10px] uppercase tracking-wider bg-blue-500 hover:bg-blue-600">
+                      Active
+                    </Badge>
                   )}
                 </div>
                 <div className="absolute top-4 right-4 flex gap-1">
@@ -269,17 +274,17 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
                     />
                     <AlertDialogContent onClick={(e) => e.stopPropagation()}>
                       <AlertDialogHeader>
-                        <AlertDialogTitle>Delete Group?</AlertDialogTitle>
+                        <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
                         <AlertDialogDescription>
-                          This will permanently delete the group "{group.name}" along with ALL its
-                          routines and workout history.
+                          This will delete the group "{group.name}" and all its routines and logs.
+                          This action cannot be undone.
                         </AlertDialogDescription>
                       </AlertDialogHeader>
                       <AlertDialogFooter>
                         <AlertDialogCancel>Cancel</AlertDialogCancel>
                         <AlertDialogAction
-                          onClick={() => handleDelete(group.id)}
                           className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                          onClick={() => handleDelete(group.id)}
                         >
                           Delete
                         </AlertDialogAction>
@@ -289,10 +294,10 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
                 </div>
               </div>
               {group.description && (
-                <p className="text-muted-foreground text-sm">{group.description}</p>
+                <p className="text-muted-foreground text-sm mt-2">{group.description}</p>
               )}
-            </div>
-          </div>
+            </CardHeader>
+          </Card>
         ))}
       </div>
 

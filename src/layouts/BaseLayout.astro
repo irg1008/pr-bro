@@ -21,31 +21,44 @@ const { title, description, ogImage } = Astro.props;
 
 		<script is:inline>
 			const getTheme = () => {
-				if (
-					typeof localStorage !== "undefined" &&
-					localStorage.getItem("theme")
-				) {
-					return localStorage.getItem("theme");
+				const theme = localStorage.getItem("theme") || "system";
+				if (theme === "system") {
+					return window.matchMedia("(prefers-color-scheme: dark)").matches
+						? "dark"
+						: "light";
 				}
-				if (window.matchMedia("(prefers-color-scheme: light)").matches) {
-					return "light";
-				}
-				return "dark";
+				return theme;
 			};
 
-			const setTheme = () => {
+			const applyTheme = () => {
 				const theme = getTheme();
 				if (theme === "dark") {
 					document.documentElement.classList.add("dark");
 				} else {
 					document.documentElement.classList.remove("dark");
 				}
-				window.localStorage.setItem("theme", theme);
 			};
 
-			setTheme();
+			applyTheme();
 
-			document.addEventListener("astro:after-swap", setTheme);
+			// Listen for theme changes from other tabs
+			window.addEventListener("storage", (e) => {
+				if (e.key === "theme") applyTheme();
+			});
+
+			// Listen for system preference changes
+			window
+				.matchMedia("(prefers-color-scheme: dark)")
+				.addEventListener("change", () => {
+					if (
+						localStorage.getItem("theme") === "system" ||
+						!localStorage.getItem("theme")
+					) {
+						applyTheme();
+					}
+				});
+
+			document.addEventListener("astro:after-swap", applyTheme);
 		</script>
 	</head>
 	<body

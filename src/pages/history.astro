@@ -1,6 +1,7 @@
 ---
 import { DeleteHistoryButton } from "@/components/DeleteHistoryButton";
 import { Button } from "@/components/ui/button";
+import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type {
@@ -131,52 +132,57 @@ const paginatedCycles = cycles.slice(
 						{/* Logs List */}
 						<div class="space-y-4">
 							{cycle.logs.map((log) => (
-								<a
-									href={`/history/${log.id}`}
-									class="block rounded-xl border border-border/40 bg-card/50 text-card-foreground shadow-sm p-5 hover:bg-card/30 transition-all hover:scale-[1.01] active:scale-[0.99] relative overflow-hidden group"
-								>
-									<div class="flex justify-between items-start z-10 relative">
-										<div>
-											<h3 class="font-bold text-base capitalize flex items-center gap-2 text-foreground">
-												{log.routine.name}
-											</h3>
-											<p class="text-xs text-muted-foreground mt-1">
-												{new Date(log.createdAt).toLocaleDateString()} &bull;{" "}
-												{new Date(log.createdAt).toLocaleTimeString([], {
-													hour: "2-digit",
-													minute: "2-digit",
-												})}
-												{log.finishedAt && (
-													<span>
-														{" - "}
-														{new Date(log.finishedAt).toLocaleTimeString([], {
+								<a href={`/history/${log.id}`} class="block group">
+									<Card className="border-border/40 bg-card/50 transition-all hover:scale-[1.01] active:scale-[0.99] hover:bg-card/30 relative overflow-hidden">
+										<CardHeader className="p-5">
+											<div class="flex justify-between items-start z-10 relative">
+												<div>
+													<CardTitle className="font-bold text-base capitalize flex items-center gap-2 text-foreground">
+														{log.routine.name}
+													</CardTitle>
+													<p class="text-xs text-muted-foreground mt-1">
+														{new Date(log.createdAt).toLocaleDateString()}{" "}
+														&bull;{" "}
+														{new Date(log.createdAt).toLocaleTimeString([], {
 															hour: "2-digit",
 															minute: "2-digit",
 														})}
-													</span>
-												)}
-											</p>
-										</div>
-										<div class="text-right">
-											<div class="text-sm font-medium">
-												{log.finishedAt
-													? (() => {
-															const diff = Math.round(
-																(new Date(log.finishedAt).getTime() -
-																	new Date(log.createdAt).getTime()) /
-																	1000,
-															);
-															return diff >= 3600
-																? Math.floor(diff / 3600) +
-																		"h " +
-																		Math.round((diff % 3600) / 60) +
-																		"m"
-																: Math.round(diff / 60) + " min";
-														})()
-													: "N/A"}
+														{log.finishedAt && (
+															<span>
+																{" - "}
+																{new Date(log.finishedAt).toLocaleTimeString(
+																	[],
+																	{
+																		hour: "2-digit",
+																		minute: "2-digit",
+																	},
+																)}
+															</span>
+														)}
+													</p>
+												</div>
+												<div class="text-right">
+													<div class="text-sm font-medium">
+														{log.finishedAt
+															? (() => {
+																	const diff = Math.round(
+																		(new Date(log.finishedAt).getTime() -
+																			new Date(log.createdAt).getTime()) /
+																			1000,
+																	);
+																	return diff >= 3600
+																		? Math.floor(diff / 3600) +
+																				"h " +
+																				Math.round((diff % 3600) / 60) +
+																				"m"
+																		: Math.round(diff / 60) + " min";
+																})()
+															: "N/A"}
+													</div>
+												</div>
 											</div>
-										</div>
-									</div>
+										</CardHeader>
+									</Card>
 								</a>
 							))}
 						</div>

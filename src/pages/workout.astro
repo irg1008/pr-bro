@@ -88,6 +88,7 @@ if (logId) {
 					// Map routine exercises to Exercise objects
 					exercises,
 					initialSupersetStatus,
+					routineExerciseIds: routine.exercises.map((e) => e.exerciseId),
 				};
 			}
 		}
@@ -113,6 +114,7 @@ if (!logId) {
 					routineName={workoutData.routineName}
 					routineId={workoutData.routineId}
 					routineGroupId={workoutData.routineGroupId}
+					routineExerciseIds={workoutData.routineExerciseIds}
 					exercises={workoutData.exercises}
 					initialSupersetStatus={workoutData.initialSupersetStatus}
 				/>
