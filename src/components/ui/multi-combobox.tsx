@@ -110,29 +110,26 @@ export function MultiCombobox({
         </div>
         {/* Removed ChevronsUpDown */}
       </PopoverTrigger>
-      <PopoverContent
-        className="w-[--radix-popover-trigger-width] min-w-[300px] p-0 z-[60]"
-        align="start"
-      >
+      <PopoverContent className="w-[--radix-popover-trigger-width] min-w-72 p-0 z-50" align="start">
         <Command className="h-auto">
           <CommandInput
             placeholder={`Search ${placeholder.toLowerCase()}...`}
             value={inputValue}
             onValueChange={setInputValue}
           />
-          <CommandList className="max-h-[200px]">
+          <CommandList className="max-h-48">
             <CommandEmpty>
               {onCreate && inputValue ? (
                 <div className="p-1">
                   <div
                     className={cn(
                       buttonVariants({ variant: "secondary", size: "sm" }),
-                      "w-full cursor-pointer justify-start h-8 px-2"
+                      "max-w-52 cursor-pointer justify-start min-h-8 px-2"
                     )}
                     onClick={handleCreate}
                   >
                     <Plus className="mr-2 h-4 w-4" />
-                    Create "{inputValue}"
+                    <span className="truncate">Create "{inputValue}</span>"
                   </div>
                 </div>
               ) : (

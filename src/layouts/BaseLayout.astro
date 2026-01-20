@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import HeadSEO from "@/components/HeadSEO.astro";
 import { Toaster } from "@/components/ui/sonner";
+import "sonner/dist/styles.css";
 
 const { title, description, ogImage } = Astro.props;
 ---
@@ -54,7 +55,7 @@ const { title, description, ogImage } = Astro.props;
 	>
 		<div class="bg-background relative flex min-h-svh flex-col">
 			<Header client:load />
-			<main class="relative flex flex-1 flex-col pb-16 md:pb-0 max-w-dvw">
+			<main class="relative flex flex-1 flex-col md:pb-0 max-w-dvw">
 				<slot />
 			</main>
 			<Footer client:load />

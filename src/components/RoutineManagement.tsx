@@ -292,11 +292,11 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         {routines.map((routine, index) => (
           <Card
             key={routine.id}
-            className="hover:bg-accent/50 group relative cursor-pointer transition-colors"
+            className="hover:bg-card/50 group relative cursor-pointer transition-all hover:scale-[1.01] active:scale-[0.99] rounded-xl border-border/40"
             onClick={() => handleSelectRoutine(routine.id)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-xl font-bold capitalize">{routine.name}</CardTitle>
+              <CardTitle className="text-base font-bold capitalize">{routine.name}</CardTitle>
               <div className="flex items-center gap-1">
                 <AlertDialog>
                   <div className="flex items-center gap-1">

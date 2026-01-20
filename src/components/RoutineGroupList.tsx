@@ -98,13 +98,13 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold tracking-tight">Routine Groups</h2>
         <div className="flex gap-2">
           <Button
             variant="outline"
             disabled={groups.length === 0}
-            onClick={() => window.open("/api/backup/routine-groups", "_blank")}
+            onClick={() => window.open("/api/backup/routine-groups")}
           >
             Export
           </Button>
@@ -224,7 +224,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
           <Button onClick={handleCreate} className="bg-green-600 text-white hover:bg-green-700">
             Save
           </Button>
-          <Button onClick={() => setIsCreating(false)} variant="secondary">
+          <Button onClick={() => setIsCreating(false)} variant="outline">
             Cancel
           </Button>
         </div>
@@ -234,15 +234,13 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
         {groups.map((group) => (
           <div
             key={group.id}
-            className={`bg-card text-card-foreground hover:bg-accent hover:text-accent-foreground group relative cursor-pointer rounded-lg border shadow-sm transition-colors ${group.isActive ? "border-blue-500 bg-blue-500/5" : ""}`}
+            className={`bg-card text-card-foreground hover:bg-card/50 group relative cursor-pointer rounded-xl border border-border/40 shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] ${group.isActive ? "border-blue-500 bg-blue-500/5" : ""}`}
             onClick={() => handleSelectGroup(group.id)}
           >
             <div className="flex flex-col space-y-1.5 p-6">
               <div className="flex items-start justify-between">
                 <div className="flex items-center gap-2">
-                  <h3 className="text-md leading-none font-semibold tracking-tight md:text-xl">
-                    {group.name}
-                  </h3>
+                  <h3 className="text-base font-bold tracking-tight">{group.name}</h3>
                   {group.isActive && (
                     <Badge className="bg-blue-500 hover:bg-blue-600">Active</Badge>
                   )}

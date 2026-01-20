@@ -155,8 +155,8 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                         >
                           <defs>
                             <linearGradient id={`gradient-${stat.id}`} x1="0" y1="0" x2="0" y2="1">
-                              <stop offset="5%" stopColor="#ef4444" stopOpacity={0.3} />
-                              <stop offset="95%" stopColor="#ef4444" stopOpacity={0} />
+                              <stop offset="5%" stopColor="var(--chart-1)" stopOpacity={0.3} />
+                              <stop offset="95%" stopColor="var(--chart-1)" stopOpacity={0} />
                             </linearGradient>
                           </defs>
                           <CartesianGrid
@@ -172,14 +172,14 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                                 day: "numeric"
                               })
                             }
-                            stroke="#888888"
+                            stroke="var(--muted-foreground)"
                             fontSize={12}
                             tickLine={false}
                             axisLine={false}
                             minTickGap={30}
                           />
                           <YAxis
-                            stroke="#888888"
+                            stroke="var(--muted-foreground)"
                             fontSize={12}
                             tickLine={false}
                             axisLine={false}
@@ -197,15 +197,17 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                             labelFormatter={(label) => new Date(label).toLocaleDateString()}
                           />
                           <Area
-                            type="monotone"
+                            type="basis"
                             dataKey="maxWeight"
-                            stroke="#ef4444"
-                            strokeWidth={3}
-                            fill={`url(#gradient-${stat.id})`}
+                            r={4}
+                            fill="var(--chart-1)"
+                            fillOpacity={0.5}
+                            stroke="var(--chart-1)"
+                            strokeWidth={2}
                             activeDot={{
-                              r: 6,
-                              fill: "hsl(var(--background))",
-                              stroke: "#ef4444",
+                              r: 4,
+                              fill: "var(--chart-1)",
+                              stroke: "var(--chart-1)",
                               strokeWidth: 2
                             }}
                           >

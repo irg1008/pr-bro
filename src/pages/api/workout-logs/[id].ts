@@ -9,7 +9,7 @@ export const GET: APIRoute = async ({ params }) => {
     where: { id },
     include: {
       routine: {
-        include: { group: true }
+        include: { group: true, exercises: true }
       },
       entries: {
         include: { exercise: true },

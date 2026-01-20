@@ -38,7 +38,6 @@ import {
   MoreVertical,
   Pencil,
   Plus,
-  Repeat,
   StickyNote,
   Target,
   Trash2,
@@ -46,6 +45,8 @@ import {
 } from "lucide-react";
 import type { Exercise, RoutineExercise } from "prisma/generated/client";
 import React, { useEffect, useState } from "react";
+import { toast } from "sonner";
+import { TargetDisplay } from "./TargetDisplay";
 import { Badge } from "./ui/badge";
 
 type RoutineExerciseWithExercise = RoutineExercise & { exercise: Exercise };
@@ -87,12 +88,14 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     targetSets: string;
     targetReps: string;
     targetRepsToFailure: string;
+    incrementValue: string;
   }>({
     open: false,
     id: null,
     targetSets: "",
     targetReps: "",
-    targetRepsToFailure: ""
+    targetRepsToFailure: "",
+    incrementValue: "2.5"
   });
 
   useEffect(() => {
@@ -204,7 +207,8 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       id: re.id,
       targetSets: re.targetSets || "",
       targetReps: re.targetReps || "",
-      targetRepsToFailure: re.targetRepsToFailure || ""
+      targetRepsToFailure: re.targetRepsToFailure || "",
+      incrementValue: re.incrementValue ? re.incrementValue.toString() : "2.5"
     });
   };
 
@@ -231,13 +235,37 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
   const handleSaveTargets = async () => {
     if (!targetDialog.id) return;
 
+    // Validation
+    if (targetDialog.targetReps && targetDialog.targetReps.trim() !== "") {
+      // Regex: 'X' or 'X-Y' where X,Y are numbers.
+      const isValid = /^\d+(-\d+)?$/.test(targetDialog.targetReps.trim());
+      if (!isValid) {
+        toast.error(
+          "Invalid Reps format. Use a single number (e.g. '8') or a range (e.g. '8-12')."
+        );
+        return;
+      }
+
+      // Range check: Min <= Max
+      if (targetDialog.targetReps.includes("-")) {
+        const parts = targetDialog.targetReps.split("-").map((p) => parseInt(p.trim()));
+        if (parts[0] > parts[1]) {
+          toast.error("Invalid Reps range. Min must be <= Max (e.g. '8-12').");
+          return;
+        }
+      }
+    }
+
     const newExercises = exercises.map((e) =>
       e.id === targetDialog.id
         ? {
             ...e,
             targetSets: targetDialog.targetSets || null,
             targetReps: targetDialog.targetReps || null,
-            targetRepsToFailure: targetDialog.targetRepsToFailure || null
+            targetRepsToFailure: targetDialog.targetRepsToFailure || null,
+            incrementValue: targetDialog.incrementValue
+              ? parseFloat(targetDialog.incrementValue)
+              : 2.5
           }
         : e
     );
@@ -250,7 +278,8 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
           id: targetDialog.id,
           targetSets: targetDialog.targetSets || null,
           targetReps: targetDialog.targetReps || null,
-          targetRepsToFailure: targetDialog.targetRepsToFailure || null
+          targetRepsToFailure: targetDialog.targetRepsToFailure || null,
+          incrementValue: targetDialog.incrementValue
         }),
         headers: { "Content-Type": "application/json" }
       });
@@ -415,25 +444,19 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                   <div className="flex gap-2 flex-col">
                     {/* Targets Area - Clickable */}
                     <div className="cursor-pointer" onClick={() => openTargetDialog(re)}>
-                      {re.targetSets || re.targetReps || re.targetRepsToFailure ? (
-                        <div className="text-sm text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-center gap-2 border hover:bg-muted/30 transition-colors w-fit">
-                          {re.targetSets && (
-                            <span className="flex items-center gap-1 text-xs">
-                              <Repeat className="h-3 w-3 text-muted-foreground" />
-                              {re.targetSets}×
-                            </span>
-                          )}
-                          {re.targetReps && (
-                            <span className="flex items-center gap-1 text-xs">
-                              <Target className="h-3 w-3 text-muted-foreground" />
-                              {re.targetReps}
-                            </span>
-                          )}
-                          {re.targetRepsToFailure && (
-                            <span className="flex items-center gap-1 text-xs text-orange-600 dark:text-orange-400">
-                              🔥 {re.targetRepsToFailure} RIF
-                            </span>
-                          )}
+                      {re.targetSets ||
+                      re.targetReps ||
+                      re.targetRepsToFailure ||
+                      re.incrementValue ? (
+                        <div className="bg-background px-2 py-1.5 rounded-md border hover:bg-muted/30 transition-colors w-fit">
+                          <TargetDisplay
+                            targetSets={re.targetSets}
+                            targetReps={re.targetReps}
+                            targetRepsToFailure={re.targetRepsToFailure}
+                            incrementValue={re.incrementValue}
+                            className="gap-3"
+                            asGrid
+                          />
                         </div>
                       ) : (
                         <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
@@ -444,7 +467,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                     </div>
 
                     {/* Note Area - Clickable Card */}
-                    <div className="cursor-pointer group" onClick={() => openNoteDialog(re)}>
+                    <div className="cursor-pointer group w-fit" onClick={() => openNoteDialog(re)}>
                       {re.note ? (
                         <div className="text-sm text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border hover:bg-muted/30 transition-colors w-fit">
                           <StickyNote className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
@@ -617,7 +640,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <div className="grid grid-cols-3 gap-3">
+            <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label className="text-xs text-muted-foreground">Sets</Label>
                 <Input
@@ -637,6 +660,17 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                     setTargetDialog((prev) => ({ ...prev, targetReps: e.target.value }))
                   }
                   placeholder="8-12"
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Increment (kg)</Label>
+                <Input
+                  value={targetDialog.incrementValue}
+                  onChange={(e) =>
+                    setTargetDialog((prev) => ({ ...prev, incrementValue: e.target.value }))
+                  }
+                  placeholder="2.5"
                   className="mt-1"
                 />
               </div>

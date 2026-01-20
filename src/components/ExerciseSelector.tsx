@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { navigate } from "astro:transitions/client";
 import { Check, Pencil, Plus, Search } from "lucide-react";
 import type { Exercise } from "prisma/generated/client";
 import React, { useCallback, useEffect, useRef, useState } from "react";
@@ -46,7 +47,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   const handleEditClick = async (e: React.MouseEvent, ex: Exercise) => {
     // e.preventDefault/stopPropagation handled in onClick
     const returnUrl = encodeURIComponent(window.location.pathname);
-    window.location.href = `/exercises/${ex.id}/edit?returnUrl=${returnUrl}`;
+    navigate(`/exercises/${ex.id}/edit?returnUrl=${returnUrl}`);
   };
 
   const [exercises, setExercises] = useState<Exercise[]>([]);
@@ -128,13 +129,8 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           {trigger ? (
             trigger
           ) : (
-            <Button variant="default" className="w-full justify-between sm:w-62.5">
-              <span className="flex items-center gap-2">
-                <Plus className="h-4 w-4" /> Add Exercise
-              </span>
-              <span className="rounded-full bg-black/20 px-2 py-0.5 text-[10px] font-bold text-white dark:text-white">
-                {selectedExerciseIds.length} added
-              </span>
+            <Button className="justify-center">
+              <Plus className="h-4 w-4" /> Add Exercise
             </Button>
           )}
         </DialogTrigger>
