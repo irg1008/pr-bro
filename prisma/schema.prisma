@@ -71,7 +71,7 @@ model RoutineExercise {
   targetSets          String? // e.g. "3" or "3-4"
   targetReps          String? // e.g. "8-12"
   targetRepsToFailure String? // e.g. "1-2"
-  incrementValue      Float    @default(2.5) // Amount to add when graduating (kg)
+  incrementValue      Float? // Amount to add when graduating (kg)
   routine             Routine  @relation(fields: [routineId], references: [id])
   exercise            Exercise @relation(fields: [exerciseId], references: [id])
 

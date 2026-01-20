@@ -1,5 +1,6 @@
 import { db as prisma } from "@/lib/db";
 import type { APIRoute } from "astro";
+import type { Prisma } from "prisma/generated/client";
 
 export const prerender = false;
 
@@ -25,7 +26,9 @@ export const POST: APIRoute = async ({ request }) => {
       targetSets: data.targetSets || null,
       targetReps: data.targetReps || null,
       targetRepsToFailure: data.targetRepsToFailure || null,
-      incrementValue: data.incrementValue !== undefined ? parseFloat(data.incrementValue) : 2.5
+      incrementValue:
+        data.incrementValue !== undefined ? parseFloat(data.incrementValue) : undefined,
+      note: data.note || null
     }
   });
 
@@ -57,14 +60,15 @@ export const PATCH: APIRoute = async ({ request }) => {
 
   if (!id) return new Response("ID required", { status: 400 });
 
-  const updateData: any = {};
+  const updateData: Prisma.RoutineExerciseUpdateInput = {};
   if (isSuperset !== undefined) updateData.isSuperset = isSuperset;
   if (note !== undefined) updateData.note = note;
   if (targetSets !== undefined) updateData.targetSets = targetSets || null;
   if (targetReps !== undefined) updateData.targetReps = targetReps || null;
   if (targetRepsToFailure !== undefined)
     updateData.targetRepsToFailure = targetRepsToFailure || null;
-  if (incrementValue !== undefined) updateData.incrementValue = parseFloat(incrementValue);
+  if (incrementValue !== undefined)
+    updateData.incrementValue = incrementValue ? parseFloat(incrementValue) : null;
 
   await prisma.routineExercise.update({
     where: { id },
