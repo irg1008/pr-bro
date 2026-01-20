@@ -98,13 +98,13 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <h2 className="text-2xl font-bold tracking-tight">Routine Groups</h2>
         <div className="flex gap-2">
           <Button
             variant="outline"
             disabled={groups.length === 0}
-            onClick={() => window.open("/api/backup/routine-groups", "_blank")}
+            onClick={() => window.open("/api/backup/routine-groups")}
           >
             Export
           </Button>

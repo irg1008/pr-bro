@@ -117,7 +117,6 @@ export const ActiveWorkout = ({
   const [cardioModalOpen, setCardioModalOpen] = useState(false);
   const [deleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
-  const [saveSuccessOpen, setSaveSuccessOpen] = useState(false);
   const [infoAlert, setInfoAlert] = useState<{ open: boolean; title: string; message: string }>({
     open: false,
     title: "",
@@ -350,31 +349,6 @@ export const ActiveWorkout = ({
     return completeSets;
   };
 
-  const handleSave = async () => {
-    const completeSets = sanitizeSets();
-    try {
-      await fetch(`/api/workout-logs/${logId}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          entries: completeSets,
-          supersetStatus,
-          sessionNotes
-          // No finishedAt for save
-        }),
-        headers: { "Content-Type": "application/json" }
-      });
-
-      setSaveSuccessOpen(true);
-    } catch (e) {
-      console.error("Save failed", e);
-      setInfoAlert({
-        open: true,
-        title: "Save Failed",
-        message: "There was an error saving your progress. Please try again."
-      });
-    }
-  };
-
   const handleFinish = async () => {
     if (!isFormValid) return;
     isFinishingRef.current = true;
@@ -508,19 +482,29 @@ export const ActiveWorkout = ({
     setTargetExerciseIndex(-1);
   };
 
-  const handleReset = () => {
+  const handleReset = async () => {
     setResetAlertOpen(false);
-    // Reset all state to initial values from props
-    setActiveExercises(initialExercises);
-    setSupersetStatus(initialSupersetStatus);
-    setSessionNotes({});
-    // Reset sets to empty so they get re-initialized
-    const initialSets: Record<string, WorkoutSet[]> = {};
-    initialExercises.forEach((ex) => {
-      initialSets[ex.id] = [createEmptySet(ex.type as ExerciseType)];
-    });
-    setSets(initialSets);
-    toast.success("Workout reset to routine");
+    try {
+      const res = await fetch(`/api/workout-logs/${logId}/reset`, {
+        method: "POST"
+      });
+
+      if (!res.ok) throw new Error("Reset failed");
+
+      const data = await res.json();
+
+      // Update all state with fresh data from backend
+      setActiveExercises(data.exercises);
+      setSupersetStatus(data.supersetStatus);
+      setSets(data.sets);
+      setSessionNotes({});
+      setTargetExerciseIndex(-1); // Reset any active highlighting
+
+      toast.success("Workout reset to routine");
+    } catch (error) {
+      console.error("Failed to reset workout", error);
+      toast.error("Failed to reset workout");
+    }
   };
 
   const loadLastRun = async (exerciseId: string) => {
@@ -681,7 +665,9 @@ export const ActiveWorkout = ({
 
                   {/* Routine Note (Static, not editable) */}
                   {ex.routineNote && (
-                    <p className="mt-1 text-sm text-muted-foreground italic">{ex.routineNote}</p>
+                    <div className="mt-2 text-sm text-muted-foreground border-l-4 pl-3 py-1 pr-2 bg-muted/20 w-fit rounded-r">
+                      {ex.routineNote}
+                    </div>
                   )}
 
                   {/* Session Note Display (Text Only) */}
@@ -690,7 +676,7 @@ export const ActiveWorkout = ({
                     <DialogTrigger asChild>
                       <div className="mt-2 text-sm cursor-pointer hover:opacity-80 transition-opacity">
                         {sessionNotes[ex.id] ? (
-                          <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-full">
+                          <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-fit">
                             <MessageSquareText className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
                             <span className="leading-snug">{sessionNotes[ex.id]}</span>
                           </div>
@@ -947,13 +933,10 @@ export const ActiveWorkout = ({
 
       {/* Footer Actions - Sticky on scroll up */}
       <div
-        className={`sticky -mx-4 md:mx-0 bottom-19.25 md:bottom-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 pb-[calc(1rem+env(safe-area-inset-bottom))] flex gap-2 shadow-lg z-50 transition-transform duration-200 ${
-          showFooter ? "translate-y-0" : "translate-y-full"
+        className={`sticky -mx-4 md:mx-0 left-0 right-0 bg-background/95 backdrop-blur-sm border-t p-4 flex gap-2 shadow-lg z-50 transition-[bottom] duration-200 ${
+          showFooter ? "bottom-19.25 md:bottom-0" : "bottom-0"
         }`}
       >
-        <Button className="flex-1 bg-green-600 text-white hover:bg-green-700" onClick={handleSave}>
-          Save
-        </Button>
         <Button
           className="bg-primary text-primary-foreground hover:bg-primary/90 flex-1"
           onClick={handleFinish}
@@ -994,24 +977,6 @@ export const ActiveWorkout = ({
             >
               Remove
             </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
-
-      <AlertDialog open={saveSuccessOpen} onOpenChange={setSaveSuccessOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Progress Saved</AlertDialogTitle>
-            <AlertDialogDescription>
-              Your workout has been saved successfully. Would you like to exit to the home screen or
-              continue working out?
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setSaveSuccessOpen(false)}>
-              Continue Here
-            </AlertDialogCancel>
-            <AlertDialogAction onClick={() => navigate("/")}>Exit</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
