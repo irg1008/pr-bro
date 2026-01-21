@@ -59,7 +59,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
       }
     });
     return new Response(JSON.stringify(routine), { status: 200 });
-  } catch (error) {
+  } catch {
     return new Response("Update failed", { status: 500 });
   }
 };

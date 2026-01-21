@@ -1,7 +1,7 @@
 import { db as prisma } from "@/lib/db";
 import type { APIRoute } from "astro";
 
-export const POST: APIRoute = async ({ params, request }) => {
+export const POST: APIRoute = async ({ params }) => {
   const { id } = params;
 
   if (!id) {

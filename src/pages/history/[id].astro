@@ -1,6 +1,5 @@
 ---
 import { WorkoutLogEditor } from "@/components/WorkoutLogEditor";
-import BaseLayout from "@/layouts/BaseLayout.astro";
 import { GET } from "../api/workout-logs/[id]";
 
 export const prerender = false;
@@ -17,15 +16,19 @@ if (response.status === 404) {
 	return Astro.redirect("/404");
 }
 
+import { HistoryDetailHeader } from "@/components/HistoryDetailHeader";
+import BaseLayout from "@/layouts/BaseLayout.astro";
 import type {
 	Exercise,
 	Routine,
+	RoutineExercise,
 	RoutineGroup,
 	WorkoutLog,
 	WorkoutLogEntry,
 } from "prisma/generated/client";
+
 type WorkoutLogWithDetails = WorkoutLog & {
-	routine: Routine & { group: RoutineGroup };
+	routine: Routine & { group: RoutineGroup; exercises: RoutineExercise[] };
 	entries: (WorkoutLogEntry & { exercise: Exercise })[];
 };
 
@@ -37,18 +40,8 @@ if (!log) {
 ---
 
 <BaseLayout title={`Edit ${log.routine.name}`}>
-	<div class="container mx-auto py-8 px-4">
-		<div class="mb-6">
-			<a href="/history" class="text-sm text-muted-foreground hover:underline"
-				>← Back to History</a
-			>
-			<h1 class="text-3xl font-bold mt-2">{log.routine.name}</h1>
-			<p class="text-muted-foreground">
-				{log.routine.group.name} &bull; {
-					new Date(log.createdAt).toLocaleDateString()
-				}
-			</p>
-		</div>
+	<div class="container mx-auto py-8 px-4 flex flex-col gap-6">
+		<HistoryDetailHeader client:load log={log} />
 
 		<WorkoutLogEditor
 			client:load

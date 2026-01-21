@@ -7,7 +7,7 @@ export const PUT: APIRoute = async ({ params, request }) => {
 
   try {
     const body = await request.json();
-    const { name, category, bodyPart, target, imageUrl, description, equipment } = body;
+    const { name, category, target, imageUrl, description, equipment } = body;
 
     const exercise = await prisma.exercise.update({
       where: { id },

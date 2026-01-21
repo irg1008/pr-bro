@@ -448,29 +448,6 @@ export const ActiveWorkout = ({
   const [supersetStatus, setSupersetStatus] =
     useState<Record<string, boolean>>(initialSupersetStatus);
 
-  // Scroll direction detection for footer visibility
-  const [showFooter, setShowFooter] = useState(true);
-  const lastScrollY = useRef(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      // Show footer when scrolling up, at top, or at bottom
-      const isAtBottom =
-        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 200;
-
-      if (currentScrollY < lastScrollY.current || currentScrollY < 50 || isAtBottom) {
-        setShowFooter(true);
-      } else {
-        setShowFooter(false);
-      }
-      lastScrollY.current = currentScrollY;
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   // State refs for auto-save on unmount
   const stateRef = useRef({ sets, activeExercises, supersetStatus, sessionNotes });
   const isFinishingRef = useRef(false);
@@ -488,25 +465,18 @@ export const ActiveWorkout = ({
 
       // Replicate logic from sanitizeSets but inside cleanup
       const completeSets: Record<string, WorkoutSet[]> = {};
-      const validExerciseIds = new Set(activeExercises.map((e) => e.id));
-
-      Object.keys(sets).forEach((key) => {
-        if (validExerciseIds.has(key)) {
-          completeSets[key] = sets[key];
-        }
-      });
 
       activeExercises.forEach((ex) => {
-        if (!completeSets[ex.id]) {
+        if (sets[ex.id]) {
+          completeSets[ex.id] = sets[ex.id];
+        } else {
           // Recreate empty set logic manually or extract helper.
-          // Since we can't easily call createEmptySet from here without making it static or moving it out,
-          // we'll just skip adding empty sets if they don't exist in state or trust 'sets' state is mostly up to date.
-          // Or better, define createEmptySet outside or trust `sets` deals with it.
-          // For safety, let's just save what we have. API should handle it.
           if (ex.type === "CARDIO") {
-            completeSets[ex.id] = [{ duration: "", distance: "", calories: "", completed: false }];
+            completeSets[ex.id] = [
+              { duration: "", distance: "", calories: "", completed: false, type: "NORMAL" }
+            ];
           } else {
-            completeSets[ex.id] = [{ weight: "", reps: "", completed: false }];
+            completeSets[ex.id] = [{ weight: "", reps: "", completed: false, type: "NORMAL" }];
           }
         }
       });
@@ -640,21 +610,16 @@ export const ActiveWorkout = ({
 
   const sanitizeSets = () => {
     const completeSets: Record<string, WorkoutSet[]> = {};
-    const validExerciseIds = new Set(activeExercises.map((e) => e.id));
 
-    // Only include sets for currently active exercises
-    Object.keys(sets).forEach((key) => {
-      if (validExerciseIds.has(key)) {
-        completeSets[key] = sets[key];
-      }
-    });
-
-    // Ensure data exists for all active exercises
+    // Iterate activeExercises to preserve order in the object keys
     activeExercises.forEach((ex) => {
-      if (!completeSets[ex.id]) {
+      if (sets[ex.id]) {
+        completeSets[ex.id] = sets[ex.id];
+      } else {
         completeSets[ex.id] = [createEmptySet(ex.type)];
       }
     });
+
     return completeSets;
   };
 

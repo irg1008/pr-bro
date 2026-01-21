@@ -23,6 +23,9 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
   nextRoutine
 }) => {
   const [activeLogId, setActiveLogId] = useState<string | null>(null);
+  const [activeLogDetails, setActiveLogDetails] = useState<
+    (WorkoutLog & { entries: any[] }) | null
+  >(null);
 
   useEffect(() => {
     if (!nextRoutine) return;
@@ -35,11 +38,21 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
         if (res.ok) {
           const logs: WorkoutLog[] = await res.json();
           // Find the most recent log for this routine that hasn't officially finished
-          // Note: Ideally we'd filter on the server, but for now client-side is okay
           const activeLog = logs.find((l) => l.routineId === nextRoutine.id && !l.finishedAt);
 
           if (activeLog) {
             setActiveLogId(activeLog.id);
+
+            // Fetch the full details to get the exercises/entries
+            try {
+              const detailRes = await fetch(`/api/workout-logs/${activeLog.id}`);
+              if (detailRes.ok) {
+                const detailData = await detailRes.json();
+                setActiveLogDetails(detailData);
+              }
+            } catch (err) {
+              console.error("Failed to fetch active log details", err);
+            }
           }
         }
       } catch (e) {
@@ -104,6 +117,11 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
     );
   }
 
+  // Determine which exercises to show: Active Log Entries OR Static Routine Exercises
+  const exercisesToShow = activeLogDetails?.entries?.length
+    ? activeLogDetails.entries.map((entry) => ({ exercise: entry.exercise, id: entry.id }))
+    : nextRoutine.exercises;
+
   return (
     <>
       <ThreeBackground />
@@ -134,7 +152,7 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
             <div className="mb-6 space-y-3">
               <h3 className="text-muted-foreground text-xs font-medium uppercase">Workout plan</h3>
               <div className="grid gap-2">
-                {nextRoutine.exercises.map((ex: any) => (
+                {exercisesToShow.map((ex: any) => (
                   <div
                     key={ex.id}
                     className="bg-muted/20 flex items-center justify-between rounded-md border p-2"

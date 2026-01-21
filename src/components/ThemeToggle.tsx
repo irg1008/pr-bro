@@ -7,12 +7,12 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Monitor, Moon, Sun } from "lucide-react";
 import * as React from "react";
+import { useEffect } from "react";
 
 export function ThemeToggle() {
   const [, setThemeState] = React.useState<"light" | "dark" | "system">("system");
 
-  React.useEffect(() => {
-    const isDark = document.documentElement.classList.contains("dark");
+  useEffect(() => {
     const storedTheme = localStorage.getItem("theme") as "light" | "dark" | "system" | null;
     if (storedTheme) {
       setThemeState(storedTheme);

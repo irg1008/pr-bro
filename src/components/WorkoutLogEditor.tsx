@@ -1,14 +1,3 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -30,7 +19,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { navigate } from "astro:transitions/client";
-import { MessageSquareText, MoreVertical, Trash2, X, Zap } from "lucide-react";
+import { MessageSquareText, MoreVertical, X, Zap } from "lucide-react";
 import type { Exercise, Routine, RoutineExercise, WorkoutLogEntry } from "prisma/generated/client";
 import React, { useState } from "react";
 import { ExerciseInfoModal } from "./ExerciseInfoModal";
@@ -108,48 +97,8 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
     navigate("/history");
   };
 
-  const handleDelete = async () => {
-    await fetch(`/api/workout-logs/${logId}`, {
-      method: "DELETE"
-    });
-    navigate("/history");
-  };
-
   return (
     <div className="space-y-6">
-      <div className="flex justify-end px-1">
-        <AlertDialog>
-          <AlertDialogTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-5 w-5" />
-              </Button>
-            }
-          />
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete this workout log.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
-      </div>
-
       {entries.map((entry, entryIdx) => (
         <Card key={entry.id} className="overflow-hidden">
           <CardContent className="p-3">
