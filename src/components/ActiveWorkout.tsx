@@ -943,7 +943,7 @@ export const ActiveWorkout = ({
               onClick={() => setCancelAlertOpen(true)}
             >
               <Trash2 className="mr-2 h-4 w-4" />
-              Cancel Workout
+              Cancel workout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

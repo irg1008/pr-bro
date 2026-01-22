@@ -533,7 +533,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                               re.isSuperset ? "text-amber-500 fill-amber-500" : ""
                             )}
                           />
-                          <span>{re.isSuperset ? "Active Superset" : "Toggle Superset"}</span>
+                          <span>{re.isSuperset ? "Active superset" : "Toggle superset"}</span>
                         </DropdownMenuItem>
 
                         <DropdownMenuItem onClick={() => handleCopy(re)}>

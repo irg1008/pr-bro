@@ -217,14 +217,12 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
         <div className="bg-card text-card-foreground flex gap-2 rounded-lg border p-4 shadow-sm">
           <input
             type="text"
-            placeholder="Group Name (e.g., Push-Pull)"
+            placeholder="Group name (e.g., Push-Pull)"
             value={newGroupName}
             onChange={(e) => setNewGroupName(e.target.value)}
             className="border-input bg-background ring-offset-background placeholder:text-muted-foreground focus-visible:ring-ring flex h-10 w-full rounded-md border px-3 py-2 text-sm file:border-0 file:bg-transparent file:text-sm file:font-medium focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:outline-none disabled:cursor-not-allowed disabled:opacity-50"
           />
-          <Button onClick={handleCreate} className="bg-green-600 text-white hover:bg-green-700">
-            Save
-          </Button>
+          <Button onClick={handleCreate}>Save</Button>
           <Button onClick={() => setIsCreating(false)} variant="outline">
             Cancel
           </Button>

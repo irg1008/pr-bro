@@ -278,7 +278,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             </div>
 
             <div className="flex gap-2 pt-2">
-              <Button onClick={handleCreate}>Save Routine</Button>
+              <Button onClick={handleCreate}>Save routine</Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>
                 Cancel
               </Button>

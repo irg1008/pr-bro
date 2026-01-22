@@ -187,7 +187,7 @@ export const HistoryDetailHeader = ({
             onClick={() => setIsDeleteAlertOpen(true)}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Delete Log
+            Delete log
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
