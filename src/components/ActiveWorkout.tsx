@@ -31,6 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useHaptic } from "@/hooks/useHaptic";
+import { applyProgressiveOverload } from "@/lib/progressive-overload";
 import type { SetType } from "@/types/set-types";
 import { navigate } from "astro:transitions/client";
 import {
@@ -278,115 +279,28 @@ export const ActiveWorkout = ({
       const diffs: ProgressionDifference[] = [];
 
       exercisesToProcess.forEach((ex) => {
-        if (!ex.targetReps) return;
-
-        const targetParts = ex.targetReps.split("-").map((s) => parseInt(s.trim()));
-        const maxReps = targetParts.length > 1 ? targetParts[1] : targetParts[0];
-        const minReps = targetParts[0];
-
         const lastSets = lastRunSets[ex.id];
-        if (!lastSets || lastSets.length === 0) {
-          if (exercisesToProcess.length === 1) failureReason = "No history found.";
-          return;
-        }
 
-        const allSetsHitTarget = lastSets.every((s: any) => {
-          if (s.type === "WARMUP") return true;
-          return s.reps >= maxReps;
-        });
+        const result = applyProgressiveOverload(
+          {
+            id: ex.id,
+            name: ex.name,
+            type: ex.type,
+            targetReps: ex.targetReps,
+            targetSets: ex.targetSets,
+            incrementValue: ex.incrementValue
+          },
+          lastSets || []
+        );
 
-        const lastWeight = lastSets[0].weight;
-
-        if (allSetsHitTarget && lastWeight) {
-          const increment = ex.incrementValue || 2.5;
-          const nextWeight = Number(lastWeight) + increment;
-
+        if (result.applied) {
+          newSets[ex.id] = result.newSets;
           appliedCount++;
-
-          newSets[ex.id] = lastSets.map(() => ({
-            ...createEmptySet(ex.type),
-            weight: nextWeight,
-            reps: minReps
-          }));
-
-          // Logic Update: Fillsets if less than target
-          if (ex.targetSets) {
-            const targetSetCount = parseInt(ex.targetSets);
-            if (!isNaN(targetSetCount) && newSets[ex.id].length < targetSetCount) {
-              const diff = targetSetCount - newSets[ex.id].length;
-              for (let k = 0; k < diff; k++) {
-                newSets[ex.id].push({
-                  ...createEmptySet(ex.type),
-                  weight: nextWeight,
-                  reps: minReps
-                });
-              }
-            }
+          if (result.diff) {
+            diffs.push(result.diff);
           }
-
-          diffs.push({
-            exerciseName: ex.name,
-            oldWeight: Number(lastWeight),
-            oldReps: maxReps, // They hit max reps
-            newWeight: nextWeight,
-            newReps: minReps,
-            type: "PROMOTION"
-          });
-
-          // toast.success(`Promoted ${ex.name}: ${lastWeight}kg -> ${nextWeight}kg`);
-        } else {
-          // Failure reason tracking
-          if (exercisesToProcess.length === 1) {
-            if (!lastWeight) failureReason = "Last run had no weight recorded.";
-            else failureReason = `Did not hit max reps (${maxReps}) on all sets last time.`;
-          }
-
-          if (lastWeight) {
-            // Updated Failure Logic: Keep weight, set reps to MIN reps
-            newSets[ex.id] = lastSets.map((s: any) => ({
-              ...createEmptySet(ex.type),
-              weight: s.weight,
-              reps: minReps
-            }));
-
-            // Logic Update: Fillsets if less than target (Failure Case)
-            if (ex.targetSets) {
-              const targetSetCount = parseInt(ex.targetSets);
-              if (!isNaN(targetSetCount) && newSets[ex.id].length < targetSetCount) {
-                const diff = targetSetCount - newSets[ex.id].length;
-                for (let k = 0; k < diff; k++) {
-                  newSets[ex.id].push({
-                    ...createEmptySet(ex.type),
-                    weight: lastWeight, // Use last weight
-                    reps: minReps
-                  });
-                }
-              }
-            }
-
-            // Note: oldReps here is ambiguous (it varies per set).
-            // We'll show the TARGET max reps as context, or maybe just "Min Range".
-            // Let's use MIN reps as old reference for failure context, or better,
-            // user wants "Old value under min range => +x reps"?
-            // We just show Weight stays same.
-            diffs.push({
-              exerciseName: ex.name,
-              oldWeight: Number(lastWeight),
-              oldReps: minReps, // Resetting to min
-              newWeight: Number(lastWeight),
-              newReps: minReps,
-              type: "RESET"
-            });
-
-            appliedCount++; // We applied the "reset" logic
-          } else if (!newSets[ex.id] || newSets[ex.id][0].weight === "") {
-            // ... existing fallback ...
-            newSets[ex.id] = lastSets.map((s: any) => ({
-              ...createEmptySet(ex.type),
-              weight: s.weight,
-              reps: ""
-            }));
-          }
+        } else if (exercisesToProcess.length === 1 && result.failureReason) {
+          failureReason = result.failureReason;
         }
       });
 
