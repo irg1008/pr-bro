@@ -256,15 +256,13 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                 {availableCategories.map((cat) => (
                   <label
                     key={cat}
-                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded p-1 capitalize"
+                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 capitalize transition-colors"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selectedCategories.includes(cat)}
-                      onChange={() => toggleCategory(cat)}
-                      className="h-4 w-4 rounded border-gray-300"
+                      onCheckedChange={() => toggleCategory(cat)}
                     />
-                    <span className="text-sm">{cat}</span>
+                    <span className="text-sm font-medium leading-none">{cat}</span>
                   </label>
                 ))}
               </div>
