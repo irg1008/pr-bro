@@ -19,19 +19,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { navigate } from "astro:transitions/client";
-import { MessageSquareText, MoreVertical, X, Zap } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, MessageSquareText, MoreVertical, X, Zap } from "lucide-react";
 import type { Exercise, Routine, RoutineExercise, WorkoutLogEntry } from "prisma/generated/client";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ExerciseInfoModal } from "./ExerciseInfoModal";
 import { SetTypeSelector } from "./SetTypeSelector";
 import { TargetDisplay } from "./TargetDisplay";
 
 type WorkoutLogEntryWithExercise = WorkoutLogEntry & { exercise: Exercise };
 
-interface WorkoutLogEditorProps {
+export interface WorkoutLogEditorProps {
   logId: string;
   initialEntries: WorkoutLogEntryWithExercise[];
   routine?: Routine & { exercises: RoutineExercise[] };
+  reorderMode: boolean;
+  setReorderMode: (mode: boolean) => void;
 }
 
 // Helper type since sets are JSON in Prisma but we use them as objects here
@@ -40,11 +42,16 @@ type WorkoutLogEntryButSetsAny = Omit<WorkoutLogEntryWithExercise, "sets"> & { s
 export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
   logId,
   initialEntries,
-  routine
+  routine,
+  reorderMode,
+  setReorderMode
 }) => {
   const [entries, setEntries] = useState<WorkoutLogEntryButSetsAny[]>(
     initialEntries.map((e) => ({ ...e, sets: e.sets as any[] }))
   );
+  // Removed local reorderMode state
+  const itemsRef = useRef<Map<number, HTMLDivElement>>(new Map());
+  const lastMovedIndexRef = useRef<number | null>(null);
 
   const updateSet = (entryIndex: number, setIndex: number, field: string, value: any) => {
     const newEntries = [...entries];
@@ -69,6 +76,37 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
     setEntries(newEntries);
   };
 
+  const handleMoveEntry = (index: number, direction: "up" | "down") => {
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === entries.length - 1) return;
+
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    const newEntries = [...entries];
+
+    // Swap
+    [newEntries[index], newEntries[newIndex]] = [newEntries[newIndex], newEntries[index]];
+
+    lastMovedIndexRef.current = newIndex;
+    setEntries(newEntries);
+
+    // Immediate save to DB
+    fetch(`/api/workout-logs/${logId}/reorder`, {
+      method: "POST",
+      body: JSON.stringify({ exerciseIds: newEntries.map((e) => e.exerciseId) }),
+      headers: { "Content-Type": "application/json" }
+    }).catch((e) => console.error("Reorder failed", e));
+  };
+
+  useEffect(() => {
+    if (lastMovedIndexRef.current !== null) {
+      const element = itemsRef.current.get(lastMovedIndexRef.current);
+      if (element) {
+        element.scrollIntoView({ block: "center" });
+      }
+      lastMovedIndexRef.current = null;
+    }
+  }, [entries]);
+
   const handleSave = async () => {
     // Transform array back to Record<exerciseId, sets[]> for backend consistency
     const entriesPayload: Record<string, any> = {};
@@ -91,7 +129,12 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
 
     await fetch(`/api/workout-logs/${logId}`, {
       method: "PUT",
-      body: JSON.stringify({ entries: entriesPayload, sessionNotes, supersetStatus }),
+      body: JSON.stringify({
+        entries: entriesPayload,
+        sessionNotes,
+        supersetStatus,
+        exerciseOrder: entries.map((e) => e.exerciseId)
+      }),
       headers: { "Content-Type": "application/json" }
     });
     navigate("/history");
@@ -99,8 +142,47 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
 
   return (
     <div className="space-y-6">
+      <div className="flex justify-end">
+        {/* Dropdown removed as it's moved to parent/header */}
+      </div>
+
       {entries.map((entry, entryIdx) => (
-        <Card key={entry.id} className="overflow-hidden">
+        <Card
+          key={entry.id}
+          ref={(el: any) => {
+            if (el) itemsRef.current.set(entryIdx, el);
+            else itemsRef.current.delete(entryIdx);
+          }}
+          className="overflow-hidden relative"
+        >
+          {reorderMode && (
+            <div className="absolute top-20 right-3 z-10 flex flex-col gap-1">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMoveEntry(entryIdx, "up");
+                }}
+                disabled={entryIdx === 0}
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMoveEntry(entryIdx, "down");
+                }}
+                disabled={entryIdx === entries.length - 1}
+              >
+                <ArrowDown className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <CardContent className="p-3">
             <div className="flex flex-col gap-3">
               <div className="flex items-start justify-between">
@@ -351,6 +433,17 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
         </Button>
         <Button onClick={handleSave}>Save changes</Button>
       </div>
+
+      {/* Fixed Done Reordering Button */}
+      {reorderMode && (
+        <Button
+          size="icon"
+          className="fixed md:bottom-6 bottom-18 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-primary text-primary-foreground animate-in zoom-in spin-in-12 duration-300"
+          onClick={() => setReorderMode(false)}
+        >
+          <Check className="h-6 w-6" />
+        </Button>
+      )}
     </div>
   );
 };

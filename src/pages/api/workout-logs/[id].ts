@@ -31,7 +31,7 @@ export const PUT: APIRoute = async ({ request, params }) => {
   if (!id) return new Response("ID required", { status: 400 });
 
   const data = await request.json();
-  const { entries, supersetStatus, finishedAt, sessionNotes, createdAt } = data;
+  const { entries, supersetStatus, finishedAt, sessionNotes, createdAt, exerciseOrder } = data;
 
   const updateData: any = {};
   if (finishedAt) updateData.finishedAt = new Date(finishedAt);
@@ -61,12 +61,16 @@ export const PUT: APIRoute = async ({ request, params }) => {
       });
       const validIdsSet = new Set(validExercises.map((e) => e.id));
 
-      const entryCreates = Object.entries(entries)
-        .filter(([exerciseId]) => validIdsSet.has(exerciseId))
-        .map(([exerciseId, sets]: [string, any], index) => ({
+      // Determine order: use explicit order if provided, otherwise default to keys (unreliable but fallback)
+      const orderedIds =
+        exerciseOrder && Array.isArray(exerciseOrder) ? exerciseOrder : Object.keys(entries);
+
+      const entryCreates = orderedIds
+        .filter((id) => validIdsSet.has(id) && entries[id]) // Ensure ID is valid and has entries
+        .map((exerciseId, index) => ({
           workoutLogId: id,
           exerciseId,
-          sets: sets,
+          sets: entries[exerciseId],
           isSuperset: supersetStatus?.[exerciseId] || false,
           note: sessionNotes?.[exerciseId] || null,
           order: index

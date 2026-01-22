@@ -29,7 +29,14 @@ import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover
 import { cn } from "@/lib/utils";
 import { navigate } from "astro:transitions/client";
 import { format } from "date-fns";
-import { Calendar as CalendarIcon, Clock, MoreVertical, Pencil, Trash2 } from "lucide-react";
+import {
+  ArrowUpDown,
+  Calendar as CalendarIcon,
+  Clock,
+  MoreVertical,
+  Pencil,
+  Trash2
+} from "lucide-react";
 import type { Routine, RoutineGroup, WorkoutLog } from "prisma/generated/client";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -38,9 +45,15 @@ interface HistoryDetailHeaderProps {
   log: WorkoutLog & {
     routine: Routine & { group: RoutineGroup };
   };
+  reorderMode: boolean;
+  setReorderMode: (mode: boolean) => void;
 }
 
-export const HistoryDetailHeader = ({ log }: HistoryDetailHeaderProps) => {
+export const HistoryDetailHeader = ({
+  log,
+  reorderMode,
+  setReorderMode
+}: HistoryDetailHeaderProps) => {
   const [isEditDateOpen, setIsEditDateOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
 
@@ -161,6 +174,10 @@ export const HistoryDetailHeader = ({ log }: HistoryDetailHeaderProps) => {
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
+          <DropdownMenuItem onClick={() => setReorderMode(!reorderMode)}>
+            <ArrowUpDown className="mr-2 h-4 w-4" />
+            {reorderMode ? "Done reordering" : "Reorder exercises"}
+          </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setIsEditDateOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" />
             Edit date

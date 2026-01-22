@@ -35,8 +35,11 @@ import type { SetType } from "@/types/set-types";
 import { navigate } from "astro:transitions/client";
 import {
   Activity,
+  ArrowDown,
   ArrowLeftRight,
   ArrowRight,
+  ArrowUp,
+  ArrowUpDown,
   Bike,
   Check,
   Dumbbell,
@@ -148,6 +151,9 @@ export const ActiveWorkout = ({
   /* ... inside ActiveWorkout component ... */
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
   const [cancelAlertOpen, setCancelAlertOpen] = useState(false);
+  const [reorderMode, setReorderMode] = useState(false);
+  const itemsRef = useRef<Map<number, HTMLDivElement>>(new Map());
+  const lastMovedIndexRef = useRef<number | null>(null);
 
   // Double Progression Summary State
   const [progressionDiffs, setProgressionDiffs] = useState<ProgressionDifference[]>([]);
@@ -660,6 +666,37 @@ export const ActiveWorkout = ({
 
   /* handleCancel removed as unused */
 
+  const handleMoveExercise = (index: number, direction: "up" | "down") => {
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === activeExercises.length - 1) return;
+
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    const newExercises = [...activeExercises];
+
+    // Swap
+    [newExercises[index], newExercises[newIndex]] = [newExercises[newIndex], newExercises[index]];
+
+    lastMovedIndexRef.current = newIndex;
+    setActiveExercises(newExercises);
+
+    // Immediate save order
+    fetch(`/api/workout-logs/${logId}/reorder`, {
+      method: "POST",
+      body: JSON.stringify({ exerciseIds: newExercises.map((e) => e.id) }),
+      headers: { "Content-Type": "application/json" }
+    }).catch((e) => console.error("Reorder failed", e));
+  };
+
+  useEffect(() => {
+    if (lastMovedIndexRef.current !== null) {
+      const element = itemsRef.current.get(lastMovedIndexRef.current);
+      if (element) {
+        element.scrollIntoView({ block: "center" });
+      }
+      lastMovedIndexRef.current = null;
+    }
+  }, [activeExercises]);
+
   const openAddExercise = () => {
     setPickerMode("add");
     setPickerOpen(true);
@@ -864,7 +901,8 @@ export const ActiveWorkout = ({
         body: JSON.stringify({
           entries: completeSets,
           supersetStatus,
-          sessionNotes
+          sessionNotes,
+          exerciseOrder: activeExercises.map((e) => e.id)
           // finishedAt is NOT sent, so status remains IN_PROGRESS
         }),
         headers: { "Content-Type": "application/json" }
@@ -902,6 +940,14 @@ export const ActiveWorkout = ({
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Workout options</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setReorderMode(!reorderMode)}>
+              {reorderMode ? (
+                <Check className="mr-2 h-4 w-4" />
+              ) : (
+                <ArrowUpDown className="mr-2 h-4 w-4" />
+              )}
+              {reorderMode ? "Done reordering" : "Reorder exercises"}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleLoadLastRoutineRun()}>
               <History className="mr-2 h-4 w-4" />
               Load last run
@@ -945,8 +991,40 @@ export const ActiveWorkout = ({
         {activeExercises.map((ex, index) => (
           <div
             key={`${ex.id}-${index}`}
+            ref={(el) => {
+              if (el) itemsRef.current.set(index, el);
+              else itemsRef.current.delete(index);
+            }}
             className="carousel-visual-content bg-card overflow-hidden rounded-xl shadow-sm transition-none will-change-transform border relative"
           >
+            {reorderMode && (
+              <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMoveExercise(index, "up");
+                  }}
+                  disabled={index === 0}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMoveExercise(index, "down");
+                  }}
+                  disabled={index === activeExercises.length - 1}
+                >
+                  <ArrowDown className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             {ex.imageUrl && (
               <div className="bg-muted h-48 w-full shrink-0">
                 <img
@@ -1506,6 +1584,16 @@ export const ActiveWorkout = ({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Fixed Done Reordering Button */}
+      {reorderMode && (
+        <Button
+          size="icon"
+          className="fixed md:bottom-6 bottom-18 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-primary text-primary-foreground animate-in zoom-in spin-in-12 duration-300"
+          onClick={() => setReorderMode(false)}
+        >
+          <Check className="h-6 w-6" />
+        </Button>
+      )}
     </div>
   );
 };
