@@ -39,13 +39,8 @@ if (logId) {
 			});
 
 			if (routine) {
-				// DEBUG: Check filtering
-				console.log(`Log Entries: ${log.entries.length}`);
 				const activeOnly = routine.exercises.filter(
 					(e) => e.isActive !== false,
-				);
-				console.log(
-					`Routine Total: ${routine.exercises.length}, Active: ${activeOnly.length}`,
 				);
 
 				// Use logged exercises if session started/modified, else routine defaults
