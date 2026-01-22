@@ -256,15 +256,13 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                 {availableCategories.map((cat) => (
                   <label
                     key={cat}
-                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-2 rounded p-1 capitalize"
+                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 capitalize transition-colors"
                   >
-                    <input
-                      type="checkbox"
+                    <Checkbox
                       checked={selectedCategories.includes(cat)}
-                      onChange={() => toggleCategory(cat)}
-                      className="h-4 w-4 rounded border-gray-300"
+                      onCheckedChange={() => toggleCategory(cat)}
                     />
-                    <span className="text-sm">{cat}</span>
+                    <span className="text-sm leading-none font-medium">{cat}</span>
                   </label>
                 ))}
               </div>
@@ -280,7 +278,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
             </div>
 
             <div className="flex gap-2 pt-2">
-              <Button onClick={handleCreate}>Save Routine</Button>
+              <Button onClick={handleCreate}>Save routine</Button>
               <Button variant="outline" onClick={() => setIsCreating(false)}>
                 Cancel
               </Button>
@@ -293,7 +291,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         {routines.map((routine, index) => (
           <Card
             key={routine.id}
-            className="group relative cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] border-border/40 hover:bg-card/50"
+            className="group border-border/40 hover:bg-card/50 relative cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99]"
             onClick={() => handleSelectRoutine(routine.id)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -458,7 +456,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                       checked={editCategories.includes(cat)}
                       onCheckedChange={() => toggleCategory(cat, true)}
                     />
-                    <span className="text-sm font-medium leading-none">{cat}</span>
+                    <span className="text-sm leading-none font-medium">{cat}</span>
                   </label>
                 ))}
               </div>

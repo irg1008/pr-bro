@@ -143,8 +143,8 @@ export const HistoryDetailHeader = ({
   return (
     <div className="flex items-start justify-between">
       <div>
-        <a href="/history" className="text-sm text-muted-foreground hover:underline mb-2 block">
-          ← Back to History
+        <a href="/history" className="text-muted-foreground mb-2 block text-sm hover:underline">
+          ← Back to history
         </a>
         <h1 className="text-3xl font-bold">{log.routine.name}</h1>
         <p className="text-muted-foreground">{log.routine.group.name}</p>
@@ -187,7 +187,7 @@ export const HistoryDetailHeader = ({
             onClick={() => setIsDeleteAlertOpen(true)}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Delete Log
+            Delete log
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>
@@ -227,10 +227,10 @@ export const HistoryDetailHeader = ({
                     selected={startDate}
                     onSelect={(d) => d && setStartDate(d)}
                   />
-                  <div className="p-3 border-t border-border">
-                    <Label className="mb-2 block text-xs text-muted-foreground">Time</Label>
+                  <div className="border-border border-t p-3">
+                    <Label className="text-muted-foreground mb-2 block text-xs">Time</Label>
                     <div className="relative">
-                      <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Clock className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                       <Input
                         type="time"
                         className="pl-9 [&::-webkit-calendar-picker-indicator]:hidden"
@@ -270,10 +270,10 @@ export const HistoryDetailHeader = ({
                     selected={endDate || startDate}
                     onSelect={(d) => d && setEndDate(d)}
                   />
-                  <div className="p-3 border-t border-border">
-                    <Label className="mb-2 block text-xs text-muted-foreground">Time</Label>
+                  <div className="border-border border-t p-3">
+                    <Label className="text-muted-foreground mb-2 block text-xs">Time</Label>
                     <div className="relative">
-                      <Clock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                      <Clock className="text-muted-foreground absolute top-1/2 left-3 h-4 w-4 -translate-y-1/2" />
                       <Input
                         type="time"
                         className="pl-9 [&::-webkit-calendar-picker-indicator]:hidden"

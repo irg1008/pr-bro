@@ -9,7 +9,7 @@ export interface InputProps extends React.ComponentProps<"input"> {
 
 function Input({ className, type, error, ...props }: InputProps) {
   return (
-    <div className="flex w-full flex-col gap-1">
+    <>
       <InputPrimitive
         type={type}
         data-slot="input"
@@ -21,8 +21,8 @@ function Input({ className, type, error, ...props }: InputProps) {
         )}
         {...props}
       />
-      {error && <p className="text-destructive mt-0.5 ml-0.5 text-xs font-medium">{error}</p>}
-    </div>
+      {error && <p className="text-destructive mt-1 ml-0.5 text-xs font-medium">{error}</p>}
+    </>
   );
 }
 

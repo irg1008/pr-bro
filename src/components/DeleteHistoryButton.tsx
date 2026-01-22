@@ -64,7 +64,7 @@ export const DeleteHistoryButton = () => {
             onSelect={() => setAlertOpen(true)}
           >
             <Trash2 className="mr-2 h-4 w-4" />
-            Clear History
+            Clear history
           </DropdownMenuItem>
         </DropdownMenuContent>
       </DropdownMenu>

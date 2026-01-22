@@ -89,7 +89,7 @@ export const POST: APIRoute = async ({ request }) => {
             }))
           : currentRoutine?.exercises
               .filter((re) => re.isActive !== false)
-              .map((re, index) => {
+              .map((re) => {
                 // Create initial empty set based on type
                 const type = re.exercise.type || "WEIGHT";
                 const initialSet =
