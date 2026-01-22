@@ -58,7 +58,9 @@ export const POST: APIRoute = async ({ params }) => {
       return { weight: "", reps: "", completed: false };
     };
 
-    const newEntriesData = log.routine.exercises.map((re) => ({
+    const activeRoutineExercises = log.routine.exercises.filter((re) => re.isActive !== false);
+
+    const newEntriesData = activeRoutineExercises.map((re) => ({
       workoutLogId: id,
       exerciseId: re.exerciseId,
       order: re.order,
@@ -89,7 +91,8 @@ export const POST: APIRoute = async ({ params }) => {
 
     // 4. Return the new list of exercises formatted for ActiveWorkout
     // We need to re-map them similar to workout.astro
-    const refreshedExercises = log.routine.exercises.map((re) => ({
+    // Filter out inactive ones for the main view
+    const refreshedExercises = activeRoutineExercises.map((re) => ({
       ...re.exercise,
       routineNote: re.note,
       sessionNote: null,

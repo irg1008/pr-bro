@@ -109,6 +109,7 @@ export interface ActiveWorkoutProps {
   routineExerciseIds: string[];
   exercises: ActiveWorkoutExercise[]; // Updated type
   initialSupersetStatus?: Record<string, boolean>;
+  routineExercisesList?: { exerciseId: string; isActive?: boolean | null; exercise: Exercise }[]; // Full list from routine
 }
 
 export const ActiveWorkout = ({
@@ -119,8 +120,10 @@ export const ActiveWorkout = ({
   routineGroupId,
   routineExerciseIds,
   exercises: initialExercises,
-  initialSupersetStatus = {}
+  initialSupersetStatus = {},
+  routineExercisesList = []
 }: ActiveWorkoutProps) => {
+  // ... (rest of component)
   // Carousel state removed
   // const [current, setCurrent] = useState(0); // Removed as we list all
   const [sets, setSets] = useState<Record<string, WorkoutSet[]>>({});
@@ -144,6 +147,7 @@ export const ActiveWorkout = ({
 
   /* ... inside ActiveWorkout component ... */
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
+  const [cancelAlertOpen, setCancelAlertOpen] = useState(false);
 
   // Double Progression Summary State
   const [progressionDiffs, setProgressionDiffs] = useState<ProgressionDifference[]>([]);
@@ -670,6 +674,12 @@ export const ActiveWorkout = ({
   const handleExerciseSelect = async (exercise: Exercise) => {
     if (!exercise) return;
 
+    if (activeExercises.some((e) => e.id === exercise.id)) {
+      toast.info(`"${exercise.name}" is already in the workout.`);
+      setPickerOpen(false);
+      return;
+    }
+
     if (pickerMode === "add") {
       setActiveExercises((prev) => [...prev, exercise]);
     } else {
@@ -754,6 +764,27 @@ export const ActiveWorkout = ({
     });
 
     setTargetExerciseIndex(-1);
+  };
+
+  const handleCancelWorkout = async () => {
+    setCancelAlertOpen(false);
+    isFinishingRef.current = true; // Prevent auto-save
+    try {
+      const res = await fetch(`/api/workout-logs/${logId}`, {
+        method: "DELETE"
+      });
+
+      if (res.ok) {
+        toast.success("Workout cancelled");
+        navigate("/");
+      } else {
+        throw new Error("Failed to cancel");
+      }
+    } catch (error) {
+      console.error("Failed to cancel workout", error);
+      toast.error("Failed to cancel workout");
+      isFinishingRef.current = false; // Restore
+    }
   };
 
   const handleReset = async () => {
@@ -875,12 +906,20 @@ export const ActiveWorkout = ({
               <History className="mr-2 h-4 w-4" />
               Load last run
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => setResetAlertOpen(true)}
             >
               <RotateCcw className="mr-2 h-4 w-4" />
               Reset to routine
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => setCancelAlertOpen(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Cancel Workout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -944,7 +983,8 @@ export const ActiveWorkout = ({
                     targetReps={ex.targetReps}
                     targetRepsToFailure={ex.targetRepsToFailure}
                     incrementValue={ex.incrementValue}
-                    className="mt-1.5"
+                    className="mt-1.5 w-fit"
+                    asGrid
                   />
 
                   {/* Routine Note (Static, not editable) */}
@@ -1255,6 +1295,7 @@ export const ActiveWorkout = ({
         onOpenChange={setPickerOpen}
         onSelect={handleExerciseSelect}
         selectedExerciseIds={activeExercises.map((e) => e.id)}
+        routineExercises={routineExercisesList} // Pass the full routine list including inactive
         preferredCategories={
           Array.from(new Set(activeExercises.map((e) => e.category).filter(Boolean))) as string[]
         }
@@ -1424,6 +1465,27 @@ export const ActiveWorkout = ({
           </div>
           <AlertDialogFooter>
             <AlertDialogAction onClick={() => setSummaryModalOpen(false)}>Got it</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog open={cancelAlertOpen} onOpenChange={setCancelAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel workout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this workout? This will discard all progress and
+              delete the log.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go back</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelWorkout}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirm cancel
+            </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

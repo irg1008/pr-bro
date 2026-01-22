@@ -19,6 +19,7 @@ import { useDebounce } from "use-debounce";
 interface ExerciseSelectorProps {
   onSelect: (exercise: Exercise) => Promise<void> | void;
   selectedExerciseIds?: string[];
+  routineExercises?: { exerciseId: string; isActive?: boolean | null }[]; // Partial RoutineExercise
   preferredCategories?: string[]; // To sort/filter by routine focus
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -28,6 +29,7 @@ interface ExerciseSelectorProps {
 export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   onSelect,
   selectedExerciseIds = [],
+  routineExercises = [],
   preferredCategories = [],
   open: controlledOpen,
   onOpenChange,
@@ -59,6 +61,8 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   const [activeCategory, setActiveCategory] = useState<string | null>(
     preferredCategories[0] || null
   );
+
+  // Infinite Scroll Observer
 
   // Infinite Scroll Observer
   const observer = useRef<IntersectionObserver | null>(null);
@@ -94,8 +98,6 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           category: activeCategory || ""
         });
 
-        // Request prioritization if we are just browsing (no specific category filter)
-        // This puts the routine's focus areas at the top
         if (!activeCategory && preferredCategories.length > 0) {
           params.append("prioritize", preferredCategories.join(","));
         }
@@ -116,11 +118,122 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   }, [page, debouncedSearch, activeCategory]);
 
   const handleExerciseClick = async (ex: Exercise) => {
-    if (selectedExerciseIds.includes(ex.id)) return;
+    // If it's in the routine, allow clicking to reactivate/handle duplicate logic in parent.
+    // The previous logic prevented click if selected.
+    // We should probably allow it now if we want to "reactivate".
+    // But `selectedExerciseIds` is still used to highlight.
+    // Let's invoke onSelect regardless, and let parent decide?
+    // Or only prevent if it's ACTIVE in the routine?
+    // The user requirement says: "this deactivated exercises should show first... I need to be able to when replacing... deactivated should show first".
+
+    // If I click a DEACTIVATED exercise from the "From Routine" list, I want to activate it.
+    // My `RoutineDetail` `handleAdd` logic handles this (reactivates if present).
+    // So I should allow the click.
     await onSelect(ex);
-    // Optional: don't close dialog right away to allow multiple adds?
-    // For now let's keep it open for multi-select feel
   };
+
+  // Helper to render a card
+  const renderCard = (ex: Exercise, isRoutineItem?: boolean) => {
+    const isSelected = selectedExerciseIds.includes(ex.id);
+    // If it's a routine item, `isSelected` is likely true.
+
+    return (
+      <div
+        key={ex.id}
+        // Ref only on the main list items
+        ref={
+          !isRoutineItem && exercises.indexOf(ex) === exercises.length - 1 ? lastElementRef : null
+        }
+        className={cn(
+          "group hover:ring-primary relative flex cursor-pointer flex-col overflow-hidden rounded-lg border transition-all hover:ring-2",
+          isSelected && "ring-primary bg-muted/50 ring-2"
+        )}
+        onClick={() => handleExerciseClick(ex)}
+      >
+        <button
+          onClick={(e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            handleEditClick(e, ex);
+          }}
+          className="bg-background/80 hover:bg-background absolute top-2 right-2 z-30 rounded-full p-1.5 shadow-sm backdrop-blur-sm transition-opacity opacity-70 hover:opacity-100"
+          title="Edit exercise"
+        >
+          <Pencil className="h-3.5 w-3.5" />
+        </button>
+
+        <div className="bg-muted relative aspect-square overflow-hidden">
+          {ex.imageUrl ? (
+            <img
+              src={ex.imageUrl}
+              alt={ex.name}
+              loading="lazy"
+              className={cn(
+                "h-full w-full object-cover transition-transform group-hover:scale-105"
+              )}
+              onError={(e) => {
+                e.currentTarget.style.display = "none";
+                const parent = e.currentTarget.parentElement;
+                if (parent) {
+                  const fallback = parent.querySelector(".fallback-text");
+                  if (fallback) fallback.classList.remove("hidden");
+                }
+              }}
+            />
+          ) : null}
+          <div
+            className={cn(
+              "fallback-text text-muted-foreground/40 text-xs font-medium absolute inset-0 flex items-center justify-center pointer-events-none",
+              ex.imageUrl ? "hidden" : ""
+            )}
+          >
+            No Image
+          </div>
+
+          {isSelected && (
+            <div className="bg-primary/40 absolute inset-0 flex items-center justify-center z-20">
+              <div className="bg-primary text-primary-foreground rounded-full p-2">
+                <Check className="h-6 w-6" />
+              </div>
+            </div>
+          )}
+        </div>
+        <div className="flex grow flex-col gap-1 p-3">
+          <h4 className="text-sm leading-tight font-semibold capitalize pr-4" title={ex.name}>
+            {ex.name}
+          </h4>
+          <div className="mt-auto flex flex-wrap gap-1 pt-2">
+            <Badge
+              variant="secondary"
+              className="h-fit px-1.5 py-0.5 text-center text-[10px] whitespace-normal capitalize"
+            >
+              {ex.category?.toLowerCase() || "other"}
+            </Badge>
+            {ex.target && ex.target !== ex.category && (
+              <Badge
+                variant="secondary"
+                className="h-fit px-1.5 py-0.5 text-center text-[10px] whitespace-normal capitalize"
+              >
+                {ex.target.toLowerCase()}
+              </Badge>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  };
+
+  // Filter routine items locally - ONLY INACTIVE
+  const routineMatches = (routineExercises as any[]).filter((re: any) => {
+    if (!re.exercise) return false;
+    // Must be inactive in routine to show up here
+    if (re.isActive !== false) return false;
+
+    const matchSearch =
+      !debouncedSearch || re.exercise.name.toLowerCase().includes(debouncedSearch.toLowerCase());
+    const matchCategory = !activeCategory || re.exercise.category === activeCategory; // Exact match usually
+    return matchSearch && matchCategory;
+  });
 
   return (
     <>
@@ -153,7 +266,6 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
                   onChange={(e) => setSearch(e.target.value)}
                 />
               </div>
-              {/* Removed internal Create Custom button */}
             </div>
 
             {/* Preferred Categories Filter */}
@@ -184,104 +296,48 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           </div>
 
           <div className="flex flex-1 flex-col gap-4 overflow-y-auto">
-            {/* Controls */}
-
-            {/* Grid */}
             <div className="min-h-0 flex-1 px-2">
-              <div className="grid grid-cols-2 gap-4 pt-4 pb-4 md:grid-cols-3">
-                {exercises.map((ex, index) => {
-                  const isSelected = selectedExerciseIds.includes(ex.id);
-                  return (
-                    <div
-                      key={ex.id}
-                      ref={index === exercises.length - 1 ? lastElementRef : null}
-                      className={cn(
-                        "group hover:ring-primary relative flex cursor-pointer flex-col overflow-hidden rounded-lg border transition-all hover:ring-2",
-                        isSelected && "ring-primary bg-muted/50 ring-2"
-                      )}
-                      onClick={() => handleExerciseClick(ex)}
-                    >
-                      <button
-                        onClick={(e) => {
-                          e.preventDefault();
-                          e.stopPropagation();
-                          handleEditClick(e, ex);
-                        }}
-                        className="bg-background/80 hover:bg-background absolute top-2 right-2 z-30 rounded-full p-1.5 shadow-sm backdrop-blur-sm transition-opacity opacity-70 hover:opacity-100"
-                        title="Edit exercise"
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </button>
+              {/* Routine Exercises Section */}
+              {routineMatches.length > 0 && (
+                <div className="py-4 border-b border-border/60 bg-muted/10 -mx-2 px-2">
+                  <div className="flex items-center gap-2 mb-3">
+                    <h3 className="text-sm font-semibold text-muted-foreground">
+                      Inactive from routine
+                    </h3>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4 md:grid-cols-3">
+                    {routineMatches.map((re) => renderCard(re.exercise, true))}
+                  </div>
+                </div>
+              )}
 
-                      <div className="bg-muted relative aspect-square overflow-hidden">
-                        {ex.imageUrl ? (
-                          <img
-                            src={ex.imageUrl}
-                            alt={ex.name}
-                            loading="lazy"
-                            className="h-full w-full object-cover transition-transform group-hover:scale-105"
-                            onError={(e) => {
-                              e.currentTarget.style.display = "none";
-                              // Show fallback sibling
-                              const parent = e.currentTarget.parentElement;
-                              if (parent) {
-                                const fallback = parent.querySelector(".fallback-text");
-                                if (fallback) fallback.classList.remove("hidden");
-                              }
-                            }}
-                          />
-                        ) : null}
-                        {/* Fallback text if no image or error */}
-                        <div
-                          className={cn(
-                            "fallback-text text-muted-foreground/40 text-xs font-medium absolute inset-0 flex items-center justify-center pointer-events-none",
-                            ex.imageUrl ? "hidden" : ""
-                          )}
-                        >
-                          No Image
-                        </div>
+              {/* Global Search Results */}
+              <div className="grid grid-cols-2 gap-4 py-4 md:grid-cols-3">
+                {exercises
+                  .filter((ex) => !routineMatches.some((rm: any) => rm.exerciseId === ex.id)) // Deduplicate visual
+                  .map((ex, index) => {
+                    // We reuse the renderCard but pass false for isRoutineItem
+                    // Note: renderCard uses checks like ref and click handler.
+                    // IMPORTANT: We need passing ref to the last item of THIS list, which is `exercises`.
+                    // The renderCard function handles key and onClick.
+                    // But we should inline it or adapt logic if ref is tricky.
+                    // Let's just inline logic or adapt renderCard.
 
-                        {isSelected && (
-                          <div className="bg-primary/40 absolute inset-0 flex items-center justify-center z-20">
-                            <div className="bg-primary text-primary-foreground rounded-full p-2">
-                              <Check className="h-6 w-6" />
-                            </div>
-                          </div>
-                        )}
+                    // Adapter for ref:
+                    const isLast = index === exercises.length - 1;
+
+                    return (
+                      <div key={ex.id} ref={isLast ? lastElementRef : null} className="contents">
+                        {renderCard(ex, false)}
                       </div>
-                      <div className="flex grow flex-col gap-1 p-3">
-                        <h4
-                          className="text-sm leading-tight font-semibold capitalize pr-4"
-                          title={ex.name}
-                        >
-                          {ex.name}
-                        </h4>
-                        <div className="mt-auto flex flex-wrap gap-1 pt-2">
-                          <Badge
-                            variant="secondary"
-                            className="h-fit px-1.5 py-0.5 text-center text-[10px] whitespace-normal capitalize"
-                          >
-                            {ex.category?.toLowerCase() || "other"}
-                          </Badge>
-                          {ex.target && ex.target !== ex.category && (
-                            <Badge
-                              variant="secondary"
-                              className="h-fit px-1.5 py-0.5 text-center text-[10px] whitespace-normal capitalize"
-                            >
-                              {ex.target.toLowerCase()}
-                            </Badge>
-                          )}
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
                 {loading && (
                   <div className="text-muted-foreground col-span-full py-4 text-center">
                     Loading more exercises...
                   </div>
                 )}
-                {!loading && exercises.length === 0 && (
+                {!loading && exercises.length === 0 && routineMatches.length === 0 && (
                   <div className="text-muted-foreground col-span-full py-12 text-center">
                     No exercises found.
                   </div>

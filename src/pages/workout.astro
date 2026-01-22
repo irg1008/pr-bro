@@ -39,6 +39,15 @@ if (logId) {
 			});
 
 			if (routine) {
+				// DEBUG: Check filtering
+				console.log(`Log Entries: ${log.entries.length}`);
+				const activeOnly = routine.exercises.filter(
+					(e) => e.isActive !== false,
+				);
+				console.log(
+					`Routine Total: ${routine.exercises.length}, Active: ${activeOnly.length}`,
+				);
+
 				// Use logged exercises if session started/modified, else routine defaults
 				const exercises =
 					log.entries.length > 0
@@ -56,15 +65,17 @@ if (logId) {
 									incrementValue: routineExercise?.incrementValue,
 								};
 							})
-						: routine.exercises.map((e) => ({
-								...e.exercise,
-								routineNote: e.note,
-								sessionNote: null,
-								targetSets: e.targetSets,
-								targetReps: e.targetReps,
-								targetRepsToFailure: e.targetRepsToFailure,
-								incrementValue: e.incrementValue,
-							}));
+						: routine.exercises
+								.filter((e) => e.isActive !== false)
+								.map((e) => ({
+									...e.exercise,
+									routineNote: e.note,
+									sessionNote: null,
+									targetSets: e.targetSets,
+									targetReps: e.targetReps,
+									targetRepsToFailure: e.targetRepsToFailure,
+									incrementValue: e.incrementValue,
+								}));
 
 				const initialSupersetStatus: Record<string, boolean> = {};
 				if (log.entries.length > 0) {
@@ -88,6 +99,11 @@ if (logId) {
 					// Map routine exercises to Exercise objects
 					exercises,
 					initialSupersetStatus,
+					routineExercisesList: routine.exercises.map((re) => ({
+						exerciseId: re.exerciseId,
+						isActive: re.isActive,
+						exercise: re.exercise,
+					})),
 					routineExerciseIds: routine.exercises.map((e) => e.exerciseId),
 				};
 			}
@@ -117,6 +133,7 @@ if (!logId) {
 					routineExerciseIds={workoutData.routineExerciseIds}
 					exercises={workoutData.exercises}
 					initialSupersetStatus={workoutData.initialSupersetStatus}
+					routineExercisesList={workoutData.routineExercisesList}
 				/>
 			) : (
 				<div class="flex flex-col items-center justify-center h-full p-8 gap-4">

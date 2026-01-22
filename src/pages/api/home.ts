@@ -18,9 +18,29 @@ export const GET: APIRoute = async () => {
   });
 
   let nextRoutine = null;
+  let activeLog = null;
 
-  if (activeGroup && activeGroup.routines.length > 0) {
-    // Find last log
+  // Check for ANY active workout log first
+  activeLog = await prisma.workoutLog.findFirst({
+    where: { finishedAt: null },
+    include: {
+      entries: {
+        include: { exercise: true },
+        orderBy: { order: "asc" }
+      },
+      routine: true
+    },
+    orderBy: { createdAt: "desc" }
+  });
+
+  if (activeLog) {
+    // If active log exists, use its routine for context
+    const matchingRoutine = activeGroup?.routines.find((r) => r.id === activeLog?.routineId);
+    if (matchingRoutine) {
+      nextRoutine = matchingRoutine;
+    }
+  } else if (activeGroup && activeGroup.routines.length > 0) {
+    // No active log, calculate next routine
     const lastLog = await prisma.workoutLog.findFirst({
       where: { routine: { routineGroupId: activeGroup.id } },
       orderBy: { createdAt: "desc" }
@@ -29,7 +49,6 @@ export const GET: APIRoute = async () => {
     if (!lastLog) {
       nextRoutine = activeGroup.routines[0];
     } else {
-      // If the last log is active, stay on it. Otherwise rotate.
       if (!lastLog.finishedAt) {
         nextRoutine =
           activeGroup.routines.find((r) => r.id === lastLog.routineId) || activeGroup.routines[0];
@@ -44,7 +63,12 @@ export const GET: APIRoute = async () => {
     }
   }
 
-  return new Response(JSON.stringify({ activeGroup, nextRoutine }), {
+  // Filter inactive exercises from the preview
+  if (nextRoutine && nextRoutine.exercises) {
+    nextRoutine.exercises = nextRoutine.exercises.filter((e) => e.isActive !== false);
+  }
+
+  return new Response(JSON.stringify({ activeGroup, nextRoutine, activeLog }), {
     status: 200,
     headers: { "Content-Type": "application/json" }
   });

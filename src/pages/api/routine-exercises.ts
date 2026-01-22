@@ -55,12 +55,21 @@ export const DELETE: APIRoute = async ({ request }) => {
 
 export const PATCH: APIRoute = async ({ request }) => {
   const data = await request.json();
-  const { id, isSuperset, note, targetSets, targetReps, targetRepsToFailure, incrementValue } =
-    data;
+  const {
+    id,
+    isSuperset,
+    note,
+    targetSets,
+    targetReps,
+    targetRepsToFailure,
+    incrementValue,
+    isActive
+  } = data;
 
   if (!id) return new Response("ID required", { status: 400 });
 
   const updateData: Prisma.RoutineExerciseUpdateInput = {};
+  if (isActive !== undefined) updateData.isActive = isActive;
   if (isSuperset !== undefined) updateData.isSuperset = isSuperset;
   if (note !== undefined) updateData.note = note;
   if (targetSets !== undefined) updateData.targetSets = targetSets || null;

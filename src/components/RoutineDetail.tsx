@@ -30,13 +30,17 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
 import { navigate } from "astro:transitions/client";
 import {
   ArrowDown,
   ArrowUp,
   ClipboardCopy,
   ClipboardPaste,
+  Eye,
+  EyeOff,
   ListOrdered,
   MoreVertical,
   Pencil,
@@ -192,6 +196,20 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
   };
 
   const handleAdd = async (exercise: Exercise) => {
+    // Check if already in routine
+    const existingExercise = exercises.find((e) => e.exerciseId === exercise.id);
+
+    if (existingExercise) {
+      if (existingExercise.isActive === false) {
+        // Just reactivate it
+        await toggleIsActive(existingExercise.id, false); // false passes current status, so it becomes true
+        toast.success(`Active "${exercise.name}" again.`);
+      } else {
+        toast.info(`"${exercise.name}" is already in the routine.`);
+      }
+      return;
+    }
+
     try {
       await fetch("/api/routine-exercises", {
         method: "POST",
@@ -208,9 +226,37 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     if (direction === "up" && index === 0) return;
     if (direction === "down" && index === exercises.length - 1) return;
 
-    const newExercises = [...exercises];
-    const targetIndex = direction === "up" ? index - 1 : index + 1;
+    const movingExercise = exercises[index];
+    const isMovingActive = movingExercise.isActive !== false;
 
+    // Find target index based on visibility matching
+    let targetIndex = -1;
+
+    if (direction === "up") {
+      // Search backwards for the first item with matching active status
+      for (let i = index - 1; i >= 0; i--) {
+        const current = exercises[i];
+        const isCurrentActive = current.isActive !== false;
+        if (isCurrentActive === isMovingActive) {
+          targetIndex = i;
+          break;
+        }
+      }
+    } else {
+      // Search forwards
+      for (let i = index + 1; i < exercises.length; i++) {
+        const current = exercises[i];
+        const isCurrentActive = current.isActive !== false;
+        if (isCurrentActive === isMovingActive) {
+          targetIndex = i;
+          break;
+        }
+      }
+    }
+
+    if (targetIndex === -1) return; // No suitable target found to swap with
+
+    const newExercises = [...exercises];
     // Swap
     [newExercises[index], newExercises[targetIndex]] = [
       newExercises[targetIndex],
@@ -383,89 +429,73 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     }
   };
 
-  return (
-    <div className="space-y-6">
-      <div className="flex flex-col justify-between gap-4 sm:flex-row md:items-center">
-        <div>
-          <div className="flex items-center gap-2">
-            <h2 className="text-2xl font-bold tracking-tight capitalize">{routineName}</h2>
-            <Button variant="ghost" size="icon" onClick={() => setIsRenaming(true)}>
-              <Pencil className="h-4 w-4" />
-            </Button>
-          </div>
-          <p className="text-muted-foreground">{exercises.length} exercises</p>
-          {focusedParts.length > 0 && (
-            <div className="mt-1 flex gap-1">
-              {focusedParts.map((p) => (
-                <span
-                  key={p}
-                  className="bg-secondary text-secondary-foreground rounded px-2 py-0.5 text-xs"
-                >
-                  {p}
-                </span>
-              ))}
-            </div>
-          )}
-        </div>
-        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-          <Button
-            variant="outline"
-            className="w-full gap-2 sm:w-auto flex items-center justify-center"
-            onClick={async () => {
-              const returnUrl = encodeURIComponent(window.location.pathname);
-              await navigate(
-                `/exercises/create?returnUrl=${returnUrl}&addToRoutineId=${routineId}`
-              );
-            }}
-          >
-            <Plus className="h-4 w-4" /> Create custom exercise
-          </Button>
-          <ExerciseSelector
-            onSelect={handleAdd}
-            selectedExerciseIds={exercises.map((e) => e.exerciseId)}
-            preferredCategories={focusedParts}
-          />
-          {clipboard && (
-            <Button
-              variant="secondary"
-              className="gap-2"
-              onClick={handlePaste}
-              title={`Paste "${clipboard.exerciseName}"`}
-            >
-              <ClipboardPaste className="h-4 w-4" />
-              <span className="hidden sm:inline">Paste</span>
-            </Button>
-          )}
-        </div>
-      </div>
+  const toggleIsActive = async (id: string, currentStatus: boolean) => {
+    const status = currentStatus ?? true;
+    const newExercises = exercises.map((e) => (e.id === id ? { ...e, isActive: !status } : e));
+    setExercises(newExercises);
 
-      <div className="mt-4">
-        <Button variant="outline" size="sm" className="gap-2" onClick={handleSortByCategory}>
-          <ListOrdered className="h-4 w-4" /> Sort by category
-        </Button>
-      </div>
-      <div className="space-y-4">
-        {exercises.map((re, index) => (
+    try {
+      await fetch(`/api/routine-exercises`, {
+        method: "PATCH",
+        body: JSON.stringify({ id, isActive: !status }),
+        headers: { "Content-Type": "application/json" }
+      });
+    } catch (e) {
+      console.error("Failed to toggle active status", e);
+    }
+  };
+
+  const activeExercises = exercises.filter((e) => e.isActive !== false);
+  const inactiveExercises = exercises.filter((e) => e.isActive === false);
+
+  const renderExerciseList = (list: RoutineExerciseWithExercise[]) => (
+    <div className="space-y-4">
+      {list.map((re, __index) => {
+        // Find the actua index in the main list for reordering logic
+        const originalIndex = exercises.findIndex((e) => e.id === re.id);
+        const index = list.indexOf(re);
+
+        return (
           <Card key={re.id} className="overflow-hidden">
             <CardContent className="p-3">
               <div className="flex flex-col gap-3">
                 {/* Top Row: Index, Image, Info, Menu */}
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-start gap-3 flex-1 min-w-0">
-                    <div className="bg-muted text-muted-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold mt-1">
-                      {index + 1}
+                    <div
+                      className={cn(
+                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold mt-1",
+                        re.isActive !== false
+                          ? "bg-muted text-muted-foreground"
+                          : "bg-muted/50 text-muted-foreground/50"
+                      )}
+                    >
+                      {re.isActive !== false ? index + 1 : "-"}
                     </div>
                     {re.exercise.imageUrl && (
                       <img
                         src={re.exercise.imageUrl}
                         alt={re.exercise.name}
-                        className="h-12 w-12 shrink-0 rounded border object-cover"
+                        className={cn(
+                          "h-12 w-12 shrink-0 rounded border object-cover",
+                          re.isActive === false && "opacity-50 grayscale"
+                        )}
                       />
                     )}
                     <div className="min-w-0 flex-1">
-                      <h3 className="line-clamp-1 font-bold capitalize flex items-center gap-2 text-sm sm:text-base">
+                      <h3
+                        className={cn(
+                          "line-clamp-1 font-bold capitalize flex items-center gap-2 text-sm sm:text-base",
+                          re.isActive === false && "text-muted-foreground"
+                        )}
+                      >
                         {re.exercise.name}
                         <ExerciseInfoModal exercise={re.exercise} />
+                        {re.isActive === false && (
+                          <Badge variant="outline" className="text-[10px] h-4 px-1">
+                            Inactive
+                          </Badge>
+                        )}
                       </h3>
                       <div className="mt-1 flex flex-wrap items-center gap-1">
                         <span className="text-muted-foreground bg-secondary rounded px-1.5 py-0.5 text-[10px] capitalize">
@@ -493,7 +523,10 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                         <DropdownMenuLabel>Actions</DropdownMenuLabel>
                         <DropdownMenuItem onClick={() => toggleSuperset(re.id, re.isSuperset)}>
                           <Zap
-                            className={`mr-2 h-4 w-4 ${re.isSuperset ? "text-amber-500 fill-amber-500" : ""}`}
+                            className={cn(
+                              "mr-2 h-4 w-4",
+                              re.isSuperset ? "text-amber-500 fill-amber-500" : ""
+                            )}
                           />
                           <span>{re.isSuperset ? "Active Superset" : "Toggle Superset"}</span>
                         </DropdownMenuItem>
@@ -504,11 +537,21 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                         </DropdownMenuItem>
                         <DropdownMenuSeparator />
                         <DropdownMenuItem
+                          onClick={() => toggleIsActive(re.id, re.isActive ?? true)}
+                        >
+                          {re.isActive !== false ? (
+                            <EyeOff className="mr-2 h-4 w-4" />
+                          ) : (
+                            <Eye className="mr-2 h-4 w-4" />
+                          )}
+                          <span>{re.isActive !== false ? "Deactivate" : "Activate"}</span>
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
                           className="text-destructive focus:text-destructive"
                           onClick={() => handleRemove(re.id)}
                         >
                           <Trash2 className="mr-2 h-4 w-4" />
-                          Remove Exercise
+                          Remove
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -516,7 +559,12 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                 </div>
 
                 {/* Bottom Content: Note & Move Actions */}
-                <div className="flex items-center justify-between gap-3 pl-11 mt-2">
+                <div
+                  className={cn(
+                    "flex items-center justify-between gap-3 pl-11 mt-2",
+                    re.isActive === false && "opacity-50"
+                  )}
+                >
                   <div className="flex gap-2 flex-col">
                     {/* Targets Area - Clickable */}
                     <div className="cursor-pointer" onClick={() => openTargetDialog(re)}>
@@ -564,8 +612,8 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
-                      disabled={index === 0}
-                      onClick={() => handleMove(index, "up")}
+                      disabled={originalIndex === 0}
+                      onClick={() => handleMove(originalIndex, "up")}
                     >
                       <ArrowUp className="h-3.5 w-3.5" />
                     </Button>
@@ -573,8 +621,8 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                       variant="ghost"
                       size="icon"
                       className="h-6 w-6"
-                      disabled={index === exercises.length - 1}
-                      onClick={() => handleMove(index, "down")}
+                      disabled={originalIndex === exercises.length - 1}
+                      onClick={() => handleMove(originalIndex, "down")}
                     >
                       <ArrowDown className="h-3.5 w-3.5" />
                     </Button>
@@ -583,14 +631,86 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
               </div>
             </CardContent>
           </Card>
-        ))}
-        {exercises.length === 0 && (
-          <div className="text-muted-foreground bg-muted/50 rounded-lg border-2 border-dashed px-4 py-12 text-center">
-            <p className="mb-2">No exercises in this routine yet.</p>
-            <p className="text-sm">Click "Add exercise" to get started.</p>
+        );
+      })}
+      {list.length === 0 && (
+        <div className="text-muted-foreground bg-muted/50 rounded-lg border-2 border-dashed px-4 py-12 text-center">
+          <p className="mb-2">No exercises in this list.</p>
+        </div>
+      )}
+    </div>
+  );
+
+  return (
+    <div className="space-y-6">
+      <div className="flex flex-col justify-between gap-4 sm:flex-row md:items-center">
+        <div>
+          <div className="flex items-center gap-2">
+            <h2 className="text-2xl font-bold tracking-tight capitalize">{routineName}</h2>
+            <Button variant="ghost" size="icon" onClick={() => setIsRenaming(true)}>
+              <Pencil className="h-4 w-4" />
+            </Button>
           </div>
-        )}
+          <p className="text-muted-foreground">{exercises.length} exercises</p>
+          {focusedParts.length > 0 && (
+            <div className="mt-1 flex gap-1">
+              {focusedParts.map((p) => (
+                <span
+                  key={p}
+                  className="bg-secondary text-secondary-foreground rounded px-2 py-0.5 text-xs"
+                >
+                  {p}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <Button
+            variant="outline"
+            className="w-full gap-2 sm:w-auto flex items-center justify-center"
+            onClick={async () => {
+              const returnUrl = encodeURIComponent(window.location.pathname);
+              await navigate(
+                `/exercises/create?returnUrl=${returnUrl}&addToRoutineId=${routineId}`
+              );
+            }}
+          >
+            <Plus className="h-4 w-4" /> Create custom exercise
+          </Button>
+          <ExerciseSelector
+            onSelect={handleAdd}
+            selectedExerciseIds={exercises.map((e) => e.exerciseId)}
+            preferredCategories={focusedParts}
+          />
+
+          <Button
+            variant="secondary"
+            className="gap-2"
+            onClick={handlePaste}
+            disabled={!clipboard}
+            title={`Paste "${clipboard?.exerciseName}"`}
+          >
+            <ClipboardPaste className="h-4 w-4" />
+            <span className="hidden sm:inline">Paste</span>
+          </Button>
+        </div>
       </div>
+
+      <Tabs defaultValue="active" className="w-full mt-4">
+        <div className="flex items-center justify-between mb-4">
+          <TabsList>
+            <TabsTrigger value="active">Active ({activeExercises.length})</TabsTrigger>
+            <TabsTrigger value="inactive">Inactive ({inactiveExercises.length})</TabsTrigger>
+          </TabsList>
+          <Button variant="outline" size="sm" className="gap-2" onClick={handleSortByCategory}>
+            <ListOrdered className="h-4 w-4" /> Sort
+          </Button>
+        </div>
+
+        <TabsContent value="active">{renderExerciseList(activeExercises)}</TabsContent>
+        <TabsContent value="inactive">{renderExerciseList(inactiveExercises)}</TabsContent>
+      </Tabs>
 
       <Dialog open={isRenaming} onOpenChange={setIsRenaming}>
         <DialogContent>

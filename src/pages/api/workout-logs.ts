@@ -33,7 +33,13 @@ export const POST: APIRoute = async ({ request }) => {
   let cycleNumber = 1;
   const currentRoutine = await prisma.routine.findUnique({
     where: { id: routineId },
-    include: { group: true }
+    include: {
+      group: true,
+      exercises: {
+        include: { exercise: true },
+        orderBy: { order: "asc" }
+      }
+    }
   });
 
   if (currentRoutine) {
@@ -74,15 +80,32 @@ export const POST: APIRoute = async ({ request }) => {
       cycleNumber,
       finishedAt: finishedAt ? new Date(finishedAt) : undefined,
       createdAt: createdAt ? new Date(createdAt) : undefined,
-      entries: entries
-        ? {
-            create: Object.entries(entries).flatMap(([exerciseId, sets]: [string, any]) => ({
+      entries: {
+        create: entries
+          ? Object.entries(entries).flatMap(([exerciseId, sets]: [string, any]) => ({
               exerciseId,
               sets: sets,
               order: 0
             }))
-          }
-        : undefined
+          : currentRoutine?.exercises
+              .filter((re) => re.isActive !== false)
+              .map((re, index) => {
+                // Create initial empty set based on type
+                const type = re.exercise.type || "WEIGHT";
+                const initialSet =
+                  type === "CARDIO"
+                    ? { duration: "", distance: "", calories: "", completed: false, type: "NORMAL" }
+                    : { weight: "", reps: "", completed: false, type: "NORMAL" };
+
+                return {
+                  exerciseId: re.exerciseId,
+                  sets: [initialSet],
+                  order: re.order,
+                  isSuperset: re.isSuperset,
+                  note: null // Session note empty
+                };
+              }) || []
+      }
     }
   });
 

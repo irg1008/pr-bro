@@ -11,8 +11,9 @@ const response = await GET(Astro);
 const data: {
 	activeGroup: RoutineGroup | null;
 	nextRoutine: RoutineWithExercises | null;
+	activeLog: any | null;
 } = await response.json();
-const { activeGroup, nextRoutine } = data;
+const { activeGroup, nextRoutine, activeLog } = data;
 ---
 
 <BaseLayout title={"PR/BRO"}>
@@ -21,6 +22,7 @@ const { activeGroup, nextRoutine } = data;
 			client:load
 			activeGroupName={activeGroup?.name || null}
 			nextRoutine={nextRoutine}
+			activeLog={activeLog}
 		/>
 	</div>
 </BaseLayout>
