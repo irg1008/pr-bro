@@ -215,7 +215,7 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="grid gap-6 py-4 max-w-2xl mx-auto">
+    <form onSubmit={handleSubmit} className="mx-auto grid max-w-2xl gap-6 py-4">
       {!isEditMode && (
         <div className="flex justify-end">
           <ExerciseSelector
@@ -262,7 +262,7 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
               <img
                 src={formData.imageUrl}
                 alt="Preview"
-                className="h-full w-full object-contain bg-white"
+                className="h-full w-full bg-white object-contain"
                 onError={() => setImageError(true)}
               />
             ) : (
@@ -274,7 +274,7 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
         <div className="grid gap-2">
           <Label>
             Category <span className="text-destructive">*</span>
@@ -340,7 +340,7 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
             type="button"
             variant="ghost"
             size="sm"
-            className="h-6 gap-1 text-muted-foreground hover:text-foreground px-2"
+            className="text-muted-foreground hover:text-foreground h-6 gap-1 px-2"
             onClick={() =>
               setFormData({ ...formData, instructions: [...formData.instructions, ""] })
             }
@@ -358,10 +358,10 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
       </div>
 
       {error && error !== "An exercise with this name already exists" && (
-        <p className="text-sm font-medium text-destructive">{error}</p>
+        <p className="text-destructive text-sm font-medium">{error}</p>
       )}
 
-      <div className="flex justify-between items-center mt-4">
+      <div className="mt-4 flex items-center justify-between">
         {isEditMode && exerciseToEdit ? (
           <Button
             type="button"

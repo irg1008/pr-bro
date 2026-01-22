@@ -153,14 +153,14 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
             if (el) itemsRef.current.set(entryIdx, el);
             else itemsRef.current.delete(entryIdx);
           }}
-          className="overflow-hidden relative"
+          className="relative overflow-hidden"
         >
           {reorderMode && (
             <div className="absolute top-20 right-3 z-10 flex flex-col gap-1">
               <Button
                 variant="secondary"
                 size="icon"
-                className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100"
+                className="h-8 w-8 opacity-90 shadow-sm hover:opacity-100"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleMoveEntry(entryIdx, "up");
@@ -172,7 +172,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
               <Button
                 variant="secondary"
                 size="icon"
-                className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100"
+                className="h-8 w-8 opacity-90 shadow-sm hover:opacity-100"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleMoveEntry(entryIdx, "down");
@@ -186,8 +186,8 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
           <CardContent className="p-3">
             <div className="flex flex-col gap-3">
               <div className="flex items-start justify-between">
-                <div className="flex items-start gap-3 flex-1 min-w-0">
-                  <div className="bg-muted text-muted-foreground flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold mt-1">
+                <div className="flex min-w-0 flex-1 items-start gap-3">
+                  <div className="bg-muted text-muted-foreground mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold">
                     {entryIdx + 1}
                   </div>
                   {(entry.exercise as any).imageUrl && (
@@ -198,7 +198,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                     />
                   )}
                   <div className="min-w-0 flex-1">
-                    <h3 className="line-clamp-1 font-bold capitalize flex items-center gap-2 text-sm sm:text-base leading-none">
+                    <h3 className="line-clamp-1 flex items-center gap-2 text-sm leading-none font-bold capitalize sm:text-base">
                       {entry.exercise.name}
                       <ExerciseInfoModal exercise={entry.exercise as any} />
                     </h3>
@@ -216,7 +216,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                 </div>
                 {/* Actions Menu */}
                 <div className="flex items-center gap-1">
-                  {entry.isSuperset && <Zap className="h-4 w-4 text-amber-500 fill-amber-500" />}
+                  {entry.isSuperset && <Zap className="h-4 w-4 fill-amber-500 text-amber-500" />}
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
                       <Button variant="ghost" size="icon" className="h-8 w-8">
@@ -227,7 +227,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                       <DropdownMenuLabel>Actions</DropdownMenuLabel>
                       <DropdownMenuItem onClick={() => toggleSuperset(entryIdx)}>
                         <Zap
-                          className={`mr-2 h-4 w-4 ${entry.isSuperset ? "text-amber-500 fill-amber-500" : ""}`}
+                          className={`mr-2 h-4 w-4 ${entry.isSuperset ? "fill-amber-500 text-amber-500" : ""}`}
                         />
                         <span className={entry.isSuperset ? "font-bold text-amber-500" : ""}>
                           {entry.isSuperset ? "Active superset" : "Toggle superset"}
@@ -264,44 +264,38 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                     return null;
                   })()}
 
-                {/* Session Note UI */}
-                <Dialog>
-                  <DialogTrigger asChild>
-                    {/* Targets Display (Readonly) */}
-                    <div className="mt-2 text-sm cursor-pointer hover:opacity-80 transition-opacity w-fit">
-                      {entry.note ? (
-                        <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-fit">
-                          <MessageSquareText className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-                          <span className="leading-snug whitespace-pre-wrap">{entry.note}</span>
-                        </div>
-                      ) : (
-                        <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
-                          <MessageSquareText className="h-3.5 w-3.5" />
-                          <span className="text-xs">Add insight</span>
-                        </div>
-                      )}
-                    </div>
-                  </DialogTrigger>
-                  <DialogContent>
-                    <DialogHeader>
-                      <DialogTitle>Session note for {entry.exercise.name}</DialogTitle>
-                    </DialogHeader>
-                    <div className="py-2">
-                      <Textarea
-                        placeholder="How did it feel?"
-                        value={entry.note || ""}
-                        onChange={(e) => updateNote(entryIdx, e.target.value)}
-                        className="min-h-25"
-                      />
-                    </div>
-                    <DialogFooter>
-                      <DialogClose asChild>
-                        <Button type="button">Save</Button>
-                      </DialogClose>
-                    </DialogFooter>
-                  </DialogContent>
-                </Dialog>
-              </div>
+                    {entry.note ? (
+                      <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-fit">
+                        <MessageSquareText className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+                        <span className="leading-snug whitespace-pre-wrap">{entry.note}</span>
+                      </div>
+                    ) : (
+                      <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
+                        <MessageSquareText className="h-3.5 w-3.5" />
+                        <span className="text-xs">Add insight</span>
+                      </div>
+                    )}
+                  </div>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Session Note for {entry.exercise.name}</DialogTitle>
+                  </DialogHeader>
+                  <div className="py-2">
+                    <Textarea
+                      placeholder="How did it feel?"
+                      value={entry.note || ""}
+                      onChange={(e) => updateNote(entryIdx, e.target.value)}
+                      className="min-h-25"
+                    />
+                  </div>
+                  <DialogFooter>
+                    <DialogClose asChild>
+                      <Button type="button">Save</Button>
+                    </DialogClose>
+                  </DialogFooter>
+                </DialogContent>
+              </Dialog>
 
               {/* Sets Header */}
               {entry.exercise.type === "CARDIO" ? (
@@ -446,7 +440,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
       {reorderMode && (
         <Button
           size="icon"
-          className="fixed md:bottom-6 bottom-18 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-primary text-primary-foreground animate-in zoom-in spin-in-12 duration-300"
+          className="bg-primary text-primary-foreground animate-in zoom-in spin-in-12 fixed right-6 bottom-18 z-50 h-14 w-14 rounded-full shadow-lg duration-300 md:bottom-6"
           onClick={() => setReorderMode(false)}
         >
           <Check className="h-6 w-6" />

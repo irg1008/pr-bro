@@ -899,12 +899,12 @@ export const ActiveWorkout = ({
   });
 
   return (
-    <div className="mx-auto flex max-w-md px-4 flex-col gap-6 py-6 pb-12">
+    <div className="mx-auto flex max-w-md flex-col gap-6 px-4 py-6 pb-12">
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between lg:px-0">
-        <div className="flex flex-wrap items-center gap-2 max-w-[85%]">
-          <div className="text-muted-foreground bg-muted/50 rounded-full border px-3 py-1 text-sm font-medium flex flex-wrap items-center gap-x-2 leading-tight">
-            <span className="font-semibold text-foreground">{routineName}</span>
+        <div className="flex max-w-[85%] flex-wrap items-center gap-2">
+          <div className="text-muted-foreground bg-muted/50 flex flex-wrap items-center gap-x-2 rounded-full border px-3 py-1 text-sm leading-tight font-medium">
+            <span className="text-foreground font-semibold">{routineName}</span>
             <span>Started at {startTimeDisplay}</span>
           </div>
         </div>
@@ -960,7 +960,7 @@ export const ActiveWorkout = ({
         Apply progressive overload
       </Button>
 
-      <div className="flex items-center justify-center text-xs text-muted-foreground bg-muted/30 p-2 rounded-lg border border-dashed text-center">
+      <div className="text-muted-foreground bg-muted/30 flex items-center justify-center rounded-lg border border-dashed p-2 text-center text-xs">
         Tap set number to toggle between set types
       </div>
 
@@ -979,14 +979,14 @@ export const ActiveWorkout = ({
               scale: isExerciseComplete(ex.id) ? 0.95 : 1
             }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
-            className="carousel-visual-content bg-card overflow-hidden rounded-xl shadow-sm will-change-transform border relative"
+            className="carousel-visual-content bg-card relative overflow-hidden rounded-xl border shadow-sm will-change-transform"
           >
             {reorderMode && (
               <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100"
+                  className="h-8 w-8 opacity-90 shadow-sm hover:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleMoveExercise(index, "up");
@@ -998,7 +998,7 @@ export const ActiveWorkout = ({
                 <Button
                   variant="secondary"
                   size="icon"
-                  className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100"
+                  className="h-8 w-8 opacity-90 shadow-sm hover:opacity-100"
                   onClick={(e) => {
                     e.stopPropagation();
                     handleMoveExercise(index, "down");
@@ -1015,15 +1015,15 @@ export const ActiveWorkout = ({
                   src={ex.imageUrl}
                   alt={ex.name}
                   onClick={() => {}}
-                  className="h-full w-full object-contain bg-white"
+                  className="h-full w-full bg-white object-contain"
                 />
               </div>
             )}
 
             <div className="p-3">
               <div className="flex items-start justify-between">
-                <div className="flex flex-col gap-1 flex-1">
-                  <h3 className="flex items-center gap-2 text-lg font-bold capitalize leading-none">
+                <div className="flex flex-1 flex-col gap-1">
+                  <h3 className="flex items-center gap-2 text-lg leading-none font-bold capitalize">
                     {ex.name}
                     <ExerciseInfoModal exercise={ex} />
                   </h3>
@@ -1052,7 +1052,7 @@ export const ActiveWorkout = ({
 
                   {/* Routine Note (Static, not editable) */}
                   {ex.routineNote && (
-                    <div className="mt-2 text-sm text-muted-foreground border-l-4 pl-3 py-1 pr-2 bg-muted/20 w-fit rounded-r whitespace-pre-wrap">
+                    <div className="text-muted-foreground bg-muted/20 mt-2 w-fit rounded-r border-l-4 py-1 pr-2 pl-3 text-sm whitespace-pre-wrap">
                       {ex.routineNote}
                     </div>
                   )}
@@ -1061,16 +1061,16 @@ export const ActiveWorkout = ({
                   {/* Session Note UI - Replaces old display and button */}
                   <Dialog>
                     <DialogTrigger asChild>
-                      <div className="mt-2 text-sm cursor-pointer hover:opacity-80 transition-opacity w-fit">
+                      <div className="mt-2 w-fit cursor-pointer text-sm transition-opacity hover:opacity-80">
                         {sessionNotes[ex.id] ? (
-                          <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-fit">
-                            <MessageSquareText className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+                          <div className="text-foreground/80 bg-background flex w-fit items-start gap-2 rounded-md border px-2 py-1.5">
+                            <MessageSquareText className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
                             <span className="leading-snug whitespace-pre-wrap">
                               {sessionNotes[ex.id]}
                             </span>
                           </div>
                         ) : (
-                          <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
+                          <div className="border-muted-foreground/30 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 flex w-fit items-center gap-2 rounded-md border border-dashed p-1.5 transition-colors">
                             <MessageSquareText className="h-3.5 w-3.5" />
                             <span className="text-xs">Add insight</span>
                           </div>
@@ -1103,7 +1103,7 @@ export const ActiveWorkout = ({
                   {/* Actions Menu */}
                   <div className="flex items-center gap-1">
                     {supersetStatus[ex.id] && (
-                      <Zap className="h-4 w-4 text-amber-500 fill-amber-500" />
+                      <Zap className="h-4 w-4 fill-amber-500 text-amber-500" />
                     )}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
@@ -1129,7 +1129,7 @@ export const ActiveWorkout = ({
                           }}
                         >
                           <Zap
-                            className={`mr-2 h-4 w-4 ${supersetStatus[ex.id] ? "text-amber-500 fill-amber-500" : ""}`}
+                            className={`mr-2 h-4 w-4 ${supersetStatus[ex.id] ? "fill-amber-500 text-amber-500" : ""}`}
                           />
                           <span className={supersetStatus[ex.id] ? "font-bold text-amber-500" : ""}>
                             {supersetStatus[ex.id] ? "Active superset" : "Toggle superset"}
@@ -1178,7 +1178,7 @@ export const ActiveWorkout = ({
               {(sets[ex.id] || [createEmptySet(ex.type)]).map((set, idx) => (
                 <div
                   key={idx}
-                  className={`grid gap-4 items-center relative ${
+                  className={`relative grid items-center gap-4 ${
                     ex.type === "CARDIO"
                       ? "grid-cols-[auto_1fr_1fr_1fr_auto]"
                       : "grid-cols-[auto_auto_1fr_1fr_auto]"
@@ -1190,14 +1190,14 @@ export const ActiveWorkout = ({
                       initial={{ scaleX: 0 }}
                       animate={{ scaleX: 1 }}
                       transition={{ type: "spring", stiffness: 200, damping: 30 }}
-                      className="absolute left-0 right-10 top-1/2 h-0.5 bg-foreground/30 pointer-events-none z-10 origin-left"
+                      className="bg-foreground/30 pointer-events-none absolute top-1/2 right-10 left-0 z-10 h-0.5 origin-left"
                     />
                   )}
 
                   {/* Tick/Complete Toggle - New Column */}
                   {ex.type !== "CARDIO" && (
                     <div
-                      className="flex items-center justify-center cursor-pointer"
+                      className="flex cursor-pointer items-center justify-center"
                       onClick={() => {
                         const newCompleted = !set.completed;
                         if (newCompleted) haptic.success();
@@ -1206,7 +1206,7 @@ export const ActiveWorkout = ({
                       }}
                     >
                       <div
-                        className={`h-6 w-6 rounded-full border flex items-center justify-center transition-colors ${set.completed ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30 hover:border-muted-foreground/50"}`}
+                        className={`flex h-6 w-6 items-center justify-center rounded-full border transition-colors ${set.completed ? "bg-primary border-primary text-primary-foreground" : "border-muted-foreground/30 hover:border-muted-foreground/50"}`}
                       >
                         {set.completed && <Check className="h-3.5 w-3.5" />}
                       </div>
@@ -1441,7 +1441,7 @@ export const ActiveWorkout = ({
                 <span>
                   The following exercises need targets (sets/reps) to enable progressive overload:
                 </span>
-                <ul className="list-disc pl-5 space-y-1 font-medium text-foreground/90 my-2 text-sm">
+                <ul className="text-foreground/90 my-2 list-disc space-y-1 pl-5 text-sm font-medium">
                   {missingTargetsExercises.map((e) => (
                     <li key={e.id} className="capitalize">
                       {e.name}
@@ -1454,7 +1454,7 @@ export const ActiveWorkout = ({
               </div>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={() => {
@@ -1480,14 +1480,14 @@ export const ActiveWorkout = ({
               Here's how your targets have changed based on your last performance:
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <div className="py-2 space-y-4 max-h-[60vh] overflow-y-auto">
+          <div className="max-h-[60vh] space-y-4 overflow-y-auto py-2">
             {progressionDiffs.map((diff, i) => (
               <div key={i} className="flex flex-col gap-1 border-b pb-2 last:border-0 last:pb-0">
-                <span className="font-semibold text-sm capitalize">{diff.exerciseName}</span>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                <span className="text-sm font-semibold capitalize">{diff.exerciseName}</span>
+                <div className="text-muted-foreground flex items-center gap-2 text-xs">
                   {diff.type === "PROMOTION" ? (
                     <>
-                      <div className="flex items-center gap-1 line-through decoration-destructive/50">
+                      <div className="decoration-destructive/50 flex items-center gap-1 line-through">
                         <span className="flex items-center gap-1">
                           <Dumbbell className="h-3 w-3" />
                           {diff.oldWeight}kg
@@ -1514,7 +1514,7 @@ export const ActiveWorkout = ({
                       <span className="text-muted-foreground text-xs">
                         Target set to min range. Hit min reps to progress:
                       </span>
-                      <div className="flex items-center gap-2 font-medium text-foreground">
+                      <div className="text-foreground flex items-center gap-2 font-medium">
                         <span className="flex items-center gap-1">
                           <Dumbbell className="h-3.5 w-3.5" />
                           {diff.newWeight}kg
@@ -1577,7 +1577,7 @@ export const ActiveWorkout = ({
       {reorderMode && (
         <Button
           size="icon"
-          className="fixed md:bottom-6 bottom-18 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-primary text-primary-foreground animate-in zoom-in spin-in-12 duration-300"
+          className="bg-primary text-primary-foreground animate-in zoom-in spin-in-12 fixed right-6 bottom-18 z-50 h-14 w-14 rounded-full shadow-lg duration-300 md:bottom-6"
           onClick={() => setReorderMode(false)}
         >
           <Check className="h-6 w-6" />
@@ -1596,7 +1596,7 @@ export const ActiveWorkout = ({
               You've completed all your sets! Great workout! Ready to finish?
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+          <AlertDialogFooter className="flex-col gap-2 sm:flex-row">
             <AlertDialogCancel>Keep training</AlertDialogCancel>
             <AlertDialogAction onClick={handleFinishWorkout}>Finish workout</AlertDialogAction>
           </AlertDialogFooter>

@@ -291,7 +291,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         {routines.map((routine, index) => (
           <Card
             key={routine.id}
-            className="group relative cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] border-border/40 hover:bg-card/50"
+            className="group border-border/40 hover:bg-card/50 relative cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99]"
             onClick={() => handleSelectRoutine(routine.id)}
           >
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
@@ -456,7 +456,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                       checked={editCategories.includes(cat)}
                       onCheckedChange={() => toggleCategory(cat, true)}
                     />
-                    <span className="text-sm font-medium leading-none">{cat}</span>
+                    <span className="text-sm leading-none font-medium">{cat}</span>
                   </label>
                 ))}
               </div>

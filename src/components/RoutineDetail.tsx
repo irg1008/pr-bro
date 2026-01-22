@@ -466,10 +466,10 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
               <div className="flex flex-col gap-3">
                 {/* Top Row: Index, Image, Info, Menu */}
                 <div className="flex items-start justify-between gap-3">
-                  <div className="flex items-start gap-3 flex-1 min-w-0">
+                  <div className="flex min-w-0 flex-1 items-start gap-3">
                     <div
                       className={cn(
-                        "flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold mt-1",
+                        "mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold",
                         re.isActive !== false
                           ? "bg-muted text-muted-foreground"
                           : "bg-muted/50 text-muted-foreground/50"
@@ -490,14 +490,14 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                     <div className="min-w-0 flex-1">
                       <h3
                         className={cn(
-                          "line-clamp-1 font-bold capitalize flex items-center gap-2 text-sm sm:text-base",
+                          "line-clamp-1 flex items-center gap-2 text-sm font-bold capitalize sm:text-base",
                           re.isActive === false && "text-muted-foreground"
                         )}
                       >
                         {re.exercise.name}
                         <ExerciseInfoModal exercise={re.exercise} />
                         {re.isActive === false && (
-                          <Badge variant="outline" className="text-[10px] h-4 px-1">
+                          <Badge variant="outline" className="h-4 px-1 text-[10px]">
                             Inactive
                           </Badge>
                         )}
@@ -517,7 +517,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
 
                   {/* Menu always on top right */}
                   <div className="flex items-center gap-1">
-                    {re.isSuperset && <Zap className="h-4 w-4 text-amber-500 fill-amber-500" />}
+                    {re.isSuperset && <Zap className="h-4 w-4 fill-amber-500 text-amber-500" />}
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
@@ -530,7 +530,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                           <Zap
                             className={cn(
                               "mr-2 h-4 w-4",
-                              re.isSuperset ? "text-amber-500 fill-amber-500" : ""
+                              re.isSuperset ? "fill-amber-500 text-amber-500" : ""
                             )}
                           />
                           <span>{re.isSuperset ? "Active superset" : "Toggle superset"}</span>
@@ -566,18 +566,18 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                 {/* Bottom Content: Note & Move Actions */}
                 <div
                   className={cn(
-                    "flex items-center justify-between gap-3 pl-11 mt-2",
+                    "mt-2 flex items-center justify-between gap-3 pl-11",
                     re.isActive === false && "opacity-50"
                   )}
                 >
-                  <div className="flex gap-2 flex-col">
+                  <div className="flex flex-col gap-2">
                     {/* Targets Area - Clickable */}
                     <div className="cursor-pointer" onClick={() => openTargetDialog(re)}>
                       {re.targetSets ||
                       re.targetReps ||
                       re.targetRepsToFailure ||
                       re.incrementValue ? (
-                        <div className="bg-background px-2 py-1.5 rounded-md border hover:bg-muted/30 transition-colors w-fit">
+                        <div className="bg-background hover:bg-muted/30 w-fit rounded-md border px-2 py-1.5 transition-colors">
                           <TargetDisplay
                             targetSets={re.targetSets}
                             targetReps={re.targetReps}
@@ -589,7 +589,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                           />
                         </div>
                       ) : (
-                        <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
+                        <div className="border-muted-foreground/30 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 flex w-fit items-center gap-2 rounded-md border border-dashed p-1.5 transition-colors">
                           <Target className="h-3.5 w-3.5" />
                           <span className="text-xs">Add target</span>
                         </div>
@@ -597,14 +597,14 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                     </div>
 
                     {/* Note Area - Clickable Card */}
-                    <div className="cursor-pointer group w-fit" onClick={() => openNoteDialog(re)}>
+                    <div className="group w-fit cursor-pointer" onClick={() => openNoteDialog(re)}>
                       {re.note ? (
-                        <div className="text-sm text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border hover:bg-muted/30 transition-colors w-fit">
-                          <StickyNote className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+                        <div className="text-foreground/80 bg-background hover:bg-muted/30 flex w-fit items-start gap-2 rounded-md border px-2 py-1.5 text-sm transition-colors">
+                          <StickyNote className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
                           <span className="leading-snug whitespace-pre-wrap">{re.note}</span>
                         </div>
                       ) : (
-                        <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
+                        <div className="border-muted-foreground/30 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 flex w-fit items-center gap-2 rounded-md border border-dashed p-1.5 transition-colors">
                           <StickyNote className="h-3.5 w-3.5" />
                           <span className="text-xs">Add note</span>
                         </div>
@@ -613,7 +613,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                   </div>
 
                   {/* Move Actions - Stacked */}
-                  <div className="flex flex-col ms-auto gap-1 shrink-0">
+                  <div className="ms-auto flex shrink-0 flex-col gap-1">
                     <Button
                       variant="ghost"
                       size="icon"
@@ -674,7 +674,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
         <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
           <Button
             variant="outline"
-            className="w-full gap-2 sm:w-auto flex items-center justify-center"
+            className="flex w-full items-center justify-center gap-2 sm:w-auto"
             onClick={async () => {
               const returnUrl = encodeURIComponent(window.location.pathname);
               await navigate(
@@ -703,8 +703,8 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
         </div>
       </div>
 
-      <Tabs defaultValue="active" className="w-full mt-4">
-        <div className="flex items-center justify-between mb-4">
+      <Tabs defaultValue="active" className="mt-4 w-full">
+        <div className="mb-4 flex items-center justify-between">
           <TabsList>
             <TabsTrigger value="active">Active ({activeExercises.length})</TabsTrigger>
             <TabsTrigger value="inactive">Inactive ({inactiveExercises.length})</TabsTrigger>
@@ -751,7 +751,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                         checked={selectedCategories.includes(cat)}
                         onCheckedChange={() => toggleCategory(cat)}
                       />
-                      <span className="text-sm font-medium leading-none">{cat}</span>
+                      <span className="text-sm leading-none font-medium">{cat}</span>
                     </label>
                   ))}
                 </div>
@@ -812,7 +812,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
               placeholder="e.g. Use the wide grip bar, seat setting 4..."
               className="mt-2"
             />
-            <p className="text-xs text-muted-foreground mt-1">
+            <p className="text-muted-foreground mt-1 text-xs">
               This note will be shown every time you perform this exercise.
             </p>
           </div>
@@ -842,7 +842,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
           <div className="py-4">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <Label className="text-xs text-muted-foreground">Sets</Label>
+                <Label className="text-muted-foreground text-xs">Sets</Label>
                 <Input
                   value={targetDialog.targetSets}
                   onChange={(e) =>
@@ -853,10 +853,10 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">
+                <Label className="text-muted-foreground text-xs">
                   {targetDialog.targetType === "DURATION" ? "Seconds" : "Reps"}
                 </Label>
-                <div className="flex gap-2 mt-1">
+                <div className="mt-1 flex gap-2">
                   <Input
                     value={targetDialog.targetReps}
                     onChange={(e) =>
@@ -869,7 +869,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                     type="button"
                     variant={targetDialog.targetType === "REPS" ? "default" : "outline"}
                     size="sm"
-                    className="shrink-0 text-xs px-2"
+                    className="shrink-0 px-2 text-xs"
                     onClick={() => setTargetDialog((prev) => ({ ...prev, targetType: "REPS" }))}
                   >
                     Reps
@@ -878,7 +878,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                     type="button"
                     variant={targetDialog.targetType === "DURATION" ? "default" : "outline"}
                     size="sm"
-                    className="shrink-0 text-xs px-2"
+                    className="shrink-0 px-2 text-xs"
                     onClick={() => setTargetDialog((prev) => ({ ...prev, targetType: "DURATION" }))}
                   >
                     Secs
@@ -886,7 +886,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                 </div>
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Increment (kg)</Label>
+                <Label className="text-muted-foreground text-xs">Increment (kg)</Label>
                 <Input
                   value={targetDialog.incrementValue}
                   onChange={(e) =>
@@ -897,7 +897,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">RIF</Label>
+                <Label className="text-muted-foreground text-xs">RIF</Label>
                 <Input
                   value={targetDialog.targetRepsToFailure}
                   onChange={(e) =>
@@ -908,7 +908,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                 />
               </div>
             </div>
-            <p className="text-xs text-muted-foreground mt-3">
+            <p className="text-muted-foreground mt-3 text-xs">
               RIF = Reps In Reserve (reps before failure)
             </p>
           </div>

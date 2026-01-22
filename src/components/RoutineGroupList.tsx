@@ -99,7 +99,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
 
   return (
     <div className="space-y-4">
-      <div className="flex items-center justify-between flex-wrap gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h2 className="text-2xl font-bold tracking-tight">Routine groups</h2>
         <div className="flex gap-2">
           <Button
@@ -233,7 +233,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
         {groups.map((group) => (
           <Card
             key={group.id}
-            className={`group relative cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] hover:bg-card/50 ${
+            className={`group hover:bg-card/50 relative cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99] ${
               group.isActive ? "border-primary/50 bg-primary/5" : "border-border/40"
             }`}
             onClick={() => handleSelectGroup(group.id)}
@@ -290,7 +290,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
                 </div>
               </div>
               {group.description && (
-                <p className="text-muted-foreground text-sm mt-2">{group.description}</p>
+                <p className="text-muted-foreground mt-2 text-sm">{group.description}</p>
               )}
             </CardHeader>
           </Card>

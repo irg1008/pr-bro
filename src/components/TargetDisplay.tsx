@@ -28,7 +28,7 @@ export const TargetDisplay: React.FC<TargetDisplayProps> = ({
   return (
     <div
       className={cn(
-        "items-center gap-2 text-xs text-muted-foreground",
+        "text-muted-foreground items-center gap-2 text-xs",
         asGrid ? "grid grid-cols-2 sm:flex sm:flex-wrap" : "flex",
         className
       )}
@@ -50,7 +50,7 @@ export const TargetDisplay: React.FC<TargetDisplayProps> = ({
       )}
       {incrementValue && (
         <span
-          className="flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium"
+          className="flex items-center gap-1 font-medium text-blue-600 dark:text-blue-400"
           title="Double Progression Increment"
         >
           <TrendingUp className="h-3 w-3" />+{incrementValue}kg
