@@ -372,19 +372,31 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                     <>
                       <Input
                         type="number"
-                        value={set.weight}
+                        value={set.weight === "" ? "" : set.weight}
                         onChange={(e) =>
-                          updateSet(entryIdx, setIdx, "weight", Number(e.target.value))
+                          updateSet(
+                            entryIdx,
+                            setIdx,
+                            "weight",
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
                         }
                         className="text-center"
+                        placeholder="0"
                       />
                       <Input
                         type="number"
-                        value={set.reps}
+                        value={set.reps === "" ? "" : set.reps}
                         onChange={(e) =>
-                          updateSet(entryIdx, setIdx, "reps", Number(e.target.value))
+                          updateSet(
+                            entryIdx,
+                            setIdx,
+                            "reps",
+                            e.target.value === "" ? "" : Number(e.target.value)
+                          )
                         }
                         className="text-center"
+                        placeholder="0"
                       />
                     </>
                   )}

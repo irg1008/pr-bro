@@ -698,7 +698,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             title={`Paste "${clipboard?.exerciseName}"`}
           >
             <ClipboardPaste className="h-4 w-4" />
-            <span className="hidden sm:inline">Paste</span>
+            Paste
           </Button>
         </div>
       </div>
