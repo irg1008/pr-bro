@@ -264,38 +264,44 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                     return null;
                   })()}
 
-                    {entry.note ? (
-                      <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-fit">
-                        <MessageSquareText className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-                        <span className="leading-snug whitespace-pre-wrap">{entry.note}</span>
-                      </div>
-                    ) : (
-                      <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
-                        <MessageSquareText className="h-3.5 w-3.5" />
-                        <span className="text-xs">Add insight</span>
-                      </div>
-                    )}
-                  </div>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Session Note for {entry.exercise.name}</DialogTitle>
-                  </DialogHeader>
-                  <div className="py-2">
-                    <Textarea
-                      placeholder="How did it feel?"
-                      value={entry.note || ""}
-                      onChange={(e) => updateNote(entryIdx, e.target.value)}
-                      className="min-h-25"
-                    />
-                  </div>
-                  <DialogFooter>
-                    <DialogClose asChild>
-                      <Button type="button">Save</Button>
-                    </DialogClose>
-                  </DialogFooter>
-                </DialogContent>
-              </Dialog>
+                {/* Session Note UI */}
+                <Dialog>
+                  <DialogTrigger asChild>
+                    {/* Targets Display (Readonly) */}
+                    <div className="mt-2 text-sm cursor-pointer hover:opacity-80 transition-opacity w-fit">
+                      {entry.note ? (
+                        <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-fit">
+                          <MessageSquareText className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+                          <span className="leading-snug whitespace-pre-wrap">{entry.note}</span>
+                        </div>
+                      ) : (
+                        <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
+                          <MessageSquareText className="h-3.5 w-3.5" />
+                          <span className="text-xs">Add insight</span>
+                        </div>
+                      )}
+                    </div>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Session note for {entry.exercise.name}</DialogTitle>
+                    </DialogHeader>
+                    <div className="py-2">
+                      <Textarea
+                        placeholder="How did it feel?"
+                        value={entry.note || ""}
+                        onChange={(e) => updateNote(entryIdx, e.target.value)}
+                        className="min-h-25"
+                      />
+                    </div>
+                    <DialogFooter>
+                      <DialogClose asChild>
+                        <Button type="button">Save</Button>
+                      </DialogClose>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
+              </div>
 
               {/* Sets Header */}
               {entry.exercise.type === "CARDIO" ? (
