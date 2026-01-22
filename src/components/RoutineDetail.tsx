@@ -595,7 +595,9 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                       {re.note ? (
                         <div className="text-sm text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border hover:bg-muted/30 transition-colors w-fit">
                           <StickyNote className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-                          <span className="leading-snug line-clamp-2">{re.note}</span>
+                          <span className="leading-snug line-clamp-2 whitespace-pre-wrap">
+                            {re.note}
+                          </span>
                         </div>
                       ) : (
                         <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
