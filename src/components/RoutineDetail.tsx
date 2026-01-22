@@ -107,6 +107,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     incrementValue: ""
   });
   const [clipboard, setClipboard] = useState<any>(null);
+  const [activeTab, setActiveTab] = useState<"active" | "inactive">("active");
 
   useEffect(() => {
     const saved = localStorage.getItem("prbro_clipboard");
@@ -426,7 +427,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       await fetch(`/api/routine-exercises?id=${deleteAlert.id}`, {
         method: "DELETE"
       });
-      navigate(location.pathname);
+      setExercises((prev) => prev.filter((e) => e.id !== deleteAlert.id));
     } catch (error) {
       console.error("Failed to remove exercise", error);
     } finally {
@@ -703,7 +704,11 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
         </div>
       </div>
 
-      <Tabs defaultValue="active" className="mt-4 w-full">
+      <Tabs
+        value={activeTab}
+        onValueChange={(v) => setActiveTab(v as "active" | "inactive")}
+        className="mt-4 w-full"
+      >
         <div className="mb-4 flex items-center justify-between">
           <TabsList>
             <TabsTrigger value="active">Active ({activeExercises.length})</TabsTrigger>
@@ -865,24 +870,34 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                     placeholder={targetDialog.targetType === "DURATION" ? "30" : "8-12"}
                     className="flex-1"
                   />
-                  <Button
-                    type="button"
-                    variant={targetDialog.targetType === "REPS" ? "default" : "outline"}
-                    size="sm"
-                    className="shrink-0 px-2 text-xs"
-                    onClick={() => setTargetDialog((prev) => ({ ...prev, targetType: "REPS" }))}
-                  >
-                    Reps
-                  </Button>
-                  <Button
-                    type="button"
-                    variant={targetDialog.targetType === "DURATION" ? "default" : "outline"}
-                    size="sm"
-                    className="shrink-0 px-2 text-xs"
-                    onClick={() => setTargetDialog((prev) => ({ ...prev, targetType: "DURATION" }))}
-                  >
-                    Secs
-                  </Button>
+                  <div className="flex shrink-0 rounded-md border overflow-hidden">
+                    <button
+                      type="button"
+                      className={cn(
+                        "px-2 py-1 text-xs font-medium transition-colors",
+                        targetDialog.targetType === "REPS"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-transparent text-muted-foreground hover:bg-muted"
+                      )}
+                      onClick={() => setTargetDialog((prev) => ({ ...prev, targetType: "REPS" }))}
+                    >
+                      Reps
+                    </button>
+                    <button
+                      type="button"
+                      className={cn(
+                        "px-2 py-1 text-xs font-medium transition-colors border-l",
+                        targetDialog.targetType === "DURATION"
+                          ? "bg-primary text-primary-foreground"
+                          : "bg-transparent text-muted-foreground hover:bg-muted"
+                      )}
+                      onClick={() =>
+                        setTargetDialog((prev) => ({ ...prev, targetType: "DURATION" }))
+                      }
+                    >
+                      Secs
+                    </button>
+                  </div>
                 </div>
               </div>
               <div>

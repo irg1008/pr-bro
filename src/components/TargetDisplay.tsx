@@ -48,7 +48,7 @@ export const TargetDisplay: React.FC<TargetDisplayProps> = ({
           {targetReps} {isDuration ? "secs" : "reps"}
         </span>
       )}
-      {incrementValue && (
+      {Number.isFinite(incrementValue) && (
         <span
           className="flex items-center gap-1 font-medium text-blue-600 dark:text-blue-400"
           title="Double Progression Increment"
