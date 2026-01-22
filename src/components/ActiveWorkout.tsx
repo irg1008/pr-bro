@@ -1117,7 +1117,7 @@ export const ActiveWorkout = ({
 
                   {/* Routine Note (Static, not editable) */}
                   {ex.routineNote && (
-                    <div className="mt-2 text-sm text-muted-foreground border-l-4 pl-3 py-1 pr-2 bg-muted/20 w-fit rounded-r">
+                    <div className="mt-2 text-sm text-muted-foreground border-l-4 pl-3 py-1 pr-2 bg-muted/20 w-fit rounded-r whitespace-pre-wrap">
                       {ex.routineNote}
                     </div>
                   )}

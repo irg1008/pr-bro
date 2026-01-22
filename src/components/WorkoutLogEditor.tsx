@@ -257,7 +257,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                                 className="mb-1.5"
                               />
                               {re.note && (
-                                <div className="mt-2 mb-2 text-sm text-muted-foreground border-l-4 pl-3 py-1 pr-2 bg-muted/20 w-fit rounded-r">
+                                <div className="mt-2 mb-2 text-sm text-muted-foreground border-l-4 pl-3 py-1 pr-2 bg-muted/20 w-fit rounded-r whitespace-pre-wrap">
                                   {re.note}
                                 </div>
                               )}
