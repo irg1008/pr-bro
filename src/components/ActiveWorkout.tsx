@@ -886,30 +886,80 @@ export const ActiveWorkout = ({
     }
   };
 
-  // Auto-save Effect (Debounced)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // Don't save if finishing (handled by handleFinish) or if component just mounted (initial state)
-      // We can rely on isFinishingRef to avoid conflict
-      if (isFinishingRef.current) return;
+  // Auto-save Effect (Improved Debounce with Race Condition Prevention)
+  const isSavingRef = useRef(false);
+  const pendingSaveRef = useRef(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-      const completeSets = sanitizeSets();
+  const performSave = async () => {
+    // If already saving, mark that we need another save after
+    if (isSavingRef.current) {
+      pendingSaveRef.current = true;
+      return;
+    }
 
-      // Silent save
-      fetch(`/api/workout-logs/${logId}`, {
+    if (isFinishingRef.current) return;
+
+    isSavingRef.current = true;
+    pendingSaveRef.current = false;
+
+    // Use stateRef to get the LATEST state at save time
+    const { sets, activeExercises, supersetStatus, sessionNotes } = stateRef.current;
+
+    const completeSets: Record<string, WorkoutSet[]> = {};
+    activeExercises.forEach((ex) => {
+      if (sets[ex.id]) {
+        completeSets[ex.id] = sets[ex.id];
+      } else {
+        if (ex.type === "CARDIO") {
+          completeSets[ex.id] = [
+            { duration: "", distance: "", calories: "", completed: false, type: "NORMAL" }
+          ];
+        } else {
+          completeSets[ex.id] = [{ weight: "", reps: "", completed: false, type: "NORMAL" }];
+        }
+      }
+    });
+
+    try {
+      await fetch(`/api/workout-logs/${logId}`, {
         method: "PUT",
         body: JSON.stringify({
           entries: completeSets,
           supersetStatus,
           sessionNotes,
           exerciseOrder: activeExercises.map((e) => e.id)
-          // finishedAt is NOT sent, so status remains IN_PROGRESS
         }),
         headers: { "Content-Type": "application/json" }
-      }).catch((e) => console.error("Auto-save failed", e));
-    }, 2000); // 2 seconds debounce
+      });
+    } catch (e) {
+      console.error("Auto-save failed", e);
+    } finally {
+      isSavingRef.current = false;
 
-    return () => clearTimeout(timer);
+      // If there was a pending save request, do it now
+      if (pendingSaveRef.current) {
+        performSave();
+      }
+    }
+  };
+
+  useEffect(() => {
+    // Clear any existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set new debounce timer
+    debounceTimerRef.current = setTimeout(() => {
+      performSave();
+    }, 1500); // 1.5 seconds debounce for quicker feedback
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [sets, supersetStatus, sessionNotes, activeExercises]); // Dependencies for auto-save
 
   const startTimeDisplay = new Date(initialStartTime).toLocaleString(undefined, {
