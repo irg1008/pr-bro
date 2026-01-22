@@ -144,7 +144,7 @@ export const HistoryDetailHeader = ({
     <div className="flex items-start justify-between">
       <div>
         <a href="/history" className="text-muted-foreground mb-2 block text-sm hover:underline">
-          ← Back to History
+          ← Back to history
         </a>
         <h1 className="text-3xl font-bold">{log.routine.name}</h1>
         <p className="text-muted-foreground">{log.routine.group.name}</p>
