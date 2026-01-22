@@ -94,6 +94,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     id: string | null;
     targetSets: string;
     targetReps: string;
+    targetType: "REPS" | "DURATION";
     targetRepsToFailure: string;
     incrementValue: string;
   }>({
@@ -101,6 +102,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     id: null,
     targetSets: "",
     targetReps: "",
+    targetType: "REPS",
     targetRepsToFailure: "",
     incrementValue: ""
   });
@@ -313,6 +315,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       id: re.id,
       targetSets: re.targetSets || "",
       targetReps: re.targetReps || "",
+      targetType: (re as any).targetType || "REPS",
       targetRepsToFailure: re.targetRepsToFailure || "",
       incrementValue: re.incrementValue ? re.incrementValue.toString() : ""
     });
@@ -368,6 +371,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             ...e,
             targetSets: targetDialog.targetSets || null,
             targetReps: targetDialog.targetReps || null,
+            targetType: targetDialog.targetType,
             targetRepsToFailure: targetDialog.targetRepsToFailure || null,
             incrementValue: targetDialog.incrementValue
               ? parseFloat(targetDialog.incrementValue)
@@ -384,6 +388,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
           id: targetDialog.id,
           targetSets: targetDialog.targetSets || null,
           targetReps: targetDialog.targetReps || null,
+          targetType: targetDialog.targetType,
           targetRepsToFailure: targetDialog.targetRepsToFailure || null,
           incrementValue: targetDialog.incrementValue || null
         }),
@@ -576,6 +581,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                           <TargetDisplay
                             targetSets={re.targetSets}
                             targetReps={re.targetReps}
+                            targetType={(re as any).targetType}
                             targetRepsToFailure={re.targetRepsToFailure}
                             incrementValue={re.incrementValue}
                             className="gap-3"
@@ -847,15 +853,37 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                 />
               </div>
               <div>
-                <Label className="text-xs text-muted-foreground">Reps</Label>
-                <Input
-                  value={targetDialog.targetReps}
-                  onChange={(e) =>
-                    setTargetDialog((prev) => ({ ...prev, targetReps: e.target.value }))
-                  }
-                  placeholder="8-12"
-                  className="mt-1"
-                />
+                <Label className="text-xs text-muted-foreground">
+                  {targetDialog.targetType === "DURATION" ? "Seconds" : "Reps"}
+                </Label>
+                <div className="flex gap-2 mt-1">
+                  <Input
+                    value={targetDialog.targetReps}
+                    onChange={(e) =>
+                      setTargetDialog((prev) => ({ ...prev, targetReps: e.target.value }))
+                    }
+                    placeholder={targetDialog.targetType === "DURATION" ? "30" : "8-12"}
+                    className="flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant={targetDialog.targetType === "REPS" ? "default" : "outline"}
+                    size="sm"
+                    className="shrink-0 text-xs px-2"
+                    onClick={() => setTargetDialog((prev) => ({ ...prev, targetType: "REPS" }))}
+                  >
+                    Reps
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={targetDialog.targetType === "DURATION" ? "default" : "outline"}
+                    size="sm"
+                    className="shrink-0 text-xs px-2"
+                    onClick={() => setTargetDialog((prev) => ({ ...prev, targetType: "DURATION" }))}
+                  >
+                    Secs
+                  </Button>
+                </div>
               </div>
               <div>
                 <Label className="text-xs text-muted-foreground">Increment (kg)</Label>

@@ -25,6 +25,7 @@ export const POST: APIRoute = async ({ request }) => {
       order: newOrder,
       targetSets: data.targetSets || null,
       targetReps: data.targetReps || null,
+      targetType: data.targetType || "REPS",
       targetRepsToFailure: data.targetRepsToFailure || null,
       incrementValue:
         data.incrementValue !== undefined ? parseFloat(data.incrementValue) : undefined,
@@ -61,6 +62,7 @@ export const PATCH: APIRoute = async ({ request }) => {
     note,
     targetSets,
     targetReps,
+    targetType,
     targetRepsToFailure,
     incrementValue,
     isActive
@@ -74,6 +76,7 @@ export const PATCH: APIRoute = async ({ request }) => {
   if (note !== undefined) updateData.note = note;
   if (targetSets !== undefined) updateData.targetSets = targetSets || null;
   if (targetReps !== undefined) updateData.targetReps = targetReps || null;
+  if (targetType !== undefined) updateData.targetType = targetType;
   if (targetRepsToFailure !== undefined)
     updateData.targetRepsToFailure = targetRepsToFailure || null;
   if (incrementValue !== undefined)

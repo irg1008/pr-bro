@@ -252,6 +252,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                               <TargetDisplay
                                 targetSets={re.targetSets}
                                 targetReps={re.targetReps}
+                                targetType={(re as any).targetType}
                                 targetRepsToFailure={re.targetRepsToFailure}
                                 incrementValue={re.incrementValue}
                                 className="mb-1.5"
@@ -313,7 +314,12 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                 <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_auto] gap-4 text-sm font-medium">
                   <div className="w-8 text-center">#</div>
                   <div className="text-center">Kg</div>
-                  <div className="text-center">Reps</div>
+                  <div className="text-center">
+                    {routine?.exercises.find((e) => e.exerciseId === entry.exerciseId)
+                      ?.targetType === "DURATION"
+                      ? "Secs"
+                      : "Reps"}
+                  </div>
                   <div className="w-8"></div>
                 </div>
               )}

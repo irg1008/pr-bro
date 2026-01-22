@@ -90,6 +90,7 @@ export interface ActiveWorkoutExercise extends Exercise {
   sessionNote?: string | null;
   targetSets?: string | null;
   targetReps?: string | null;
+  targetType?: "REPS" | "DURATION" | null;
   targetRepsToFailure?: string | null;
   incrementValue?: number | null;
 }
@@ -1109,6 +1110,7 @@ export const ActiveWorkout = ({
                   <TargetDisplay
                     targetSets={ex.targetSets}
                     targetReps={ex.targetReps}
+                    targetType={ex.targetType}
                     targetRepsToFailure={ex.targetRepsToFailure}
                     incrementValue={ex.incrementValue}
                     className="mt-1.5 w-fit"
@@ -1233,7 +1235,9 @@ export const ActiveWorkout = ({
                   <div className="w-6"></div> {/* Tick column */}
                   <div className="w-8 text-center">#</div>
                   <div className="text-center">Kg</div>
-                  <div className="text-center">Reps</div>
+                  <div className="text-center">
+                    {ex.targetType === "DURATION" ? "Secs" : "Reps"}
+                  </div>
                   <div className="w-8"></div>
                 </div>
               )}

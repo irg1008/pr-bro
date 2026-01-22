@@ -1,10 +1,11 @@
 import { cn } from "@/lib/utils";
-import { Repeat, Target, TrendingUp } from "lucide-react";
+import { Clock, Repeat, Target, TrendingUp } from "lucide-react";
 import React from "react";
 
 interface TargetDisplayProps {
   targetSets?: string | null;
   targetReps?: string | null;
+  targetType?: "REPS" | "DURATION" | null;
   targetRepsToFailure?: string | null;
   incrementValue?: number | string | null;
   className?: string;
@@ -14,12 +15,15 @@ interface TargetDisplayProps {
 export const TargetDisplay: React.FC<TargetDisplayProps> = ({
   targetSets,
   targetReps,
+  targetType = "REPS",
   targetRepsToFailure,
   incrementValue,
   className,
   asGrid
 }) => {
   if (!targetSets && !targetReps && !targetRepsToFailure && !incrementValue) return null;
+
+  const isDuration = targetType === "DURATION";
 
   return (
     <div
@@ -36,9 +40,12 @@ export const TargetDisplay: React.FC<TargetDisplayProps> = ({
         </span>
       )}
       {targetReps && (
-        <span className="flex items-center gap-1" title="Target reps">
-          <Target className="h-3 w-3" />
-          {targetReps} reps
+        <span
+          className="flex items-center gap-1"
+          title={isDuration ? "Target duration" : "Target reps"}
+        >
+          {isDuration ? <Clock className="h-3 w-3" /> : <Target className="h-3 w-3" />}
+          {targetReps} {isDuration ? "secs" : "reps"}
         </span>
       )}
       {incrementValue && (
