@@ -18,6 +18,11 @@ enum ExerciseType {
   CARDIO
 }
 
+enum TargetType {
+  REPS
+  DURATION
+}
+
 model RoutineGroup {
   id          String    @id @default(cuid())
   name        String
@@ -62,18 +67,20 @@ model Exercise {
 }
 
 model RoutineExercise {
-  id                  String   @id @default(cuid())
+  id                  String     @id @default(cuid())
   routineId           String
   exerciseId          String
   order               Int
-  isSuperset          Boolean  @default(false)
+  isSuperset          Boolean    @default(false)
   note                String?
   targetSets          String? // e.g. "3" or "3-4"
-  targetReps          String? // e.g. "8-12"
+  targetReps          String? // e.g. "8-12" or "30" (seconds when targetType=DURATION)
+  targetType          TargetType @default(REPS) // REPS or DURATION (seconds)
   targetRepsToFailure String? // e.g. "1-2"
   incrementValue      Float? // Amount to add when graduating (kg)
-  routine             Routine  @relation(fields: [routineId], references: [id])
-  exercise            Exercise @relation(fields: [exerciseId], references: [id])
+  isActive            Boolean    @default(true)
+  routine             Routine    @relation(fields: [routineId], references: [id])
+  exercise            Exercise   @relation(fields: [exerciseId], references: [id])
 
   @@unique([routineId, exerciseId])
 }

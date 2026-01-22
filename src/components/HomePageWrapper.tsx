@@ -1,8 +1,19 @@
 import { ThreeBackground } from "@/components/ThreeBackground";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle
+} from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { navigate } from "astro:transitions/client";
+import { X } from "lucide-react";
 import type { Exercise, Routine, RoutineExercise, WorkoutLog } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
 import React, { useEffect, useState } from "react";
 
@@ -16,39 +27,28 @@ export type RoutineWithExercises = Routine & {
 interface HomePageWrapperProps {
   activeGroupName: string | null;
   nextRoutine: RoutineWithExercises | null;
+  activeLog: (WorkoutLog & { entries: any[] }) | null;
 }
 
 export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
   activeGroupName,
-  nextRoutine
+  nextRoutine,
+  activeLog
 }) => {
-  const [activeLogId, setActiveLogId] = useState<string | null>(null);
+  const [activeLogId, setActiveLogId] = useState<string | null>(activeLog?.id || null);
+  const [activeLogDetails, setActiveLogDetails] = useState<
+    (WorkoutLog & { entries: any[] }) | null
+  >(activeLog || null);
+  const [cancelAlertOpen, setCancelAlertOpen] = useState(false);
 
+  // Effect removed: fetching active log is now done server-side
   useEffect(() => {
-    if (!nextRoutine) return;
-
-    // Check for existing active workout
-    const checkActive = async () => {
-      try {
-        // Fetch recent logs to see if one is active
-        const res = await fetch("/api/workout-logs");
-        if (res.ok) {
-          const logs: WorkoutLog[] = await res.json();
-          // Find the most recent log for this routine that hasn't officially finished
-          // Note: Ideally we'd filter on the server, but for now client-side is okay
-          const activeLog = logs.find((l) => l.routineId === nextRoutine.id && !l.finishedAt);
-
-          if (activeLog) {
-            setActiveLogId(activeLog.id);
-          }
-        }
-      } catch (e) {
-        console.error("Failed to check active sessions", e);
-      }
-    };
-
-    checkActive();
-  }, [nextRoutine]);
+    // Only update if prop changes (though usually page reload handles this)
+    if (activeLog) {
+      setActiveLogId(activeLog.id);
+      setActiveLogDetails(activeLog);
+    }
+  }, [activeLog]);
 
   const handleStartWorkout = async () => {
     if (!nextRoutine) return;
@@ -80,6 +80,23 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
     }
   };
 
+  const handleCancelWorkout = async () => {
+    if (!activeLogId) return;
+    try {
+      const res = await fetch(`/api/workout-logs/${activeLogId}`, {
+        method: "DELETE"
+      });
+
+      if (res.ok) {
+        setActiveLogId(null);
+        setActiveLogDetails(null);
+        setCancelAlertOpen(false);
+      }
+    } catch (e) {
+      console.error("Failed to cancel workout", e);
+    }
+  };
+
   if (!activeGroupName) {
     return (
       <div className="py-12 text-center">
@@ -103,6 +120,11 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
       </div>
     );
   }
+
+  // Determine which exercises to show: Active Log Entries OR Static Routine Exercises
+  const exercisesToShow = activeLogDetails?.entries?.length
+    ? activeLogDetails.entries.map((entry) => ({ exercise: entry.exercise, id: entry.id }))
+    : nextRoutine.exercises;
 
   return (
     <>
@@ -134,7 +156,7 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
             <div className="mb-6 space-y-3">
               <h3 className="text-muted-foreground text-xs font-medium uppercase">Workout plan</h3>
               <div className="grid gap-2">
-                {nextRoutine.exercises.map((ex: any) => (
+                {exercisesToShow.map((ex: any) => (
                   <div
                     key={ex.id}
                     className="bg-muted/20 flex items-center justify-between rounded-md border p-2"
@@ -152,19 +174,32 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
                 ))}
               </div>
             </div>
-            <Button
-              size="lg"
-              variant="accent"
-              className="w-full text-sm font-semibold shadow-none"
-              onClick={activeLogId ? handleResumeWorkout : handleStartWorkout}
-              disabled={!nextRoutine.exercises || nextRoutine.exercises.length === 0}
-            >
-              {!nextRoutine.exercises || nextRoutine.exercises.length === 0
-                ? "Add exercises to start"
-                : activeLogId
-                  ? "Resume workout"
-                  : "Start workout"}
-            </Button>
+            <div className="flex w-full gap-2">
+              <Button
+                size="lg"
+                variant="accent"
+                className="flex-1 text-sm font-semibold shadow-none"
+                onClick={activeLogId ? handleResumeWorkout : handleStartWorkout}
+                disabled={!nextRoutine.exercises || nextRoutine.exercises.length === 0}
+              >
+                {!nextRoutine.exercises || nextRoutine.exercises.length === 0
+                  ? "Add exercises to start"
+                  : activeLogId
+                    ? "Resume workout"
+                    : "Start workout"}
+              </Button>
+              {activeLogId && (
+                <Button
+                  size="lg"
+                  variant="outline"
+                  className="text-muted-foreground hover:text-destructive hover:border-destructive/50 w-12 px-0"
+                  onClick={() => setCancelAlertOpen(true)}
+                  title="Cancel workout"
+                >
+                  <X className="h-5 w-5" />
+                </Button>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -174,6 +209,26 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
           </a>
         </Button>
       </div>
+
+      <AlertDialog open={cancelAlertOpen} onOpenChange={setCancelAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel workout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this workout? It will be deleted permanently.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go back</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelWorkout}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirm cancel
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </>
   );
 };

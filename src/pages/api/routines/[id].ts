@@ -43,23 +43,57 @@ export const DELETE: APIRoute = async ({ params }) => {
 
 export const PATCH: APIRoute = async ({ params, request }) => {
   const { id } = params;
-  const { name, description, focusedParts } = await request.json();
+  const body = await request.json();
+  const { name, description, focusedParts, exercises } = body; // exercises: { id: string, isActive: boolean, order?: number }[]
 
-  if (!id || !name) {
-    return new Response("Missing ID or name", { status: 400 });
+  if (!id) {
+    return new Response("Missing ID", { status: 400 });
   }
 
   try {
-    const routine = await prisma.routine.update({
+    const updateData: any = {};
+    if (name !== undefined) updateData.name = name;
+    if (description !== undefined) updateData.description = description;
+    if (focusedParts !== undefined) updateData.focusedParts = focusedParts;
+
+    // 1. Update basic details
+    if (Object.keys(updateData).length > 0) {
+      await prisma.routine.update({
+        where: { id },
+        data: updateData
+      });
+    }
+
+    // 2. Update nested exercises (e.g. isActive, order) if provided
+    if (exercises && Array.isArray(exercises)) {
+      // We process them one by one or via transaction
+      await prisma.$transaction(
+        exercises.map((ex: any) =>
+          prisma.routineExercise.update({
+            where: { id: ex.id },
+            data: {
+              isActive: ex.isActive,
+              order: ex.order
+            }
+          })
+        )
+      );
+    }
+
+    // Fetch fresh
+    const updatedRoutine = await prisma.routine.findUnique({
       where: { id },
-      data: {
-        name,
-        description,
-        focusedParts
+      include: {
+        exercises: {
+          include: { exercise: true },
+          orderBy: { order: "asc" }
+        }
       }
     });
-    return new Response(JSON.stringify(routine), { status: 200 });
-  } catch (error) {
+
+    return new Response(JSON.stringify(updatedRoutine), { status: 200 });
+  } catch (e) {
+    console.error("Update failed", e);
     return new Response("Update failed", { status: 500 });
   }
 };

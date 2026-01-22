@@ -15,6 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { navigate } from "astro:transitions/client";
 import { MoreVertical, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { toast } from "sonner";
@@ -37,7 +38,7 @@ export const DeleteHistoryButton = () => {
       });
 
       // Refresh the page to show empty state
-      window.location.reload();
+      navigate("/history");
     } catch (error) {
       console.error(error);
       toast.error("Error", {

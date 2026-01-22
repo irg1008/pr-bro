@@ -25,6 +25,7 @@ export const POST: APIRoute = async ({ request }) => {
       order: newOrder,
       targetSets: data.targetSets || null,
       targetReps: data.targetReps || null,
+      targetType: data.targetType || "REPS",
       targetRepsToFailure: data.targetRepsToFailure || null,
       incrementValue:
         data.incrementValue !== undefined ? parseFloat(data.incrementValue) : undefined,
@@ -55,16 +56,27 @@ export const DELETE: APIRoute = async ({ request }) => {
 
 export const PATCH: APIRoute = async ({ request }) => {
   const data = await request.json();
-  const { id, isSuperset, note, targetSets, targetReps, targetRepsToFailure, incrementValue } =
-    data;
+  const {
+    id,
+    isSuperset,
+    note,
+    targetSets,
+    targetReps,
+    targetType,
+    targetRepsToFailure,
+    incrementValue,
+    isActive
+  } = data;
 
   if (!id) return new Response("ID required", { status: 400 });
 
   const updateData: Prisma.RoutineExerciseUpdateInput = {};
+  if (isActive !== undefined) updateData.isActive = isActive;
   if (isSuperset !== undefined) updateData.isSuperset = isSuperset;
   if (note !== undefined) updateData.note = note;
   if (targetSets !== undefined) updateData.targetSets = targetSets || null;
   if (targetReps !== undefined) updateData.targetReps = targetReps || null;
+  if (targetType !== undefined) updateData.targetType = targetType;
   if (targetRepsToFailure !== undefined)
     updateData.targetRepsToFailure = targetRepsToFailure || null;
   if (incrementValue !== undefined)

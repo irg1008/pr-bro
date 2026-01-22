@@ -13,9 +13,10 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ListInput } from "@/components/ui/list-input";
 import { navigate } from "astro:transitions/client";
-import { Plus, Trash2 } from "lucide-react";
+import { Copy, Plus, Trash2 } from "lucide-react";
 import type { Exercise } from "prisma/generated/client";
 import React, { useEffect, useState } from "react";
+import { ExerciseSelector } from "./ExerciseSelector";
 import { Combobox } from "./ui/combobox";
 import { MultiCombobox } from "./ui/multi-combobox";
 
@@ -50,6 +51,7 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
   const [error, setError] = useState("");
   const [imageError, setImageError] = useState(false);
   const [deleteAlert, setDeleteAlert] = useState(false);
+  const [selectorOpen, setSelectorOpen] = useState(false);
 
   // Reset image error when URL changes
   useEffect(() => {
@@ -108,6 +110,19 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
     fetchValues("target", setTargets);
     fetchValues("equipment", setEquipmentList);
   }, []);
+
+  const handleSelectExisting = (ex: Exercise) => {
+    setFormData({
+      name: `${ex.name} (Copy)`,
+      imageUrl: ex.imageUrl || "",
+      category: ex.category || "",
+      target: ex.target || "",
+      equipment: ex.equipment || "",
+      secondaryMuscles: ex.secondaryMuscles || [],
+      instructions: ex.instructions || []
+    });
+    setSelectorOpen(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -201,6 +216,21 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
 
   return (
     <form onSubmit={handleSubmit} className="grid gap-6 py-4 max-w-2xl mx-auto">
+      {!isEditMode && (
+        <div className="flex justify-end">
+          <ExerciseSelector
+            open={selectorOpen}
+            onOpenChange={setSelectorOpen}
+            onSelect={(ex) => handleSelectExisting(ex)}
+            trigger={
+              <Button type="button" variant="outline" size="sm" className="gap-2">
+                <Copy className="h-4 w-4" />
+                Start from existing
+              </Button>
+            }
+          />
+        </div>
+      )}
       <div className="grid gap-2">
         <Label htmlFor="name">
           Name <span className="text-destructive">*</span>
@@ -208,7 +238,11 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
         <Input
           id="name"
           value={formData.name}
-          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+          onChange={(e) => {
+            setFormData({ ...formData, name: e.target.value });
+            setError("");
+          }}
+          error={error}
           placeholder="e.g. Barbell Squat"
           required
         />
@@ -323,7 +357,9 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
         />
       </div>
 
-      {error && <p className="text-sm font-medium text-red-500">{error}</p>}
+      {error && error !== "An exercise with this name already exists" && (
+        <p className="text-sm font-medium text-destructive">{error}</p>
+      )}
 
       <div className="flex justify-between items-center mt-4">
         {isEditMode && exerciseToEdit ? (

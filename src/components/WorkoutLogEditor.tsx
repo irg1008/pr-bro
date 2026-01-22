@@ -1,14 +1,3 @@
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger
-} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import {
@@ -30,19 +19,21 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { navigate } from "astro:transitions/client";
-import { MessageSquareText, MoreVertical, Trash2, X, Zap } from "lucide-react";
+import { ArrowDown, ArrowUp, Check, MessageSquareText, MoreVertical, X, Zap } from "lucide-react";
 import type { Exercise, Routine, RoutineExercise, WorkoutLogEntry } from "prisma/generated/client";
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ExerciseInfoModal } from "./ExerciseInfoModal";
 import { SetTypeSelector } from "./SetTypeSelector";
 import { TargetDisplay } from "./TargetDisplay";
 
 type WorkoutLogEntryWithExercise = WorkoutLogEntry & { exercise: Exercise };
 
-interface WorkoutLogEditorProps {
+export interface WorkoutLogEditorProps {
   logId: string;
   initialEntries: WorkoutLogEntryWithExercise[];
   routine?: Routine & { exercises: RoutineExercise[] };
+  reorderMode: boolean;
+  setReorderMode: (mode: boolean) => void;
 }
 
 // Helper type since sets are JSON in Prisma but we use them as objects here
@@ -51,11 +42,16 @@ type WorkoutLogEntryButSetsAny = Omit<WorkoutLogEntryWithExercise, "sets"> & { s
 export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
   logId,
   initialEntries,
-  routine
+  routine,
+  reorderMode,
+  setReorderMode
 }) => {
   const [entries, setEntries] = useState<WorkoutLogEntryButSetsAny[]>(
     initialEntries.map((e) => ({ ...e, sets: e.sets as any[] }))
   );
+  // Removed local reorderMode state
+  const itemsRef = useRef<Map<number, HTMLDivElement>>(new Map());
+  const lastMovedIndexRef = useRef<number | null>(null);
 
   const updateSet = (entryIndex: number, setIndex: number, field: string, value: any) => {
     const newEntries = [...entries];
@@ -80,6 +76,37 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
     setEntries(newEntries);
   };
 
+  const handleMoveEntry = (index: number, direction: "up" | "down") => {
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === entries.length - 1) return;
+
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    const newEntries = [...entries];
+
+    // Swap
+    [newEntries[index], newEntries[newIndex]] = [newEntries[newIndex], newEntries[index]];
+
+    lastMovedIndexRef.current = newIndex;
+    setEntries(newEntries);
+
+    // Immediate save to DB
+    fetch(`/api/workout-logs/${logId}/reorder`, {
+      method: "POST",
+      body: JSON.stringify({ exerciseIds: newEntries.map((e) => e.exerciseId) }),
+      headers: { "Content-Type": "application/json" }
+    }).catch((e) => console.error("Reorder failed", e));
+  };
+
+  useEffect(() => {
+    if (lastMovedIndexRef.current !== null) {
+      const element = itemsRef.current.get(lastMovedIndexRef.current);
+      if (element) {
+        element.scrollIntoView({ block: "center" });
+      }
+      lastMovedIndexRef.current = null;
+    }
+  }, [entries]);
+
   const handleSave = async () => {
     // Transform array back to Record<exerciseId, sets[]> for backend consistency
     const entriesPayload: Record<string, any> = {};
@@ -102,56 +129,60 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
 
     await fetch(`/api/workout-logs/${logId}`, {
       method: "PUT",
-      body: JSON.stringify({ entries: entriesPayload, sessionNotes, supersetStatus }),
+      body: JSON.stringify({
+        entries: entriesPayload,
+        sessionNotes,
+        supersetStatus,
+        exerciseOrder: entries.map((e) => e.exerciseId)
+      }),
       headers: { "Content-Type": "application/json" }
-    });
-    navigate("/history");
-  };
-
-  const handleDelete = async () => {
-    await fetch(`/api/workout-logs/${logId}`, {
-      method: "DELETE"
     });
     navigate("/history");
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex justify-end px-1">
-        <AlertDialog>
-          <AlertDialogTrigger
-            render={
-              <Button
-                variant="ghost"
-                size="icon"
-                className="text-muted-foreground hover:text-destructive"
-              >
-                <Trash2 className="h-5 w-5" />
-              </Button>
-            }
-          />
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-              <AlertDialogDescription>
-                This action cannot be undone. This will permanently delete this workout log.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
-              <AlertDialogAction
-                onClick={handleDelete}
-                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              >
-                Delete
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+      <div className="flex justify-end">
+        {/* Dropdown removed as it's moved to parent/header */}
       </div>
 
       {entries.map((entry, entryIdx) => (
-        <Card key={entry.id} className="overflow-hidden">
+        <Card
+          key={entry.id}
+          ref={(el: any) => {
+            if (el) itemsRef.current.set(entryIdx, el);
+            else itemsRef.current.delete(entryIdx);
+          }}
+          className="overflow-hidden relative"
+        >
+          {reorderMode && (
+            <div className="absolute top-20 right-3 z-10 flex flex-col gap-1">
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMoveEntry(entryIdx, "up");
+                }}
+                disabled={entryIdx === 0}
+              >
+                <ArrowUp className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleMoveEntry(entryIdx, "down");
+                }}
+                disabled={entryIdx === entries.length - 1}
+              >
+                <ArrowDown className="h-4 w-4" />
+              </Button>
+            </div>
+          )}
           <CardContent className="p-3">
             <div className="flex flex-col gap-3">
               <div className="flex items-start justify-between">
@@ -221,12 +252,13 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                               <TargetDisplay
                                 targetSets={re.targetSets}
                                 targetReps={re.targetReps}
+                                targetType={(re as any).targetType}
                                 targetRepsToFailure={re.targetRepsToFailure}
                                 incrementValue={re.incrementValue}
                                 className="mb-1.5"
                               />
                               {re.note && (
-                                <div className="mt-2 mb-2 text-sm text-muted-foreground border-l-4 pl-3 py-1 pr-2 bg-muted/20 w-fit rounded-r">
+                                <div className="mt-2 mb-2 text-sm text-muted-foreground border-l-4 pl-3 py-1 pr-2 bg-muted/20 w-fit rounded-r whitespace-pre-wrap">
                                   {re.note}
                                 </div>
                               )}
@@ -239,7 +271,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                     {entry.note ? (
                       <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-fit">
                         <MessageSquareText className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-                        <span className="leading-snug">{entry.note}</span>
+                        <span className="leading-snug whitespace-pre-wrap">{entry.note}</span>
                       </div>
                     ) : (
                       <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
@@ -282,7 +314,12 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                 <div className="text-muted-foreground grid grid-cols-[auto_1fr_1fr_auto] gap-4 text-sm font-medium">
                   <div className="w-8 text-center">#</div>
                   <div className="text-center">Kg</div>
-                  <div className="text-center">Reps</div>
+                  <div className="text-center">
+                    {routine?.exercises.find((e) => e.exerciseId === entry.exerciseId)
+                      ?.targetType === "DURATION"
+                      ? "Secs"
+                      : "Reps"}
+                  </div>
                   <div className="w-8"></div>
                 </div>
               )}
@@ -402,6 +439,17 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
         </Button>
         <Button onClick={handleSave}>Save changes</Button>
       </div>
+
+      {/* Fixed Done Reordering Button */}
+      {reorderMode && (
+        <Button
+          size="icon"
+          className="fixed md:bottom-6 bottom-18 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-primary text-primary-foreground animate-in zoom-in spin-in-12 duration-300"
+          onClick={() => setReorderMode(false)}
+        >
+          <Check className="h-6 w-6" />
+        </Button>
+      )}
     </div>
   );
 };

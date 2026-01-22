@@ -127,6 +127,17 @@ export const POST: APIRoute = async ({ request }) => {
       return new Response("Name is required", { status: 400 });
     }
 
+    // Check for existing exercise with same name (case-insensitive)
+    const existing = await prisma.exercise.findFirst({
+      where: {
+        name: { equals: name, mode: "insensitive" }
+      }
+    });
+
+    if (existing) {
+      return new Response("An exercise with this name already exists", { status: 400 });
+    }
+
     const exercise = await prisma.exercise.create({
       data: {
         name,

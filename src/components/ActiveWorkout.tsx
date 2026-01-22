@@ -31,12 +31,16 @@ import {
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useHaptic } from "@/hooks/useHaptic";
+import { applyProgressiveOverload } from "@/lib/progressive-overload";
 import type { SetType } from "@/types/set-types";
 import { navigate } from "astro:transitions/client";
 import {
   Activity,
+  ArrowDown,
   ArrowLeftRight,
   ArrowRight,
+  ArrowUp,
+  ArrowUpDown,
   Bike,
   Check,
   Dumbbell,
@@ -44,6 +48,7 @@ import {
   History,
   MessageSquareText,
   MoreVertical,
+  PartyPopper,
   Plus,
   RotateCcw,
   Target,
@@ -87,6 +92,7 @@ export interface ActiveWorkoutExercise extends Exercise {
   sessionNote?: string | null;
   targetSets?: string | null;
   targetReps?: string | null;
+  targetType?: "REPS" | "DURATION" | null;
   targetRepsToFailure?: string | null;
   incrementValue?: number | null;
 }
@@ -109,6 +115,7 @@ export interface ActiveWorkoutProps {
   routineExerciseIds: string[];
   exercises: ActiveWorkoutExercise[]; // Updated type
   initialSupersetStatus?: Record<string, boolean>;
+  routineExercisesList?: { exerciseId: string; isActive?: boolean | null; exercise: Exercise }[]; // Full list from routine
 }
 
 export const ActiveWorkout = ({
@@ -119,8 +126,10 @@ export const ActiveWorkout = ({
   routineGroupId,
   routineExerciseIds,
   exercises: initialExercises,
-  initialSupersetStatus = {}
+  initialSupersetStatus = {},
+  routineExercisesList = []
 }: ActiveWorkoutProps) => {
+  // ... (rest of component)
   // Carousel state removed
   // const [current, setCurrent] = useState(0); // Removed as we list all
   const [sets, setSets] = useState<Record<string, WorkoutSet[]>>({});
@@ -144,10 +153,45 @@ export const ActiveWorkout = ({
 
   /* ... inside ActiveWorkout component ... */
   const [resetAlertOpen, setResetAlertOpen] = useState(false);
+  const [cancelAlertOpen, setCancelAlertOpen] = useState(false);
+  const [reorderMode, setReorderMode] = useState(false);
+  const itemsRef = useRef<Map<number, HTMLDivElement>>(new Map());
+  const lastMovedIndexRef = useRef<number | null>(null);
 
   // Double Progression Summary State
   const [progressionDiffs, setProgressionDiffs] = useState<ProgressionDifference[]>([]);
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
+
+  // Workout completion state
+  const [congratsModalOpen, setCongratsModalOpen] = useState(false);
+  const [incompleteFinishAlertOpen, setIncompleteFinishAlertOpen] = useState(false);
+  const congratsShownRef = useRef(false);
+
+  // Helper: Check if all sets for a specific exercise are completed
+  const isExerciseComplete = (exerciseId: string): boolean => {
+    const exerciseSets = sets[exerciseId] || [];
+    if (exerciseSets.length === 0) return false;
+    return exerciseSets.every((set) => set.completed);
+  };
+
+  // Helper: Check if ALL exercises are complete
+  const isWorkoutComplete = (): boolean => {
+    if (activeExercises.length === 0) return false;
+    return activeExercises.every((ex) => isExerciseComplete(ex.id));
+  };
+
+  // Effect: Show congratulations when all exercises are complete
+  useEffect(() => {
+    if (isWorkoutComplete() && !congratsShownRef.current) {
+      congratsShownRef.current = true;
+      setCongratsModalOpen(true);
+      haptic.success();
+    }
+    // Reset if user unchecks something
+    if (!isWorkoutComplete()) {
+      congratsShownRef.current = false;
+    }
+  }, [sets, activeExercises]);
 
   const handleLoadLastRoutineRun = async () => {
     // Check if there is any data entered
@@ -267,115 +311,28 @@ export const ActiveWorkout = ({
       const diffs: ProgressionDifference[] = [];
 
       exercisesToProcess.forEach((ex) => {
-        if (!ex.targetReps) return;
-
-        const targetParts = ex.targetReps.split("-").map((s) => parseInt(s.trim()));
-        const maxReps = targetParts.length > 1 ? targetParts[1] : targetParts[0];
-        const minReps = targetParts[0];
-
         const lastSets = lastRunSets[ex.id];
-        if (!lastSets || lastSets.length === 0) {
-          if (exercisesToProcess.length === 1) failureReason = "No history found.";
-          return;
-        }
 
-        const allSetsHitTarget = lastSets.every((s: any) => {
-          if (s.type === "WARMUP") return true;
-          return s.reps >= maxReps;
-        });
+        const result = applyProgressiveOverload(
+          {
+            id: ex.id,
+            name: ex.name,
+            type: ex.type,
+            targetReps: ex.targetReps,
+            targetSets: ex.targetSets,
+            incrementValue: ex.incrementValue
+          },
+          lastSets || []
+        );
 
-        const lastWeight = lastSets[0].weight;
-
-        if (allSetsHitTarget && lastWeight) {
-          const increment = ex.incrementValue || 2.5;
-          const nextWeight = Number(lastWeight) + increment;
-
+        if (result.applied) {
+          newSets[ex.id] = result.newSets;
           appliedCount++;
-
-          newSets[ex.id] = lastSets.map(() => ({
-            ...createEmptySet(ex.type),
-            weight: nextWeight,
-            reps: minReps
-          }));
-
-          // Logic Update: Fillsets if less than target
-          if (ex.targetSets) {
-            const targetSetCount = parseInt(ex.targetSets);
-            if (!isNaN(targetSetCount) && newSets[ex.id].length < targetSetCount) {
-              const diff = targetSetCount - newSets[ex.id].length;
-              for (let k = 0; k < diff; k++) {
-                newSets[ex.id].push({
-                  ...createEmptySet(ex.type),
-                  weight: nextWeight,
-                  reps: minReps
-                });
-              }
-            }
+          if (result.diff) {
+            diffs.push(result.diff);
           }
-
-          diffs.push({
-            exerciseName: ex.name,
-            oldWeight: Number(lastWeight),
-            oldReps: maxReps, // They hit max reps
-            newWeight: nextWeight,
-            newReps: minReps,
-            type: "PROMOTION"
-          });
-
-          // toast.success(`Promoted ${ex.name}: ${lastWeight}kg -> ${nextWeight}kg`);
-        } else {
-          // Failure reason tracking
-          if (exercisesToProcess.length === 1) {
-            if (!lastWeight) failureReason = "Last run had no weight recorded.";
-            else failureReason = `Did not hit max reps (${maxReps}) on all sets last time.`;
-          }
-
-          if (lastWeight) {
-            // Updated Failure Logic: Keep weight, set reps to MIN reps
-            newSets[ex.id] = lastSets.map((s: any) => ({
-              ...createEmptySet(ex.type),
-              weight: s.weight,
-              reps: minReps
-            }));
-
-            // Logic Update: Fillsets if less than target (Failure Case)
-            if (ex.targetSets) {
-              const targetSetCount = parseInt(ex.targetSets);
-              if (!isNaN(targetSetCount) && newSets[ex.id].length < targetSetCount) {
-                const diff = targetSetCount - newSets[ex.id].length;
-                for (let k = 0; k < diff; k++) {
-                  newSets[ex.id].push({
-                    ...createEmptySet(ex.type),
-                    weight: lastWeight, // Use last weight
-                    reps: minReps
-                  });
-                }
-              }
-            }
-
-            // Note: oldReps here is ambiguous (it varies per set).
-            // We'll show the TARGET max reps as context, or maybe just "Min Range".
-            // Let's use MIN reps as old reference for failure context, or better,
-            // user wants "Old value under min range => +x reps"?
-            // We just show Weight stays same.
-            diffs.push({
-              exerciseName: ex.name,
-              oldWeight: Number(lastWeight),
-              oldReps: minReps, // Resetting to min
-              newWeight: Number(lastWeight),
-              newReps: minReps,
-              type: "RESET"
-            });
-
-            appliedCount++; // We applied the "reset" logic
-          } else if (!newSets[ex.id] || newSets[ex.id][0].weight === "") {
-            // ... existing fallback ...
-            newSets[ex.id] = lastSets.map((s: any) => ({
-              ...createEmptySet(ex.type),
-              weight: s.weight,
-              reps: ""
-            }));
-          }
+        } else if (exercisesToProcess.length === 1 && result.failureReason) {
+          failureReason = result.failureReason;
         }
       });
 
@@ -448,29 +405,6 @@ export const ActiveWorkout = ({
   const [supersetStatus, setSupersetStatus] =
     useState<Record<string, boolean>>(initialSupersetStatus);
 
-  // Scroll direction detection for footer visibility
-  const [showFooter, setShowFooter] = useState(true);
-  const lastScrollY = useRef(0);
-
-  useEffect(() => {
-    const handleScroll = () => {
-      const currentScrollY = window.scrollY;
-      // Show footer when scrolling up, at top, or at bottom
-      const isAtBottom =
-        window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 200;
-
-      if (currentScrollY < lastScrollY.current || currentScrollY < 50 || isAtBottom) {
-        setShowFooter(true);
-      } else {
-        setShowFooter(false);
-      }
-      lastScrollY.current = currentScrollY;
-    };
-
-    window.addEventListener("scroll", handleScroll, { passive: true });
-    return () => window.removeEventListener("scroll", handleScroll);
-  }, []);
-
   // State refs for auto-save on unmount
   const stateRef = useRef({ sets, activeExercises, supersetStatus, sessionNotes });
   const isFinishingRef = useRef(false);
@@ -488,25 +422,18 @@ export const ActiveWorkout = ({
 
       // Replicate logic from sanitizeSets but inside cleanup
       const completeSets: Record<string, WorkoutSet[]> = {};
-      const validExerciseIds = new Set(activeExercises.map((e) => e.id));
-
-      Object.keys(sets).forEach((key) => {
-        if (validExerciseIds.has(key)) {
-          completeSets[key] = sets[key];
-        }
-      });
 
       activeExercises.forEach((ex) => {
-        if (!completeSets[ex.id]) {
+        if (sets[ex.id]) {
+          completeSets[ex.id] = sets[ex.id];
+        } else {
           // Recreate empty set logic manually or extract helper.
-          // Since we can't easily call createEmptySet from here without making it static or moving it out,
-          // we'll just skip adding empty sets if they don't exist in state or trust 'sets' state is mostly up to date.
-          // Or better, define createEmptySet outside or trust `sets` deals with it.
-          // For safety, let's just save what we have. API should handle it.
           if (ex.type === "CARDIO") {
-            completeSets[ex.id] = [{ duration: "", distance: "", calories: "", completed: false }];
+            completeSets[ex.id] = [
+              { duration: "", distance: "", calories: "", completed: false, type: "NORMAL" }
+            ];
           } else {
-            completeSets[ex.id] = [{ weight: "", reps: "", completed: false }];
+            completeSets[ex.id] = [{ weight: "", reps: "", completed: false, type: "NORMAL" }];
           }
         }
       });
@@ -622,74 +549,38 @@ export const ActiveWorkout = ({
 
   // goToNext removed
 
-  const validateAll = () => {
-    return activeExercises.every((ex) => {
-      const exSets = sets[ex.id] || [createEmptySet(ex.type)];
-      return exSets.every((s) => {
-        if (ex.type === "CARDIO") {
-          // User request: Minutes and Calories are required
-          return s.duration !== "" && s.calories !== "";
-        } else {
-          return s.weight !== "" && s.reps !== "";
-        }
-      });
-    });
-  };
-
-  const isFormValid = validateAll();
-
-  const sanitizeSets = () => {
-    const completeSets: Record<string, WorkoutSet[]> = {};
-    const validExerciseIds = new Set(activeExercises.map((e) => e.id));
-
-    // Only include sets for currently active exercises
-    Object.keys(sets).forEach((key) => {
-      if (validExerciseIds.has(key)) {
-        completeSets[key] = sets[key];
-      }
-    });
-
-    // Ensure data exists for all active exercises
-    activeExercises.forEach((ex) => {
-      if (!completeSets[ex.id]) {
-        completeSets[ex.id] = [createEmptySet(ex.type)];
-      }
-    });
-    return completeSets;
-  };
-
-  const handleFinish = async () => {
-    if (!isFormValid) return;
-    isFinishingRef.current = true;
-    const completeSets = sanitizeSets();
-
-    toast.promise(
-      fetch(`/api/workout-logs/${logId}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          entries: completeSets,
-          supersetStatus,
-          sessionNotes,
-          finishedAt: new Date().toISOString()
-        }),
-        headers: { "Content-Type": "application/json" }
-      }),
-      {
-        loading: "Saving workout...",
-        success: () => {
-          navigate("/");
-          return "Workout saved!";
-        },
-        error: () => {
-          isFinishingRef.current = false; // Reset if failed so user can try again or auto-save works later?
-          // Actually if it failed, we are still on page.
-          return "Failed to save workout.";
-        }
-      }
-    );
-  };
-
   /* handleCancel removed as unused */
+
+  const handleMoveExercise = (index: number, direction: "up" | "down") => {
+    if (direction === "up" && index === 0) return;
+    if (direction === "down" && index === activeExercises.length - 1) return;
+
+    const newIndex = direction === "up" ? index - 1 : index + 1;
+    const newExercises = [...activeExercises];
+
+    // Swap
+    [newExercises[index], newExercises[newIndex]] = [newExercises[newIndex], newExercises[index]];
+
+    lastMovedIndexRef.current = newIndex;
+    setActiveExercises(newExercises);
+
+    // Immediate save order
+    fetch(`/api/workout-logs/${logId}/reorder`, {
+      method: "POST",
+      body: JSON.stringify({ exerciseIds: newExercises.map((e) => e.id) }),
+      headers: { "Content-Type": "application/json" }
+    }).catch((e) => console.error("Reorder failed", e));
+  };
+
+  useEffect(() => {
+    if (lastMovedIndexRef.current !== null) {
+      const element = itemsRef.current.get(lastMovedIndexRef.current);
+      if (element) {
+        element.scrollIntoView({ block: "center" });
+      }
+      lastMovedIndexRef.current = null;
+    }
+  }, [activeExercises]);
 
   const openAddExercise = () => {
     setPickerMode("add");
@@ -704,6 +595,12 @@ export const ActiveWorkout = ({
 
   const handleExerciseSelect = async (exercise: Exercise) => {
     if (!exercise) return;
+
+    if (activeExercises.some((e) => e.id === exercise.id)) {
+      toast.info(`"${exercise.name}" is already in the workout.`);
+      setPickerOpen(false);
+      return;
+    }
 
     if (pickerMode === "add") {
       setActiveExercises((prev) => [...prev, exercise]);
@@ -791,6 +688,27 @@ export const ActiveWorkout = ({
     setTargetExerciseIndex(-1);
   };
 
+  const handleCancelWorkout = async () => {
+    setCancelAlertOpen(false);
+    isFinishingRef.current = true; // Prevent auto-save
+    try {
+      const res = await fetch(`/api/workout-logs/${logId}`, {
+        method: "DELETE"
+      });
+
+      if (res.ok) {
+        toast.success("Workout cancelled");
+        navigate("/");
+      } else {
+        throw new Error("Failed to cancel");
+      }
+    } catch (error) {
+      console.error("Failed to cancel workout", error);
+      toast.error("Failed to cancel workout");
+      isFinishingRef.current = false; // Restore
+    }
+  };
+
   const handleReset = async () => {
     setResetAlertOpen(false);
     try {
@@ -813,6 +731,49 @@ export const ActiveWorkout = ({
     } catch (error) {
       console.error("Failed to reset workout", error);
       toast.error("Failed to reset workout");
+    }
+  };
+
+  const handleFinishWorkout = async () => {
+    setCongratsModalOpen(false);
+    setIncompleteFinishAlertOpen(false);
+    isFinishingRef.current = true;
+
+    try {
+      // Save final state with finishedAt timestamp
+      const res = await fetch(`/api/workout-logs/${logId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          entries: stateRef.current.sets,
+          supersetStatus: stateRef.current.supersetStatus,
+          notes: stateRef.current.sessionNotes,
+          finishedAt: new Date().toISOString()
+        }),
+        headers: { "Content-Type": "application/json" }
+      });
+
+      if (res.ok) {
+        haptic.success();
+        toast.success("Workout completed! 💪");
+        navigate(`/history/${logId}`);
+      } else {
+        throw new Error("Failed to finish");
+      }
+    } catch (error) {
+      console.error("Failed to finish workout", error);
+      toast.error("Failed to finish workout");
+      isFinishingRef.current = false;
+    }
+  };
+
+  // Handler for finish button click
+  const handleFinishButtonClick = () => {
+    if (isWorkoutComplete()) {
+      // All sets completed - finish immediately
+      handleFinishWorkout();
+    } else {
+      // Not all sets completed - show confirmation
+      setIncompleteFinishAlertOpen(true);
     }
   };
 
@@ -853,29 +814,80 @@ export const ActiveWorkout = ({
     }
   };
 
-  // Auto-save Effect (Debounced)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      // Don't save if finishing (handled by handleFinish) or if component just mounted (initial state)
-      // We can rely on isFinishingRef to avoid conflict
-      if (isFinishingRef.current) return;
+  // Auto-save Effect (Improved Debounce with Race Condition Prevention)
+  const isSavingRef = useRef(false);
+  const pendingSaveRef = useRef(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
-      const completeSets = sanitizeSets();
+  const performSave = async () => {
+    // If already saving, mark that we need another save after
+    if (isSavingRef.current) {
+      pendingSaveRef.current = true;
+      return;
+    }
 
-      // Silent save
-      fetch(`/api/workout-logs/${logId}`, {
+    if (isFinishingRef.current) return;
+
+    isSavingRef.current = true;
+    pendingSaveRef.current = false;
+
+    // Use stateRef to get the LATEST state at save time
+    const { sets, activeExercises, supersetStatus, sessionNotes } = stateRef.current;
+
+    const completeSets: Record<string, WorkoutSet[]> = {};
+    activeExercises.forEach((ex) => {
+      if (sets[ex.id]) {
+        completeSets[ex.id] = sets[ex.id];
+      } else {
+        if (ex.type === "CARDIO") {
+          completeSets[ex.id] = [
+            { duration: "", distance: "", calories: "", completed: false, type: "NORMAL" }
+          ];
+        } else {
+          completeSets[ex.id] = [{ weight: "", reps: "", completed: false, type: "NORMAL" }];
+        }
+      }
+    });
+
+    try {
+      await fetch(`/api/workout-logs/${logId}`, {
         method: "PUT",
         body: JSON.stringify({
           entries: completeSets,
           supersetStatus,
-          sessionNotes
-          // finishedAt is NOT sent, so status remains IN_PROGRESS
+          sessionNotes,
+          exerciseOrder: activeExercises.map((e) => e.id)
         }),
         headers: { "Content-Type": "application/json" }
-      }).catch((e) => console.error("Auto-save failed", e));
-    }, 2000); // 2 seconds debounce
+      });
+    } catch (e) {
+      console.error("Auto-save failed", e);
+    } finally {
+      isSavingRef.current = false;
 
-    return () => clearTimeout(timer);
+      // If there was a pending save request, do it now
+      if (pendingSaveRef.current) {
+        performSave();
+      }
+    }
+  };
+
+  useEffect(() => {
+    // Clear any existing timer
+    if (debounceTimerRef.current) {
+      clearTimeout(debounceTimerRef.current);
+    }
+
+    // Set new debounce timer
+    debounceTimerRef.current = setTimeout(() => {
+      performSave();
+    }, 1500); // 1.5 seconds debounce for quicker feedback
+
+    return () => {
+      if (debounceTimerRef.current) {
+        clearTimeout(debounceTimerRef.current);
+      }
+    };
   }, [sets, supersetStatus, sessionNotes, activeExercises]); // Dependencies for auto-save
 
   const startTimeDisplay = new Date(initialStartTime).toLocaleString(undefined, {
@@ -906,16 +918,32 @@ export const ActiveWorkout = ({
           <DropdownMenuContent align="end">
             <DropdownMenuLabel>Workout options</DropdownMenuLabel>
             <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => setReorderMode(!reorderMode)}>
+              {reorderMode ? (
+                <Check className="mr-2 h-4 w-4" />
+              ) : (
+                <ArrowUpDown className="mr-2 h-4 w-4" />
+              )}
+              {reorderMode ? "Done reordering" : "Reorder exercises"}
+            </DropdownMenuItem>
             <DropdownMenuItem onClick={() => handleLoadLastRoutineRun()}>
               <History className="mr-2 h-4 w-4" />
               Load last run
             </DropdownMenuItem>
+            <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
               onClick={() => setResetAlertOpen(true)}
             >
               <RotateCcw className="mr-2 h-4 w-4" />
               Reset to routine
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              className="text-destructive focus:text-destructive"
+              onClick={() => setCancelAlertOpen(true)}
+            >
+              <Trash2 className="mr-2 h-4 w-4" />
+              Cancel Workout
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>
@@ -939,10 +967,48 @@ export const ActiveWorkout = ({
       {/* Main Content - Scroll List */}
       <div className="flex flex-col gap-6">
         {activeExercises.map((ex, index) => (
-          <div
-            key={`${ex.id}-${index}`}
-            className="carousel-visual-content bg-card overflow-hidden rounded-xl shadow-sm transition-none will-change-transform border relative"
+          <motion.div
+            key={ex.id}
+            ref={(el) => {
+              if (el) itemsRef.current.set(index, el);
+              else itemsRef.current.delete(index);
+            }}
+            initial={false}
+            animate={{
+              opacity: isExerciseComplete(ex.id) ? 0.6 : 1,
+              scale: isExerciseComplete(ex.id) ? 0.95 : 1
+            }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="carousel-visual-content bg-card overflow-hidden rounded-xl shadow-sm will-change-transform border relative"
           >
+            {reorderMode && (
+              <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMoveExercise(index, "up");
+                  }}
+                  disabled={index === 0}
+                >
+                  <ArrowUp className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="secondary"
+                  size="icon"
+                  className="h-8 w-8 shadow-sm opacity-90 hover:opacity-100"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleMoveExercise(index, "down");
+                  }}
+                  disabled={index === activeExercises.length - 1}
+                >
+                  <ArrowDown className="h-4 w-4" />
+                </Button>
+              </div>
+            )}
             {ex.imageUrl && (
               <div className="bg-muted h-48 w-full shrink-0">
                 <img
@@ -977,14 +1043,16 @@ export const ActiveWorkout = ({
                   <TargetDisplay
                     targetSets={ex.targetSets}
                     targetReps={ex.targetReps}
+                    targetType={ex.targetType}
                     targetRepsToFailure={ex.targetRepsToFailure}
                     incrementValue={ex.incrementValue}
-                    className="mt-1.5"
+                    className="mt-1.5 w-fit"
+                    asGrid
                   />
 
                   {/* Routine Note (Static, not editable) */}
                   {ex.routineNote && (
-                    <div className="mt-2 text-sm text-muted-foreground border-l-4 pl-3 py-1 pr-2 bg-muted/20 w-fit rounded-r">
+                    <div className="mt-2 text-sm text-muted-foreground border-l-4 pl-3 py-1 pr-2 bg-muted/20 w-fit rounded-r whitespace-pre-wrap">
                       {ex.routineNote}
                     </div>
                   )}
@@ -997,7 +1065,9 @@ export const ActiveWorkout = ({
                         {sessionNotes[ex.id] ? (
                           <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-fit">
                             <MessageSquareText className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
-                            <span className="leading-snug">{sessionNotes[ex.id]}</span>
+                            <span className="leading-snug whitespace-pre-wrap">
+                              {sessionNotes[ex.id]}
+                            </span>
                           </div>
                         ) : (
                           <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
@@ -1098,7 +1168,9 @@ export const ActiveWorkout = ({
                   <div className="w-6"></div> {/* Tick column */}
                   <div className="w-8 text-center">#</div>
                   <div className="text-center">Kg</div>
-                  <div className="text-center">Reps</div>
+                  <div className="text-center">
+                    {ex.targetType === "DURATION" ? "Secs" : "Reps"}
+                  </div>
                   <div className="w-8"></div>
                 </div>
               )}
@@ -1240,7 +1312,7 @@ export const ActiveWorkout = ({
                 + Add set
               </Button>
             </div>
-          </div>
+          </motion.div>
         ))}
 
         <div className="flex flex-col items-center justify-center gap-6 rounded-xl border-2 border-dashed py-8">
@@ -1280,7 +1352,7 @@ export const ActiveWorkout = ({
 
       {/* Finish Workout Button - In page flow */}
       <div className="flex w-full">
-        <Button size="lg" className="flex-1" onClick={handleFinish} disabled={!isFormValid}>
+        <Button size="lg" className="flex-1" onClick={handleFinishButtonClick}>
           Finish workout
         </Button>
       </div>
@@ -1290,6 +1362,7 @@ export const ActiveWorkout = ({
         onOpenChange={setPickerOpen}
         onSelect={handleExerciseSelect}
         selectedExerciseIds={activeExercises.map((e) => e.id)}
+        routineExercises={routineExercisesList} // Pass the full routine list including inactive
         preferredCategories={
           Array.from(new Set(activeExercises.map((e) => e.category).filter(Boolean))) as string[]
         }
@@ -1390,10 +1463,10 @@ export const ActiveWorkout = ({
               }}
               className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
             >
-              Skip & Apply to Others
+              Skip & apply to others
             </AlertDialogAction>
             <AlertDialogAction onClick={() => navigate(`/routines/${routineGroupId}/${routineId}`)}>
-              Go to Settings
+              Go to settings
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1463,6 +1536,27 @@ export const ActiveWorkout = ({
         </AlertDialogContent>
       </AlertDialog>
 
+      <AlertDialog open={cancelAlertOpen} onOpenChange={setCancelAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel workout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this workout? This will discard all progress and
+              delete the log.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Go back</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleCancelWorkout}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              Confirm cancel
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       <AlertDialog
         open={infoAlert.open}
         onOpenChange={(open) => setInfoAlert((prev) => ({ ...prev, open }))}
@@ -1476,6 +1570,51 @@ export const ActiveWorkout = ({
             <AlertDialogAction onClick={() => setInfoAlert((prev) => ({ ...prev, open: false }))}>
               OK
             </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {/* Fixed Done Reordering Button */}
+      {reorderMode && (
+        <Button
+          size="icon"
+          className="fixed md:bottom-6 bottom-18 right-6 h-14 w-14 rounded-full shadow-lg z-50 bg-primary text-primary-foreground animate-in zoom-in spin-in-12 duration-300"
+          onClick={() => setReorderMode(false)}
+        >
+          <Check className="h-6 w-6" />
+        </Button>
+      )}
+
+      {/* Congratulations Modal - When all exercises complete */}
+      <AlertDialog open={congratsModalOpen} onOpenChange={setCongratsModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <PartyPopper />
+              Congratulations!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base">
+              You've completed all your sets! Great workout! Ready to finish?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Keep training</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinishWorkout}>Finish workout</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Incomplete Workout Confirmation */}
+      <AlertDialog open={incompleteFinishAlertOpen} onOpenChange={setIncompleteFinishAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finish workout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You haven't completed all your sets yet. Are you sure you want to finish this workout?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep training</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinishWorkout}>Finish anyway</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

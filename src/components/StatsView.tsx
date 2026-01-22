@@ -137,7 +137,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                         <div className="text-2xl font-bold">{stat.currentMax} kg</div>
                         {stat.improvement !== 0 && (
                           <div
-                            className={`text-xs font-bold ${stat.improvement > 0 ? "text-green-500" : "text-red-500"}`}
+                            className={`text-xs font-bold ${stat.improvement > 0 ? "text-green-500" : "text-destructive"}`}
                           >
                             {stat.improvement > 0 ? "+" : ""}
                             {stat.improvement} kg
