@@ -9,6 +9,20 @@ export const PUT: APIRoute = async ({ params, request }) => {
     const body = await request.json();
     const { name, category, target, imageUrl, description, equipment } = body;
 
+    // Check for existing exercise with same name (exclude current id)
+    if (name) {
+      const existing = await prisma.exercise.findFirst({
+        where: {
+          name: { equals: name, mode: "insensitive" },
+          id: { not: id }
+        }
+      });
+
+      if (existing) {
+        return new Response("An exercise with this name already exists", { status: 400 });
+      }
+    }
+
     const exercise = await prisma.exercise.update({
       where: { id },
       data: {
