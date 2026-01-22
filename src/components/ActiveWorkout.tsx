@@ -48,6 +48,7 @@ import {
   History,
   MessageSquareText,
   MoreVertical,
+  PartyPopper,
   Plus,
   RotateCcw,
   Target,
@@ -160,6 +161,37 @@ export const ActiveWorkout = ({
   // Double Progression Summary State
   const [progressionDiffs, setProgressionDiffs] = useState<ProgressionDifference[]>([]);
   const [summaryModalOpen, setSummaryModalOpen] = useState(false);
+
+  // Workout completion state
+  const [congratsModalOpen, setCongratsModalOpen] = useState(false);
+  const [incompleteFinishAlertOpen, setIncompleteFinishAlertOpen] = useState(false);
+  const congratsShownRef = useRef(false);
+
+  // Helper: Check if all sets for a specific exercise are completed
+  const isExerciseComplete = (exerciseId: string): boolean => {
+    const exerciseSets = sets[exerciseId] || [];
+    if (exerciseSets.length === 0) return false;
+    return exerciseSets.every((set) => set.completed);
+  };
+
+  // Helper: Check if ALL exercises are complete
+  const isWorkoutComplete = (): boolean => {
+    if (activeExercises.length === 0) return false;
+    return activeExercises.every((ex) => isExerciseComplete(ex.id));
+  };
+
+  // Effect: Show congratulations when all exercises are complete
+  useEffect(() => {
+    if (isWorkoutComplete() && !congratsShownRef.current) {
+      congratsShownRef.current = true;
+      setCongratsModalOpen(true);
+      haptic.success();
+    }
+    // Reset if user unchecks something
+    if (!isWorkoutComplete()) {
+      congratsShownRef.current = false;
+    }
+  }, [sets, activeExercises]);
 
   const handleLoadLastRoutineRun = async () => {
     // Check if there is any data entered
@@ -517,68 +549,6 @@ export const ActiveWorkout = ({
 
   // goToNext removed
 
-  const validateAll = () => {
-    return activeExercises.every((ex) => {
-      const exSets = sets[ex.id] || [createEmptySet(ex.type)];
-      return exSets.every((s) => {
-        if (ex.type === "CARDIO") {
-          // User request: Minutes and Calories are required
-          return s.duration !== "" && s.calories !== "";
-        } else {
-          return s.weight !== "" && s.reps !== "";
-        }
-      });
-    });
-  };
-
-  const isFormValid = validateAll();
-
-  const sanitizeSets = () => {
-    const completeSets: Record<string, WorkoutSet[]> = {};
-
-    // Iterate activeExercises to preserve order in the object keys
-    activeExercises.forEach((ex) => {
-      if (sets[ex.id]) {
-        completeSets[ex.id] = sets[ex.id];
-      } else {
-        completeSets[ex.id] = [createEmptySet(ex.type)];
-      }
-    });
-
-    return completeSets;
-  };
-
-  const handleFinish = async () => {
-    if (!isFormValid) return;
-    isFinishingRef.current = true;
-    const completeSets = sanitizeSets();
-
-    toast.promise(
-      fetch(`/api/workout-logs/${logId}`, {
-        method: "PUT",
-        body: JSON.stringify({
-          entries: completeSets,
-          supersetStatus,
-          sessionNotes,
-          finishedAt: new Date().toISOString()
-        }),
-        headers: { "Content-Type": "application/json" }
-      }),
-      {
-        loading: "Saving workout...",
-        success: () => {
-          navigate("/");
-          return "Workout saved!";
-        },
-        error: () => {
-          isFinishingRef.current = false; // Reset if failed so user can try again or auto-save works later?
-          // Actually if it failed, we are still on page.
-          return "Failed to save workout.";
-        }
-      }
-    );
-  };
-
   /* handleCancel removed as unused */
 
   const handleMoveExercise = (index: number, direction: "up" | "down") => {
@@ -761,6 +731,49 @@ export const ActiveWorkout = ({
     } catch (error) {
       console.error("Failed to reset workout", error);
       toast.error("Failed to reset workout");
+    }
+  };
+
+  const handleFinishWorkout = async () => {
+    setCongratsModalOpen(false);
+    setIncompleteFinishAlertOpen(false);
+    isFinishingRef.current = true;
+
+    try {
+      // Save final state with finishedAt timestamp
+      const res = await fetch(`/api/workout-logs/${logId}`, {
+        method: "PUT",
+        body: JSON.stringify({
+          entries: stateRef.current.sets,
+          supersetStatus: stateRef.current.supersetStatus,
+          notes: stateRef.current.sessionNotes,
+          finishedAt: new Date().toISOString()
+        }),
+        headers: { "Content-Type": "application/json" }
+      });
+
+      if (res.ok) {
+        haptic.success();
+        toast.success("Workout completed! 💪");
+        navigate(`/history/${logId}`);
+      } else {
+        throw new Error("Failed to finish");
+      }
+    } catch (error) {
+      console.error("Failed to finish workout", error);
+      toast.error("Failed to finish workout");
+      isFinishingRef.current = false;
+    }
+  };
+
+  // Handler for finish button click
+  const handleFinishButtonClick = () => {
+    if (isWorkoutComplete()) {
+      // All sets completed - finish immediately
+      handleFinishWorkout();
+    } else {
+      // Not all sets completed - show confirmation
+      setIncompleteFinishAlertOpen(true);
     }
   };
 
@@ -954,13 +967,19 @@ export const ActiveWorkout = ({
       {/* Main Content - Scroll List */}
       <div className="flex flex-col gap-6">
         {activeExercises.map((ex, index) => (
-          <div
-            key={`${ex.id}-${index}`}
+          <motion.div
+            key={ex.id}
             ref={(el) => {
               if (el) itemsRef.current.set(index, el);
               else itemsRef.current.delete(index);
             }}
-            className="carousel-visual-content bg-card overflow-hidden rounded-xl shadow-sm transition-none will-change-transform border relative"
+            initial={false}
+            animate={{
+              opacity: isExerciseComplete(ex.id) ? 0.6 : 1,
+              scale: isExerciseComplete(ex.id) ? 0.95 : 1
+            }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
+            className="carousel-visual-content bg-card overflow-hidden rounded-xl shadow-sm will-change-transform border relative"
           >
             {reorderMode && (
               <div className="absolute top-2 right-2 z-10 flex flex-col gap-1">
@@ -1293,7 +1312,7 @@ export const ActiveWorkout = ({
                 + Add set
               </Button>
             </div>
-          </div>
+          </motion.div>
         ))}
 
         <div className="flex flex-col items-center justify-center gap-6 rounded-xl border-2 border-dashed py-8">
@@ -1333,7 +1352,7 @@ export const ActiveWorkout = ({
 
       {/* Finish Workout Button - In page flow */}
       <div className="flex w-full">
-        <Button size="lg" className="flex-1" onClick={handleFinish} disabled={!isFormValid}>
+        <Button size="lg" className="flex-1" onClick={handleFinishButtonClick}>
           Finish workout
         </Button>
       </div>
@@ -1444,10 +1463,10 @@ export const ActiveWorkout = ({
               }}
               className="bg-secondary text-secondary-foreground hover:bg-secondary/80"
             >
-              Skip & Apply to Others
+              Skip & apply to others
             </AlertDialogAction>
             <AlertDialogAction onClick={() => navigate(`/routines/${routineGroupId}/${routineId}`)}>
-              Go to Settings
+              Go to settings
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1564,6 +1583,41 @@ export const ActiveWorkout = ({
           <Check className="h-6 w-6" />
         </Button>
       )}
+
+      {/* Congratulations Modal - When all exercises complete */}
+      <AlertDialog open={congratsModalOpen} onOpenChange={setCongratsModalOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2">
+              <PartyPopper />
+              Congratulations!
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-center text-base">
+              You've completed all your sets! Great workout! Ready to finish?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter className="flex-col sm:flex-row gap-2">
+            <AlertDialogCancel>Keep training</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinishWorkout}>Finish workout</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Incomplete Workout Confirmation */}
+      <AlertDialog open={incompleteFinishAlertOpen} onOpenChange={setIncompleteFinishAlertOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Finish workout?</AlertDialogTitle>
+            <AlertDialogDescription>
+              You haven't completed all your sets yet. Are you sure you want to finish this workout?
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Keep training</AlertDialogCancel>
+            <AlertDialogAction onClick={handleFinishWorkout}>Finish anyway</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
