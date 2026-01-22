@@ -26,7 +26,7 @@ export const SetTypeSelector: React.FC<SetTypeSelectorProps> = ({
       <DropdownMenuTrigger asChild>
         <div
           className={cn(
-            "flex h-7 min-w-8 shrink-0 cursor-pointer items-center justify-center rounded-md border text-sm font-bold transition-colors select-none px-1 gap-0.5",
+            "flex h-7 min-w-8 shrink-0 cursor-pointer items-center justify-center gap-0.5 rounded-md border px-1 text-sm font-bold transition-colors select-none",
             config.colorClass
           )}
           title="Right click or Long press to change type"
@@ -45,7 +45,7 @@ export const SetTypeSelector: React.FC<SetTypeSelectorProps> = ({
         >
           <span>{setNumber}</span>
           {config.short && (
-            <span className="text-[10px] opacity-80 font-normal self-end mb-0.5">
+            <span className="mb-0.5 self-end text-[10px] font-normal opacity-80">
               {config.short}
             </span>
           )}
@@ -56,7 +56,7 @@ export const SetTypeSelector: React.FC<SetTypeSelectorProps> = ({
           <DropdownMenuItem key={key} onClick={() => onChange(key as SetType)} className="gap-2">
             <div className={cn("h-4 w-4 rounded-sm border", conf.colorClass)}></div>
             <span className={key === type ? "font-bold" : ""}>{conf.label}</span>
-            {key === type && <span className="ml-auto text-xs text-muted-foreground">Active</span>}
+            {key === type && <span className="text-muted-foreground ml-auto text-xs">Active</span>}
           </DropdownMenuItem>
         ))}
       </DropdownMenuContent>

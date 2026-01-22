@@ -38,9 +38,9 @@ export function ListInput({
       {value.map((item, index) => (
         <div
           key={index}
-          className="flex gap-2 items-center slide-in-from-left-2 animate-in duration-200"
+          className="slide-in-from-left-2 animate-in flex items-center gap-2 duration-200"
         >
-          <span className="text-sm font-medium text-muted-foreground w-6 shrink-0 text-center">
+          <span className="text-muted-foreground w-6 shrink-0 text-center text-sm font-medium">
             {index + 1}.
           </span>
           <Input

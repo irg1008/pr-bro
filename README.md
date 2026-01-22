@@ -1,7 +1,8 @@
 <div align="center">
   <img src="public/imgs/logo-md.png" alt="PR Bro Logo" width="500" />
 
-  > This code was made with 100% AI slop and should not be taken seriously. I didn't even turn on the computer.
+> This code was made with 100% AI slop and should not be taken seriously. I didn't even turn on the computer.
+
 </div>
 
 PR Bro is a workout tracker for the modern lifter. It combines a minimal, high-contrast aesthetic with powerful tracking features and a touch of "bro" culture (featuring a cinematic 3D Panda). Built with performance and user experience in mind, it helps you track your lifts, manage routine groups, and hit those PRs.
@@ -97,7 +98,7 @@ docker build -t pr-bro .
 docker run -p 4321:4321 -e DATABASE_URL="postgresql://user:password@host.docker.internal:5432/pr_bro_db" pr-bro
 ```
 
-*(Ensure your container can access your Postgres instance).*
+_(Ensure your container can access your Postgres instance)._
 
 ## 📜 License
 

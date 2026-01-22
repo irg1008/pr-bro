@@ -23,27 +23,27 @@ export const ExerciseInfoModal: React.FC<ExerciseInfoModalProps> = ({ exercise }
         <Button
           variant="ghost"
           size="icon"
-          className="h-6 w-6 text-muted-foreground hover:text-primary"
+          className="text-muted-foreground hover:text-primary h-6 w-6"
         >
           <Info className="h-4 w-4" />
         </Button>
       </DialogTrigger>
-      <DialogContent className="max-w-md max-h-[90vh] flex flex-col">
+      <DialogContent className="flex max-h-[90vh] max-w-md flex-col">
         <DialogHeader>
-          <DialogTitle className="capitalize text-2xl">{exercise.name}</DialogTitle>
+          <DialogTitle className="text-2xl capitalize">{exercise.name}</DialogTitle>
           <DialogDescription className="capitalize">
             {exercise.bodyPart} {exercise.target ? `• ${exercise.target}` : ""}
           </DialogDescription>
         </DialogHeader>
 
-        <div className="flex-1 overflow-y-auto pr-2 -mr-2 min-h-0">
+        <div className="-mr-2 min-h-0 flex-1 overflow-y-auto pr-2">
           <div className="space-y-6 py-4">
             {exercise.imageUrl && (
-              <div className="rounded-lg overflow-hidden border bg-muted/50 flex justify-center">
+              <div className="bg-muted/50 flex justify-center overflow-hidden rounded-lg border">
                 <img
                   src={exercise.imageUrl}
                   alt={exercise.name}
-                  className="w-full h-auto object-contain max-h-96 bg-white"
+                  className="h-auto max-h-96 w-full bg-white object-contain"
                   loading="lazy"
                 />
               </div>
@@ -73,7 +73,7 @@ export const ExerciseInfoModal: React.FC<ExerciseInfoModalProps> = ({ exercise }
             {exercise.instructions && exercise.instructions.length > 0 && (
               <div className="space-y-2">
                 <h4 className="text-sm font-semibold">Instructions</h4>
-                <ol className="list-decimal list-inside space-y-2 text-sm text-muted-foreground">
+                <ol className="text-muted-foreground list-inside list-decimal space-y-2 text-sm">
                   {exercise.instructions.map((step, i) => (
                     <li key={i}>{step}</li>
                   ))}

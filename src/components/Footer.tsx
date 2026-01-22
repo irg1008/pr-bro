@@ -33,7 +33,7 @@ export const Footer = () => {
               key={item.path}
               onClick={() => handleNav(item.path)}
               className={cn(
-                "flex w-full flex-col items-center justify-center rounded-md py-1 px-2 transition-colors",
+                "flex w-full flex-col items-center justify-center rounded-md px-2 py-1 transition-colors",
                 activePath === item.path || (item.path !== "/" && activePath.startsWith(item.path))
                   ? "text-primary"
                   : "text-muted-foreground hover:text-primary/70"
@@ -46,8 +46,8 @@ export const Footer = () => {
         </div>
       </div>
       {/* Desktop Footer */}
-      <footer className="hidden py-6 md:block md:px-8 md:py-0 z-10">
-        <div className="container flex h-16 items-center justify-between px-4 text-sm text-muted-foreground">
+      <footer className="z-10 hidden py-6 md:block md:px-8 md:py-0">
+        <div className="text-muted-foreground container flex h-16 items-center justify-between px-4 text-sm">
           <div className="flex items-center gap-4">
             <span>Built for PRs.</span>
             <Button variant="link" asChild>

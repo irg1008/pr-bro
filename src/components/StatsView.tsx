@@ -88,7 +88,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
 
       {sortedCategories.map((category) => (
         <div key={category} className="space-y-4">
-          <h2 className="text-lg font-semibold capitalize text-muted-foreground">{category}</h2>
+          <h2 className="text-muted-foreground text-lg font-semibold capitalize">{category}</h2>
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {groupedStats[category].map((stat) => {
               const filteredHistory = filterHistory(stat.history);
@@ -101,7 +101,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                 >
                   <CardHeader className="pb-2">
                     <div className="flex items-start justify-between">
-                      <div className="flex gap-3 min-w-0">
+                      <div className="flex min-w-0 gap-3">
                         {stat.imageUrl && (
                           <div className="bg-muted h-12 w-12 shrink-0 overflow-hidden rounded-md border">
                             <img
@@ -111,9 +111,9 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                             />
                           </div>
                         )}
-                        <div className="flex flex-col gap-1 md:gap-2 min-w-0">
+                        <div className="flex min-w-0 flex-col gap-1 md:gap-2">
                           <CardTitle
-                            className="line-clamp-1 font-bold capitalize flex items-center gap-2 text-sm sm:text-base leading-tight"
+                            className="line-clamp-1 flex items-center gap-2 text-sm leading-tight font-bold capitalize sm:text-base"
                             title={stat.name}
                           >
                             {stat.name}
@@ -133,7 +133,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
                           </div>
                         </div>
                       </div>
-                      <div className="shrink-0 text-right ml-2">
+                      <div className="ml-2 shrink-0 text-right">
                         <div className="text-2xl font-bold">{stat.currentMax} kg</div>
                         {stat.improvement !== 0 && (
                           <div
@@ -240,7 +240,7 @@ export const StatsView: React.FC<StatsViewProps> = ({ stats }) => {
       ))}
 
       {stats.length === 0 && (
-        <div className="text-muted-foreground bg-muted/20 rounded-lg border-2 border-dashed py-12 px-4 text-center">
+        <div className="text-muted-foreground bg-muted/20 rounded-lg border-2 border-dashed px-4 py-12 text-center">
           <p className="mb-2 text-lg">No stats available yet</p>
           <p className="text-sm">Complete some workouts to see your progress here!</p>
         </div>

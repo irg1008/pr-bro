@@ -59,7 +59,7 @@ export function Combobox({
         {value ? value : placeholder}
         {/* Removed ChevronsUpDown (sort icon) */}
       </PopoverTrigger>
-      <PopoverContent className="w-full min-w-[var(--radix-popover-trigger-width)] p-0 z-50">
+      <PopoverContent className="z-50 w-full min-w-[var(--radix-popover-trigger-width)] p-0">
         <Command className="h-auto">
           <CommandInput
             placeholder={`Search ${placeholder.toLowerCase()}...`}
@@ -73,7 +73,7 @@ export function Combobox({
                   <div
                     className={cn(
                       buttonVariants({ variant: "secondary", size: "sm" }),
-                      "max-w-52 cursor-pointer justify-start min-h-8 px-2"
+                      "min-h-8 max-w-52 cursor-pointer justify-start px-2"
                     )}
                     onClick={() => {
                       const newValue = inputValue.trim();

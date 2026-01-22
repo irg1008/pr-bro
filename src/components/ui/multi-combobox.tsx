@@ -77,19 +77,19 @@ export function MultiCombobox({
       <PopoverTrigger
         className={cn(
           buttonVariants({ variant: "outline" }),
-          "w-full justify-between h-auto min-h-10 py-2", // Allow growing height
+          "h-auto min-h-10 w-full justify-between py-2", // Allow growing height
           value.length === 0 && "text-muted-foreground"
         )}
         role="combobox"
         aria-expanded={open}
       >
-        <div className="flex flex-wrap gap-1 items-center max-w-[calc(100%-2rem)]">
+        <div className="flex max-w-[calc(100%-2rem)] flex-wrap items-center gap-1">
           {value.length > 0 ? (
             value.map((item) => (
               <Badge key={item} variant="secondary" className="mr-1 mb-1 capitalize">
                 {item}
                 <div
-                  className="ml-1 ring-offset-background rounded-full outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 cursor-pointer"
+                  className="ring-offset-background focus:ring-ring ml-1 cursor-pointer rounded-full outline-none focus:ring-2 focus:ring-offset-2"
                   onMouseDown={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
@@ -100,7 +100,7 @@ export function MultiCombobox({
                     handleRemove(item);
                   }}
                 >
-                  <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
+                  <X className="text-muted-foreground hover:text-foreground h-3 w-3" />
                 </div>
               </Badge>
             ))
@@ -110,7 +110,7 @@ export function MultiCombobox({
         </div>
         {/* Removed ChevronsUpDown */}
       </PopoverTrigger>
-      <PopoverContent className="w-[--radix-popover-trigger-width] min-w-72 p-0 z-50" align="start">
+      <PopoverContent className="z-50 w-[--radix-popover-trigger-width] min-w-72 p-0" align="start">
         <Command className="h-auto">
           <CommandInput
             placeholder={`Search ${placeholder.toLowerCase()}...`}
@@ -124,7 +124,7 @@ export function MultiCombobox({
                   <div
                     className={cn(
                       buttonVariants({ variant: "secondary", size: "sm" }),
-                      "max-w-52 cursor-pointer justify-start min-h-8 px-2"
+                      "min-h-8 max-w-52 cursor-pointer justify-start px-2"
                     )}
                     onClick={handleCreate}
                   >

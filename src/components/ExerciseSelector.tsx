@@ -156,7 +156,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
             e.stopPropagation();
             handleEditClick(e, ex);
           }}
-          className="bg-background/80 hover:bg-background absolute top-2 right-2 z-30 rounded-full p-1.5 shadow-sm backdrop-blur-sm transition-opacity opacity-70 hover:opacity-100"
+          className="bg-background/80 hover:bg-background absolute top-2 right-2 z-30 rounded-full p-1.5 opacity-70 shadow-sm backdrop-blur-sm transition-opacity hover:opacity-100"
           title="Edit exercise"
         >
           <Pencil className="h-3.5 w-3.5" />
@@ -183,7 +183,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           ) : null}
           <div
             className={cn(
-              "fallback-text text-muted-foreground/40 text-xs font-medium absolute inset-0 flex items-center justify-center pointer-events-none",
+              "fallback-text text-muted-foreground/40 pointer-events-none absolute inset-0 flex items-center justify-center text-xs font-medium",
               ex.imageUrl ? "hidden" : ""
             )}
           >
@@ -191,7 +191,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           </div>
 
           {isSelected && (
-            <div className="bg-primary/40 absolute inset-0 flex items-center justify-center z-20">
+            <div className="bg-primary/40 absolute inset-0 z-20 flex items-center justify-center">
               <div className="bg-primary text-primary-foreground rounded-full p-2">
                 <Check className="h-6 w-6" />
               </div>
@@ -199,7 +199,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
           )}
         </div>
         <div className="flex grow flex-col gap-1 p-3">
-          <h4 className="text-sm leading-tight font-semibold capitalize pr-4" title={ex.name}>
+          <h4 className="pr-4 text-sm leading-tight font-semibold capitalize" title={ex.name}>
             {ex.name}
           </h4>
           <div className="mt-auto flex flex-wrap gap-1 pt-2">
@@ -299,9 +299,9 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
             <div className="min-h-0 flex-1 px-2">
               {/* Routine Exercises Section */}
               {routineMatches.length > 0 && (
-                <div className="py-4 border-b border-border/60 bg-muted/10 -mx-2 px-2">
-                  <div className="flex items-center gap-2 mb-3">
-                    <h3 className="text-sm font-semibold text-muted-foreground">
+                <div className="border-border/60 bg-muted/10 -mx-2 border-b px-2 py-4">
+                  <div className="mb-3 flex items-center gap-2">
+                    <h3 className="text-muted-foreground text-sm font-semibold">
                       Inactive from routine
                     </h3>
                   </div>
