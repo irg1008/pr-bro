@@ -254,7 +254,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                             className="mb-1.5"
                           />
                           {re.note && (
-                            <div className="mt-2 mb-2 text-sm text-muted-foreground border-l-4 pl-3 py-1 pr-2 bg-muted/20 w-fit rounded-r whitespace-pre-wrap">
+                            <div className="text-muted-foreground bg-muted/20 mt-2 mb-2 w-fit rounded-r border-l-4 py-1 pr-2 pl-3 text-sm whitespace-pre-wrap">
                               {re.note}
                             </div>
                           )}
@@ -268,14 +268,14 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                 <Dialog>
                   <DialogTrigger asChild>
                     {/* Targets Display (Readonly) */}
-                    <div className="mt-2 text-sm cursor-pointer hover:opacity-80 transition-opacity w-fit">
+                    <div className="mt-2 w-fit cursor-pointer text-sm transition-opacity hover:opacity-80">
                       {entry.note ? (
-                        <div className="text-foreground/80 bg-background px-2 py-1.5 rounded-md flex items-start gap-2 border w-fit">
-                          <MessageSquareText className="h-4 w-4 shrink-0 mt-0.5 text-muted-foreground" />
+                        <div className="text-foreground/80 bg-background flex w-fit items-start gap-2 rounded-md border px-2 py-1.5">
+                          <MessageSquareText className="text-muted-foreground mt-0.5 h-4 w-4 shrink-0" />
                           <span className="leading-snug whitespace-pre-wrap">{entry.note}</span>
                         </div>
                       ) : (
-                        <div className="border border-dashed border-muted-foreground/30 rounded-md p-1.5 flex items-center gap-2 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 transition-colors w-fit">
+                        <div className="border-muted-foreground/30 text-muted-foreground hover:text-foreground hover:border-muted-foreground/50 flex w-fit items-center gap-2 rounded-md border border-dashed p-1.5 transition-colors">
                           <MessageSquareText className="h-3.5 w-3.5" />
                           <span className="text-xs">Add insight</span>
                         </div>

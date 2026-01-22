@@ -870,14 +870,14 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                     placeholder={targetDialog.targetType === "DURATION" ? "30" : "8-12"}
                     className="flex-1"
                   />
-                  <div className="flex shrink-0 rounded-md border overflow-hidden">
+                  <div className="flex shrink-0 overflow-hidden rounded-md border">
                     <button
                       type="button"
                       className={cn(
                         "px-2 py-1 text-xs font-medium transition-colors",
                         targetDialog.targetType === "REPS"
                           ? "bg-primary text-primary-foreground"
-                          : "bg-transparent text-muted-foreground hover:bg-muted"
+                          : "text-muted-foreground hover:bg-muted bg-transparent"
                       )}
                       onClick={() => setTargetDialog((prev) => ({ ...prev, targetType: "REPS" }))}
                     >
@@ -886,10 +886,10 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                     <button
                       type="button"
                       className={cn(
-                        "px-2 py-1 text-xs font-medium transition-colors border-l",
+                        "border-l px-2 py-1 text-xs font-medium transition-colors",
                         targetDialog.targetType === "DURATION"
                           ? "bg-primary text-primary-foreground"
-                          : "bg-transparent text-muted-foreground hover:bg-muted"
+                          : "text-muted-foreground hover:bg-muted bg-transparent"
                       )}
                       onClick={() =>
                         setTargetDialog((prev) => ({ ...prev, targetType: "DURATION" }))

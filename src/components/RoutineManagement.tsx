@@ -262,7 +262,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                       checked={selectedCategories.includes(cat)}
                       onCheckedChange={() => toggleCategory(cat)}
                     />
-                    <span className="text-sm font-medium leading-none">{cat}</span>
+                    <span className="text-sm leading-none font-medium">{cat}</span>
                   </label>
                 ))}
               </div>
