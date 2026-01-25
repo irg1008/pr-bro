@@ -31,7 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+
 import { cn } from "@/lib/utils";
 import { navigate } from "astro:transitions/client";
 import {
@@ -57,6 +57,7 @@ import { toast } from "sonner";
 import { TargetDisplay } from "./TargetDisplay";
 import { Badge } from "./ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Textarea } from "./ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 type RoutineExerciseWithExercise = RoutineExercise & { exercise: Exercise };
@@ -760,12 +761,11 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
               <Label htmlFor="description" className="text-right">
                 Description
               </Label>
-              <Textarea
+              <Input
                 id="description"
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
                 className="col-span-3"
-                rows={3}
               />
             </div>
             <div className="grid grid-cols-4 items-start gap-4">

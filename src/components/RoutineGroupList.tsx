@@ -37,6 +37,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
   // Edit State
   const [editingGroup, setEditingGroup] = useState<RoutineGroup | null>(null);
   const [editName, setEditName] = useState("");
+  const [editDesc, setEditDesc] = useState("");
 
   const handleCreate = async () => {
     if (newGroupName.trim()) {
@@ -62,7 +63,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
     try {
       const res = await fetch(`/api/groups/${editingGroup.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ name: editName }),
+        body: JSON.stringify({ name: editName, description: editDesc }),
         headers: { "Content-Type": "application/json" }
       });
       if (res.ok) {
@@ -78,6 +79,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
     e.stopPropagation();
     setEditingGroup(group);
     setEditName(group.name);
+    setEditDesc(group.description || "");
   };
 
   const handleDelete = async (groupId: string) => {
@@ -191,8 +193,8 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
       <Dialog open={!!editingGroup} onOpenChange={(open) => !open && setEditingGroup(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit group name</DialogTitle>
-            <DialogDescription>Enter a new name for this routine group.</DialogDescription>
+            <DialogTitle>Edit group</DialogTitle>
+            <DialogDescription>Update the details for this routine group.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -203,6 +205,17 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
                 id="edit-name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="edit-desc" className="text-right">
+                Description
+              </Label>
+              <Input
+                id="edit-desc"
+                value={editDesc}
+                onChange={(e) => setEditDesc(e.target.value)}
                 className="col-span-3"
               />
             </div>
