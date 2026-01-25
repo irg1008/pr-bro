@@ -147,10 +147,22 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
             <div className="space-y-1">
               <CardTitle className="text-foreground flex items-center justify-between text-lg font-semibold tracking-tight capitalize">
                 {nextRoutine.name}
-                {nextRoutine.isDeload && <DeloadBadge />}
+                {activeLogDetails?.isDeload && <DeloadBadge />}
               </CardTitle>
+              {activeLogDetails && (
+                <p className="text-muted-foreground text-sm">
+                  Started at{" "}
+                  {new Date(activeLogDetails.createdAt).toLocaleString(undefined, {
+                    day: "numeric",
+                    month: "numeric",
+                    year: "numeric",
+                    hour: "2-digit",
+                    minute: "2-digit"
+                  })}
+                </p>
+              )}
               <p className="text-muted-foreground text-sm">
-                {nextRoutine.description || "Time to lift heavy things."}
+                {nextRoutine.description || (!activeLogDetails && "Time to lift heavy things.")}
               </p>
             </div>
           </CardHeader>
@@ -190,9 +202,7 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
                     ? activeLogDetails?.isDeload
                       ? "Resume deload"
                       : "Resume workout"
-                    : nextRoutine.isDeload
-                      ? "Start deload"
-                      : "Start workout"}
+                    : "Start workout"}
               </Button>
               {activeLogId && (
                 <Button

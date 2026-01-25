@@ -64,6 +64,7 @@ type RoutineExerciseWithExercise = RoutineExercise & { exercise: Exercise };
 interface RoutineDetailProps {
   routineId: string;
   routineName: string;
+  routineDescription?: string | null;
   initialExercises: RoutineExerciseWithExercise[];
   focusedParts?: string[];
 }
@@ -71,12 +72,14 @@ interface RoutineDetailProps {
 export const RoutineDetail: React.FC<RoutineDetailProps> = ({
   routineId,
   routineName,
+  routineDescription,
   initialExercises,
   focusedParts = []
 }) => {
   const [exercises, setExercises] = useState<RoutineExerciseWithExercise[]>(initialExercises);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(routineName);
+  const [newDescription, setNewDescription] = useState(routineDescription || "");
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(focusedParts);
   const [deleteAlert, setDeleteAlert] = useState<{ open: boolean; id: string | null }>({
@@ -184,6 +187,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
         method: "PATCH",
         body: JSON.stringify({
           name: newName,
+          description: newDescription,
           focusedParts: selectedCategories
         }),
         headers: { "Content-Type": "application/json" }
@@ -738,7 +742,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       <Dialog open={isRenaming} onOpenChange={setIsRenaming}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename routine</DialogTitle>
+            <DialogTitle>Edit routine</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -750,6 +754,18 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
                 className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="text-right">
+                Description
+              </Label>
+              <Textarea
+                id="description"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
+                className="col-span-3"
+                rows={3}
               />
             </div>
             <div className="grid grid-cols-4 items-start gap-4">

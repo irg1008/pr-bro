@@ -89,6 +89,7 @@ if (logId) {
 					initialStartTime: log.createdAt.toISOString(),
 					// Use the routine name, or "Workout" if mostly dynamic
 					routineName: routine.name,
+					routineDescription: routine.description,
 					routineId: routine.id,
 					routineGroupId: routine.routineGroupId,
 					// Map routine exercises to Exercise objects
@@ -100,7 +101,7 @@ if (logId) {
 						exercise: re.exercise,
 					})),
 					routineExerciseIds: routine.exercises.map((e) => e.exerciseId),
-					isDeload: routine.isDeload,
+					isDeload: log.isDeload,
 				};
 			}
 		}
@@ -124,6 +125,7 @@ if (!logId) {
 					logId={workoutData.logId}
 					initialStartTime={workoutData.initialStartTime}
 					routineName={workoutData.routineName}
+					routineDescription={workoutData.routineDescription}
 					routineId={workoutData.routineId}
 					routineGroupId={workoutData.routineGroupId}
 					routineExerciseIds={workoutData.routineExerciseIds}
