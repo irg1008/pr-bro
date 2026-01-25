@@ -78,6 +78,7 @@ export const POST: APIRoute = async ({ request }) => {
     data: {
       routineId,
       cycleNumber,
+      isDeload: currentRoutine?.isDeload || false,
       finishedAt: finishedAt ? new Date(finishedAt) : undefined,
       createdAt: createdAt ? new Date(createdAt) : undefined,
       entries: {

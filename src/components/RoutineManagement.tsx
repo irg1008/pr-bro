@@ -18,6 +18,7 @@ import { navigate } from "astro:transitions/client";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Pencil, Trash2 } from "lucide-react";
 import type { Routine } from "prisma/generated/client";
 import React, { useEffect, useState } from "react";
+import { DeloadBadge } from "./ui/DeloadBadge";
 import { Badge } from "./ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 
@@ -49,6 +50,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editCategories, setEditCategories] = useState<string[]>([]);
+  const [editIsDeload, setEditIsDeload] = useState(false);
 
   // Group Edit State
   const [isEditingGroup, setIsEditingGroup] = useState(false);
@@ -121,7 +123,8 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
         body: JSON.stringify({
           name: editName,
           description: editDesc,
-          focusedParts: editCategories
+          focusedParts: editCategories,
+          isDeload: editIsDeload
         }),
         headers: { "Content-Type": "application/json" }
       });
@@ -145,6 +148,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
     setEditName(routine.name);
     setEditDesc(routine.description || "");
     setEditCategories(routine.focusedParts || []);
+    setEditIsDeload((routine as any).isDeload || false);
   };
 
   const handleDelete = async (routineId: string) => {
@@ -409,6 +413,8 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
               <div className="text-muted-foreground mt-4 text-xs font-medium">
                 {routine.exerciseCount} Exercises
               </div>
+
+              {(routine as any).isDeload && <DeloadBadge className="absolute top-2 right-2" />}
             </CardContent>
           </Card>
         ))}
@@ -469,6 +475,24 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                   ))}
                 </div>
               )}
+            </div>
+            <div className="flex items-center space-x-2 pt-2">
+              <Checkbox
+                id="edit-is-deload"
+                checked={editIsDeload}
+                onCheckedChange={(checked) => setEditIsDeload(!!checked)}
+              />
+              <div className="grid gap-1.5 leading-none">
+                <Label
+                  htmlFor="edit-is-deload"
+                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                >
+                  Deload mode
+                </Label>
+                <p className="text-muted-foreground text-xs font-normal">
+                  Recovery session with no progressive overload.
+                </p>
+              </div>
             </div>
           </div>
           <DialogFooter>

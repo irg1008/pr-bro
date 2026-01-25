@@ -78,6 +78,7 @@
     "@types/react-dom": "^19.2.3",
     "astro-tunnel": "0.1.9",
     "csv-parse": "^6.1.0",
+    "dotenv": "^17.2.3",
     "oxfmt": "^0.23.0",
     "oxlint": "^1.38.0",
     "prisma": "^7.2.0",

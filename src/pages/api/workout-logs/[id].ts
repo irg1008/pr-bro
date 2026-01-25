@@ -31,11 +31,13 @@ export const PUT: APIRoute = async ({ request, params }) => {
   if (!id) return new Response("ID required", { status: 400 });
 
   const data = await request.json();
-  const { entries, supersetStatus, finishedAt, sessionNotes, createdAt, exerciseOrder } = data;
+  const { entries, supersetStatus, finishedAt, sessionNotes, createdAt, exerciseOrder, isDeload } =
+    data;
 
   const updateData: any = {};
   if (finishedAt) updateData.finishedAt = new Date(finishedAt);
   if (createdAt) updateData.createdAt = new Date(createdAt);
+  if (isDeload !== undefined) updateData.isDeload = isDeload;
 
   if (Object.keys(updateData).length > 0) {
     await prisma.workoutLog.update({

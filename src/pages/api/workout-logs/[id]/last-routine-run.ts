@@ -24,7 +24,8 @@ export const GET: APIRoute = async ({ params }) => {
       where: {
         routineId: currentLog.routineId,
         id: { not: id },
-        finishedAt: { not: null }
+        finishedAt: { not: null },
+        isDeload: false
       },
       orderBy: {
         finishedAt: "desc"

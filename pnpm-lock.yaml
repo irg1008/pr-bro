@@ -156,6 +156,9 @@ importers:
       csv-parse:
         specifier: ^6.1.0
         version: 6.1.0
+      dotenv:
+        specifier: ^17.2.3
+        version: 17.2.3
       oxfmt:
         specifier: ^0.23.0
         version: 0.23.0

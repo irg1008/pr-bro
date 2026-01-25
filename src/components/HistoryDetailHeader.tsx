@@ -32,6 +32,7 @@ import { navigate } from "astro:transitions/client";
 import { format } from "date-fns";
 import {
   ArrowUpDown,
+  BatteryCharging,
   Calendar as CalendarIcon,
   Clock,
   MoreVertical,
@@ -41,6 +42,7 @@ import {
 import type { Routine, RoutineGroup, WorkoutLog } from "prisma/generated/client";
 import { useState } from "react";
 import { toast } from "sonner";
+import { DeloadBadge } from "./ui/DeloadBadge";
 
 interface HistoryDetailHeaderProps {
   log: WorkoutLog & {
@@ -57,6 +59,30 @@ export const HistoryDetailHeader = ({
 }: HistoryDetailHeaderProps) => {
   const [isEditDateOpen, setIsEditDateOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
+  const [isDeload, setIsDeload] = useState((log as any).isDeload || false);
+
+  const handleToggleDeload = async () => {
+    const newState = !isDeload;
+    setIsDeload(newState);
+    try {
+      const res = await fetch(`/api/workout-logs/${log.id}`, {
+        method: "PUT",
+        body: JSON.stringify({ isDeload: newState }),
+        headers: { "Content-Type": "application/json" }
+      });
+      if (res.ok) {
+        toast.success(newState ? "Marked as deload" : "Unmarked as deload");
+        navigate(window.location.pathname);
+      } else {
+        setIsDeload(!newState);
+        toast.error("Failed to update status");
+      }
+    } catch (e) {
+      console.error(e);
+      setIsDeload(!newState);
+      toast.error("Error updating status");
+    }
+  };
 
   // Date Editing State
   const [startDate, setStartDate] = useState<Date>(new Date(log.createdAt));
@@ -149,8 +175,9 @@ export const HistoryDetailHeader = ({
         </a>
         <h1 className="text-3xl font-bold">{log.routine.name}</h1>
         <p className="text-muted-foreground">{log.routine.group.name}</p>
-        <p className="text-muted-foreground mt-1">
+        <p className="text-muted-foreground mt-1 flex items-center gap-2">
           <LogDateDisplay createdAt={log.createdAt} finishedAt={log.finishedAt} />
+          {isDeload && <DeloadBadge />}
         </p>
       </div>
 
@@ -165,6 +192,10 @@ export const HistoryDetailHeader = ({
           <DropdownMenuItem onClick={() => setReorderMode(!reorderMode)}>
             <ArrowUpDown className="mr-2 h-4 w-4" />
             {reorderMode ? "Done reordering" : "Reorder exercises"}
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={handleToggleDeload}>
+            <BatteryCharging className="mr-2 h-4 w-4" />
+            {isDeload ? "Unmark as deload" : "Mark as deload"}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setIsEditDateOpen(true)}>
             <Pencil className="mr-2 h-4 w-4" />

@@ -100,6 +100,7 @@ if (logId) {
 						exercise: re.exercise,
 					})),
 					routineExerciseIds: routine.exercises.map((e) => e.exerciseId),
+					isDeload: routine.isDeload,
 				};
 			}
 		}
@@ -129,6 +130,7 @@ if (!logId) {
 					exercises={workoutData.exercises}
 					initialSupersetStatus={workoutData.initialSupersetStatus}
 					routineExercisesList={workoutData.routineExercisesList}
+					isDeload={workoutData.isDeload}
 				/>
 			) : (
 				<div class="flex flex-col items-center justify-center h-full p-8 gap-4">

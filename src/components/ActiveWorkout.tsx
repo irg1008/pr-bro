@@ -29,8 +29,10 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { InputWarning } from "@/components/ui/InputWarning";
 import { Textarea } from "@/components/ui/textarea";
 import { useHaptic } from "@/hooks/useHaptic";
+import { useInputVerification } from "@/hooks/useInputVerification";
 import { applyProgressiveOverload } from "@/lib/progressive-overload";
 import { cn } from "@/lib/utils";
 import type { SetType } from "@/types/set-types";
@@ -55,6 +57,7 @@ import {
   Target,
   Timer,
   Trash2,
+  TrendingDown,
   TrendingUp,
   Waves,
   X,
@@ -66,12 +69,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SetTypeSelector } from "./SetTypeSelector";
 import { TargetDisplay } from "./TargetDisplay";
-
-const InputWarning = ({ message }: { message: string }) => (
-  <div className="absolute top-full left-0 right-0 z-10 mx-auto mt-1 w-max max-w-[200px] rounded bg-amber-100 px-2 py-1 text-xs text-amber-700 shadow-sm dark:bg-amber-900/30 dark:text-amber-400">
-    {message}
-  </div>
-);
+import { DeloadBadge } from "./ui/DeloadBadge";
 
 const CARDIO_OPTIONS = [
   { name: "Running", icon: Footprints },
@@ -123,6 +121,7 @@ export interface ActiveWorkoutProps {
   exercises: ActiveWorkoutExercise[]; // Updated type
   initialSupersetStatus?: Record<string, boolean>;
   routineExercisesList?: { exerciseId: string; isActive?: boolean | null; exercise: Exercise }[]; // Full list from routine
+  isDeload?: boolean;
 }
 
 export const ActiveWorkout = ({
@@ -134,7 +133,8 @@ export const ActiveWorkout = ({
   routineExerciseIds,
   exercises: initialExercises,
   initialSupersetStatus = {},
-  routineExercisesList = []
+  routineExercisesList = [],
+  isDeload: initialIsDeload = false
 }: ActiveWorkoutProps) => {
   // ... (rest of component)
   // Carousel state removed
@@ -144,7 +144,7 @@ export const ActiveWorkout = ({
 
   // Dynamic Exercise State
   const [activeExercises, setActiveExercises] = useState<ActiveWorkoutExercise[]>(initialExercises);
-  const [inputWarnings, setInputWarnings] = useState<Record<string, string>>({}); // Key: "exID-setIdx-field"
+  const { inputWarnings, verifyInput, clearWarning } = useInputVerification();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<"add" | "replace">("add");
   const [targetExerciseIndex, setTargetExerciseIndex] = useState<number>(-1); // For replace/delete context if needed
@@ -173,7 +173,26 @@ export const ActiveWorkout = ({
   // Workout completion state
   const [congratsModalOpen, setCongratsModalOpen] = useState(false);
   const [incompleteFinishAlertOpen, setIncompleteFinishAlertOpen] = useState(false);
+
   const congratsShownRef = useRef(false);
+
+  const [isDeload, setIsDeload] = useState(initialIsDeload);
+
+  const toggleDeload = async () => {
+    const newState = !isDeload;
+    setIsDeload(newState);
+    try {
+      await fetch(`/api/routines/${routineId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isDeload: newState }),
+        headers: { "Content-Type": "application/json" }
+      });
+      toast.success(newState ? "Deload mode activated" : "Deload mode disabled");
+    } catch (e) {
+      toast.error("Failed to update deload status");
+      setIsDeload(!newState);
+    }
+  };
 
   // Helper: Check if all sets for a specific exercise are completed
   const isExerciseComplete = (exerciseId: string): boolean => {
@@ -528,49 +547,7 @@ export const ActiveWorkout = ({
     setSets({ ...sets, [exerciseId]: newSets });
   };
 
-  const verifyInput = (exerciseId: string, idx: number, val: number, field: "weight" | "reps") => {
-    const currentSets = sets[exerciseId];
-    if (!currentSets) return;
-
-    // Helper to set warning
-    const warn = (msg: string) => {
-      setInputWarnings((prev) => ({ ...prev, [`${exerciseId}-${idx}-${field}`]: msg }));
-    };
-
-    // Check Previous Set
-    if (idx > 0) {
-      const prevSet = currentSets[idx - 1];
-      const prevVal = Number(prevSet[field]);
-      if (prevVal > 0 && val > 0) {
-        const increase = (val - prevVal) / prevVal;
-        if (increase > 0.5) {
-          warn(`+${Math.round(increase * 100)}% jump vs Set ${idx} (${prevVal})`);
-          return;
-        }
-      }
-    }
-
-    // Check Next Set
-    if (idx < currentSets.length - 1) {
-      const nextSet = currentSets[idx + 1];
-      const nextVal = Number(nextSet[field]);
-
-      if (nextVal > 0 && val > 0) {
-        const min = Math.min(val, nextVal);
-        const max = Math.max(val, nextVal);
-        if (min > 0) {
-          const increase = (max - min) / min;
-          if (increase > 0.5) {
-            if (val > nextVal) {
-              warn(`Huge vs Set ${idx + 2} (${nextVal})`);
-            } else {
-              warn(`Tiny vs Set ${idx + 2} (${nextVal})`);
-            }
-          }
-        }
-      }
-    }
-  };
+  // verifyInput function removed (replaced by hook)
 
   const addSet = (exerciseId: string) => {
     if (!exerciseId) return;
@@ -799,7 +776,8 @@ export const ActiveWorkout = ({
           entries: stateRef.current.sets,
           supersetStatus: stateRef.current.supersetStatus,
           notes: stateRef.current.sessionNotes,
-          finishedAt: new Date().toISOString()
+          finishedAt: new Date().toISOString(),
+          isDeload
         }),
         headers: { "Content-Type": "application/json" }
       });
@@ -959,6 +937,7 @@ export const ActiveWorkout = ({
             <span className="text-foreground font-semibold">{routineName}</span>
             <span>Started at {startTimeDisplay}</span>
           </div>
+          {isDeload && <DeloadBadge className="py-1 text-xs" />}
         </div>
 
         <DropdownMenu>
@@ -982,6 +961,10 @@ export const ActiveWorkout = ({
               <History className="mr-2 h-4 w-4" />
               Load last run
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={toggleDeload}>
+              <TrendingDown className="mr-2 h-4 w-4" />
+              {isDeload ? "Disable deload" : "Enable deload"}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
@@ -1002,15 +985,17 @@ export const ActiveWorkout = ({
       </div>
 
       {/* Double Progression Button - Full Width */}
-      <Button
-        variant="accent"
-        size="lg"
-        onClick={() => handleApplyDoubleProgression()}
-        className="w-full shadow-md transition-all"
-      >
-        <TrendingUp className="mr-2 h-5 w-5" />
-        Apply progressive overload
-      </Button>
+      {!isDeload && (
+        <Button
+          variant="accent"
+          size="lg"
+          onClick={() => handleApplyDoubleProgression()}
+          className="w-full shadow-md transition-all"
+        >
+          <TrendingUp className="mr-2 h-5 w-5" />
+          Apply progressive overload
+        </Button>
+      )}
 
       <div className="text-muted-foreground bg-muted/30 flex items-center justify-center rounded-lg border border-dashed p-2 text-center text-xs">
         Tap set number to toggle between set types
@@ -1169,7 +1154,7 @@ export const ActiveWorkout = ({
                           <History className="mr-2 h-4 w-4" />
                           Load last run
                         </DropdownMenuItem>
-                        {routineExerciseIds.includes(ex.id) && (
+                        {routineExerciseIds.includes(ex.id) && !isDeload && (
                           <DropdownMenuItem onClick={() => handleApplyDoubleProgression(ex.id)}>
                             <TrendingUp className="mr-2 h-4 w-4" />
                             Apply overload
@@ -1322,11 +1307,7 @@ export const ActiveWorkout = ({
                           type="number"
                           value={set.weight === "" ? "" : set.weight}
                           onChange={(e) => {
-                            if (inputWarnings[`${ex.id}-${idx}-weight`]) {
-                              const newWarnings = { ...inputWarnings };
-                              delete newWarnings[`${ex.id}-${idx}-weight`];
-                              setInputWarnings(newWarnings);
-                            }
+                            clearWarning(`${ex.id}`, idx, "weight");
                             updateSet(
                               ex.id,
                               idx,
@@ -1336,7 +1317,8 @@ export const ActiveWorkout = ({
                           }}
                           onBlur={(e) => {
                             const val = e.target.value === "" ? 0 : Number(e.target.value);
-                            if (val > 0) verifyInput(ex.id, idx, val, "weight");
+                            if (val > 0 && sets[ex.id])
+                              verifyInput(sets[ex.id], idx, val, "weight", ex.id);
                           }}
                           className={cn(
                             "text-center transition-colors",
@@ -1354,11 +1336,7 @@ export const ActiveWorkout = ({
                           type="number"
                           value={set.reps === "" ? "" : set.reps}
                           onChange={(e) => {
-                            if (inputWarnings[`${ex.id}-${idx}-reps`]) {
-                              const newWarnings = { ...inputWarnings };
-                              delete newWarnings[`${ex.id}-${idx}-reps`];
-                              setInputWarnings(newWarnings);
-                            }
+                            clearWarning(`${ex.id}`, idx, "reps");
                             updateSet(
                               ex.id,
                               idx,
@@ -1368,7 +1346,8 @@ export const ActiveWorkout = ({
                           }}
                           onBlur={(e) => {
                             const val = e.target.value === "" ? 0 : Number(e.target.value);
-                            if (val > 0) verifyInput(ex.id, idx, val, "reps");
+                            if (val > 0 && sets[ex.id])
+                              verifyInput(sets[ex.id], idx, val, "reps", ex.id);
                           }}
                           className={cn(
                             "text-center transition-colors",

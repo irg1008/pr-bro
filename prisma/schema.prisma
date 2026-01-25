@@ -43,6 +43,7 @@ model Routine {
   exercises      RoutineExercise[]
   logs           WorkoutLog[]
   order          Int               @default(0)
+  isDeload       Boolean           @default(false)
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
 }
@@ -95,6 +96,7 @@ model WorkoutLog {
   createdAt   DateTime          @default(now())
   updatedAt   DateTime          @updatedAt
   cycleNumber Int               @default(1)
+  isDeload    Boolean           @default(false)
 }
 
 model WorkoutLogEntry {

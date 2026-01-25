@@ -3,6 +3,7 @@ import { DeleteHistoryButton } from "@/components/DeleteHistoryButton";
 import { LogDateDisplay } from "@/components/LogDateDisplay";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeloadBadge } from "@/components/ui/DeloadBadge";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type {
@@ -140,6 +141,7 @@ const paginatedCycles = cycles.slice(
 												<div>
 													<CardTitle className="font-bold text-base capitalize flex items-center gap-2 text-foreground">
 														{log.routine.name}
+														{(log as any).isDeload && <DeloadBadge />}
 													</CardTitle>
 													<p class="text-xs text-muted-foreground mt-1">
 														<LogDateDisplay
