@@ -12,6 +12,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ListInput } from "@/components/ui/list-input";
+import { actions } from "astro:actions";
 import { navigate } from "astro:transitions/client";
 import { Copy, Plus, Trash2 } from "lucide-react";
 import type { Exercise } from "prisma/generated/client";
@@ -91,24 +92,20 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
   ];
 
   useEffect(() => {
-    const fetchValues = async (field: string, setter: (vals: string[]) => void) => {
-      try {
-        const res = await fetch(`/api/exercises/values?field=${field}`);
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          setter(data);
-        } else if (field === "equipment") {
-          setter(DEFAULT_EQUIPMENT);
-        }
-      } catch (e) {
-        console.error(`Failed to fetch ${field}`, e);
-        if (field === "equipment") setter(DEFAULT_EQUIPMENT);
-      }
-    };
+    (async () => {
+      const { data: cats } = await actions.exercise.getUniqueValues({ field: "category" });
+      if (cats) setCategories(cats);
 
-    fetchValues("category", setCategories);
-    fetchValues("target", setTargets);
-    fetchValues("equipment", setEquipmentList);
+      const { data: targs } = await actions.exercise.getUniqueValues({ field: "target" });
+      if (targs) setTargets(targs);
+
+      const { data: equip } = await actions.exercise.getUniqueValues({ field: "equipment" });
+      if (equip) {
+        setEquipmentList(equip.length > 0 ? equip : DEFAULT_EQUIPMENT);
+      } else {
+        setEquipmentList(DEFAULT_EQUIPMENT);
+      }
+    })();
   }, []);
 
   const handleSelectExisting = (ex: Exercise) => {
@@ -141,38 +138,29 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
     }
 
     try {
-      const url =
-        isEditMode && exerciseToEdit ? `/api/exercises/${exerciseToEdit.id}` : "/api/exercises";
-      const method = isEditMode ? "PUT" : "POST";
+      let savedExercise: Exercise | undefined;
 
-      const res = await fetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData)
-      });
-
-      if (!res.ok) {
-        throw new Error((await res.text()) || "Failed to save exercise");
+      if (isEditMode && exerciseToEdit) {
+        const { data, error: editError } = await actions.exercise.updateExercise({
+          id: exerciseToEdit.id,
+          ...formData
+        });
+        if (editError) throw new Error(editError.message);
+        savedExercise = data;
+      } else {
+        const { data, error: createError } = await actions.exercise.createExercise(formData);
+        if (createError) throw new Error(createError.message);
+        savedExercise = data;
       }
 
-      const savedExercise = await res.json();
-      if (onSave) onSave(savedExercise);
+      if (savedExercise && onSave) onSave(savedExercise);
 
       // If we need to add to routine immediately
-      if (addToRoutineId) {
-        try {
-          await fetch("/api/routine-exercises", {
-            method: "POST",
-            body: JSON.stringify({
-              routineId: addToRoutineId,
-              exerciseId: savedExercise.id
-            }),
-            headers: { "Content-Type": "application/json" }
-          });
-        } catch (addErr) {
-          console.error("Failed to auto-add to routine", addErr);
-          // We don't block navigation on this failure, but maybe show toast?
-        }
+      if (savedExercise && addToRoutineId) {
+        await actions.routine.addExercise({
+          routineId: addToRoutineId,
+          exerciseId: savedExercise.id
+        });
       }
 
       if (returnUrl) {
@@ -195,20 +183,17 @@ export const ExerciseForm: React.FC<ExerciseFormProps> = ({
   const handleDelete = async () => {
     if (!exerciseToEdit) return;
     setLoading(true);
-    try {
-      const res = await fetch(`/api/exercises/${exerciseToEdit.id}`, {
-        method: "DELETE"
-      });
-      if (!res.ok) {
-        throw new Error("Failed to delete exercise");
-      }
+    const { error: deleteError } = await actions.exercise.deleteExercise({
+      id: exerciseToEdit.id
+    });
+    if (!deleteError) {
       if (returnUrl) {
         await navigate(returnUrl);
       } else {
         await navigate("/routines");
       }
-    } catch (err: any) {
-      setError(err.message);
+    } else {
+      setError(deleteError.message);
       setLoading(false);
       setDeleteAlert(false);
     }

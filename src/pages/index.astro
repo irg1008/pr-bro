@@ -1,19 +1,10 @@
 ---
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import type { RoutineGroup } from "prisma/generated/client";
-import {
-	HomePageWrapper,
-	type RoutineWithExercises,
-} from "../components/HomePageWrapper";
-import { GET } from "./api/home";
+import { WorkoutService } from "@/services/workout-service";
+import { HomePageWrapper } from "../components/HomePageWrapper";
 
-const response = await GET(Astro);
-const data: {
-	activeGroup: RoutineGroup | null;
-	nextRoutine: RoutineWithExercises | null;
-	activeLog: any | null;
-} = await response.json();
-const { activeGroup, nextRoutine, activeLog } = data;
+const { activeGroup, nextRoutine, activeLog } =
+	await WorkoutService.getHomeDashboardData();
 ---
 
 <BaseLayout title={"PR/BRO"}>

@@ -14,6 +14,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { actions } from "astro:actions";
 import { navigate } from "astro:transitions/client";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Pencil, Trash2 } from "lucide-react";
 import type { Routine } from "prisma/generated/client";
@@ -50,7 +51,6 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
   const [editName, setEditName] = useState("");
   const [editDesc, setEditDesc] = useState("");
   const [editCategories, setEditCategories] = useState<string[]>([]);
-  const [editIsDeload, setEditIsDeload] = useState(false);
 
   // Group Edit State
   const [isEditingGroup, setIsEditingGroup] = useState(false);
@@ -59,86 +59,55 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
 
   const handleUpdateGroup = async () => {
     if (!editingGroupName.trim()) return;
-    try {
-      const res = await fetch(`/api/groups/${groupId}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          name: editingGroupName,
-          description: editingGroupDesc
-        }),
-        headers: { "Content-Type": "application/json" }
-      });
-      if (res.ok) {
-        setIsEditingGroup(false);
-        // Navigate usually to refresh server props, keeping it for group update as it changes page title
-        navigate(location.pathname);
-      }
-    } catch (error) {
-      console.error("Failed to update group", error);
+    const { error } = await actions.routine.updateGroup({
+      id: groupId,
+      name: editingGroupName,
+      description: editingGroupDesc
+    });
+    if (!error) {
+      setIsEditingGroup(false);
+      navigate(location.pathname);
     }
   };
 
   useEffect(() => {
-    fetch("/api/categories")
-      .then((res) => res.json())
-      .then((data: string[]) => {
-        // API now returns string[] directly
-        setAvailableCategories(data);
-      })
-      .catch((err) => console.error("Failed to fetch categories", err));
+    (async () => {
+      const { data, error } = await actions.exercise.getCategories();
+      if (!error && data) setAvailableCategories(data);
+    })();
   }, []);
 
   const handleCreate = async () => {
     if (newName.trim()) {
-      try {
-        const res = await fetch("/api/routines", {
-          method: "POST",
-          body: JSON.stringify({
-            name: newName,
-            description: newDesc,
-            routineGroupId: groupId,
-            focusedParts: selectedCategories
-          }),
-          headers: { "Content-Type": "application/json" }
-        });
-        if (res.ok) {
-          const created: Routine = await res.json();
-          setNewName("");
-          setNewDesc("");
-          setSelectedCategories([]);
-          setIsCreating(false);
-          setRoutines((prev) => [...prev, { ...created, exerciseCount: 0 }]);
-        }
-      } catch (error) {
-        console.error("Failed to create routine", error);
+      const { data, error } = await actions.routine.createRoutine({
+        name: newName,
+        description: newDesc,
+        routineGroupId: groupId,
+        focusedParts: selectedCategories
+      });
+      if (!error && data) {
+        setNewName("");
+        setNewDesc("");
+        setSelectedCategories([]);
+        setIsCreating(false);
+        setRoutines((prev) => [...prev, { ...data, exerciseCount: 0 }]);
       }
     }
   };
 
   const handleEdit = async () => {
     if (!editingRoutine || !editName.trim()) return;
-    try {
-      const res = await fetch(`/api/routines/${editingRoutine.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          name: editName,
-          description: editDesc,
-          focusedParts: editCategories,
-          isDeload: editIsDeload
-        }),
-        headers: { "Content-Type": "application/json" }
-      });
-      if (res.ok) {
-        const updated: Routine = await res.json();
-        setEditingRoutine(null);
-        setRoutines((prev) =>
-          prev.map((r) =>
-            r.id === updated.id ? { ...updated, exerciseCount: r.exerciseCount } : r
-          )
-        );
-      }
-    } catch (error) {
-      console.error("Failed to update routine", error);
+    const { data, error } = await actions.routine.updateRoutine({
+      id: editingRoutine.id,
+      name: editName,
+      description: editDesc,
+      focusedParts: editCategories
+    });
+    if (!error && data) {
+      setEditingRoutine(null);
+      setRoutines((prev) =>
+        prev.map((r) => (r.id === data.id ? { ...data, exerciseCount: r.exerciseCount } : r))
+      );
     }
   };
 
@@ -148,19 +117,12 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
     setEditName(routine.name);
     setEditDesc(routine.description || "");
     setEditCategories(routine.focusedParts || []);
-    setEditIsDeload((routine as any).isDeload || false);
   };
 
   const handleDelete = async (routineId: string) => {
-    try {
-      const res = await fetch(`/api/routines/${routineId}`, {
-        method: "DELETE"
-      });
-      if (res.ok) {
-        setRoutines((prev) => prev.filter((r) => r.id !== routineId));
-      }
-    } catch (error) {
-      console.error("Failed to delete routine", error);
+    const { error } = await actions.routine.deleteRoutine({ id: routineId });
+    if (!error) {
+      setRoutines((prev) => prev.filter((r) => r.id !== routineId));
     }
   };
 
@@ -183,20 +145,10 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
     const newRoutines = [...routines];
     const targetIndex = direction === "up" ? index - 1 : index + 1;
 
-    // Swap
     [newRoutines[index], newRoutines[targetIndex]] = [newRoutines[targetIndex], newRoutines[index]];
 
     setRoutines(newRoutines);
-
-    try {
-      await fetch(`/api/routines/reorder`, {
-        method: "POST",
-        body: JSON.stringify({ routineIds: newRoutines.map((r) => r.id) }),
-        headers: { "Content-Type": "application/json" }
-      });
-    } catch (e) {
-      console.error("Failed to reorder", e);
-    }
+    await actions.routine.reorderRoutines({ routineIds: newRoutines.map((r) => r.id) });
   };
 
   return (
@@ -414,7 +366,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                 {routine.exerciseCount} Exercises
               </div>
 
-              {(routine as any).isDeload && <DeloadBadge className="absolute top-2 right-2" />}
+              {routine.isDeload && <DeloadBadge className="absolute top-2 right-2" />}
             </CardContent>
           </Card>
         ))}
@@ -475,24 +427,6 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
                   ))}
                 </div>
               )}
-            </div>
-            <div className="flex items-center space-x-2 pt-2">
-              <Checkbox
-                id="edit-is-deload"
-                checked={editIsDeload}
-                onCheckedChange={(checked) => setEditIsDeload(!!checked)}
-              />
-              <div className="grid gap-1.5 leading-none">
-                <Label
-                  htmlFor="edit-is-deload"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
-                >
-                  Deload mode
-                </Label>
-                <p className="text-muted-foreground text-xs font-normal">
-                  Recovery session with no progressive overload.
-                </p>
-              </div>
             </div>
           </div>
           <DialogFooter>

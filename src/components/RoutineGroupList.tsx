@@ -27,6 +27,7 @@ import { Pencil, Trash2 } from "lucide-react";
 import type { RoutineGroup } from "prisma/generated/client";
 import React, { useState } from "react";
 
+import { actions } from "astro:actions";
 import { toast } from "sonner";
 
 export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups }) => {
@@ -40,37 +41,24 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
 
   const handleCreate = async () => {
     if (newGroupName.trim()) {
-      try {
-        const res = await fetch("/api/groups", {
-          method: "POST",
-          body: JSON.stringify({ name: newGroupName }),
-          headers: { "Content-Type": "application/json" }
-        });
-        if (res.ok) {
-          setNewGroupName("");
-          setIsCreating(false);
-          navigate(location.pathname);
-        }
-      } catch (error) {
-        console.error("Failed to create group", error);
+      const { data, error } = await actions.routine.createGroup({ name: newGroupName });
+      if (!error && data) {
+        setNewGroupName("");
+        setIsCreating(false);
+        navigate(location.pathname);
       }
     }
   };
 
   const handleEdit = async () => {
     if (!editingGroup || !editName.trim()) return;
-    try {
-      const res = await fetch(`/api/groups/${editingGroup.id}`, {
-        method: "PATCH",
-        body: JSON.stringify({ name: editName }),
-        headers: { "Content-Type": "application/json" }
-      });
-      if (res.ok) {
-        setEditingGroup(null);
-        navigate(location.pathname);
-      }
-    } catch (error) {
-      console.error("Failed to update group", error);
+    const { error } = await actions.routine.updateGroup({
+      id: editingGroup.id,
+      name: editName
+    });
+    if (!error) {
+      setEditingGroup(null);
+      navigate(location.pathname);
     }
   };
 
@@ -81,15 +69,9 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
   };
 
   const handleDelete = async (groupId: string) => {
-    try {
-      const res = await fetch(`/api/groups/${groupId}`, {
-        method: "DELETE"
-      });
-      if (res.ok) {
-        navigate(location.pathname);
-      }
-    } catch (error) {
-      console.error("Failed to delete group", error);
+    const { error } = await actions.routine.deleteGroup({ id: groupId });
+    if (!error) {
+      navigate(location.pathname);
     }
   };
 
@@ -155,21 +137,14 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
                     reader.onload = async (ev) => {
                       const json = JSON.parse(ev.target?.result as string);
 
-                      toast.promise(
-                        fetch("/api/backup/routine-groups", {
-                          method: "POST",
-                          headers: { "Content-Type": "application/json" },
-                          body: JSON.stringify(json)
-                        }),
-                        {
-                          loading: "Importing routines...",
-                          success: () => {
-                            navigate(location.pathname);
-                            return "Routines imported successfully!";
-                          },
-                          error: "Import failed"
-                        }
-                      );
+                      toast.promise(actions.routine.importBackup(json), {
+                        loading: "Importing routines...",
+                        success: () => {
+                          navigate(location.pathname);
+                          return "Routines imported successfully!";
+                        },
+                        error: "Import failed"
+                      });
                       setImportFile(null);
                       const input = document.getElementById("import-file") as HTMLInputElement;
                       if (input) input.value = "";
@@ -236,7 +211,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
             className="group hover:bg-card/50 relative cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99]"
             onClick={() => handleSelectGroup(group.id)}
           >
-            <CardHeader className="pb-10 pt-2">
+            <CardHeader className="pt-2 pb-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-base font-bold tracking-tight">{group.name}</CardTitle>

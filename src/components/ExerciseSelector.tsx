@@ -10,6 +10,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { actions } from "astro:actions";
 import { navigate } from "astro:transitions/client";
 import { Check, Pencil, Plus, Search } from "lucide-react";
 import type { Exercise } from "prisma/generated/client";
@@ -19,7 +20,7 @@ import { useDebounce } from "use-debounce";
 interface ExerciseSelectorProps {
   onSelect: (exercise: Exercise) => Promise<void> | void;
   selectedExerciseIds?: string[];
-  routineExercises?: { exerciseId: string; isActive?: boolean | null }[]; // Partial RoutineExercise
+  routineExercises?: { exerciseId: string; isActive?: boolean | null; exercise: Exercise }[];
   preferredCategories?: string[]; // To sort/filter by routine focus
   open?: boolean;
   onOpenChange?: (open: boolean) => void;
@@ -91,22 +92,19 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
     const fetchExercises = async () => {
       setLoading(true);
       try {
-        const params = new URLSearchParams({
-          page: page.toString(),
-          limit: "20",
+        const { data, error } = await actions.exercise.getExercises({
+          page,
+          limit: 20,
           search: debouncedSearch,
-          category: activeCategory || ""
+          category: activeCategory || undefined,
+          prioritize:
+            !activeCategory && preferredCategories.length > 0 ? preferredCategories : undefined
         });
 
-        if (!activeCategory && preferredCategories.length > 0) {
-          params.append("prioritize", preferredCategories.join(","));
+        if (!error && data) {
+          setExercises((prev) => (page === 1 ? data.exercises : [...prev, ...data.exercises]));
+          setTotal(data.total);
         }
-
-        const res = await fetch(`/api/exercises?${params.toString()}`);
-        const data = await res.json();
-
-        setExercises((prev) => (page === 1 ? data.data : [...prev, ...data.data]));
-        setTotal(data.total);
       } catch (error) {
         console.error("Failed to fetch exercises", error);
       } finally {
@@ -224,7 +222,7 @@ export const ExerciseSelector: React.FC<ExerciseSelectorProps> = ({
   };
 
   // Filter routine items locally - ONLY INACTIVE
-  const routineMatches = (routineExercises as any[]).filter((re: any) => {
+  const routineMatches = routineExercises.filter((re) => {
     if (!re.exercise) return false;
     // Must be inactive in routine to show up here
     if (re.isActive !== false) return false;

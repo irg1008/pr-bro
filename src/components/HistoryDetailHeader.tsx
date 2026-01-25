@@ -28,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { cn } from "@/lib/utils";
+import { actions } from "astro:actions";
 import { navigate } from "astro:transitions/client";
 import { format } from "date-fns";
 import {
@@ -59,28 +60,21 @@ export const HistoryDetailHeader = ({
 }: HistoryDetailHeaderProps) => {
   const [isEditDateOpen, setIsEditDateOpen] = useState(false);
   const [isDeleteAlertOpen, setIsDeleteAlertOpen] = useState(false);
-  const [isDeload, setIsDeload] = useState((log as any).isDeload || false);
+  const [isDeload, setIsDeload] = useState(log.isDeload);
 
   const handleToggleDeload = async () => {
     const newState = !isDeload;
     setIsDeload(newState);
-    try {
-      const res = await fetch(`/api/workout-logs/${log.id}`, {
-        method: "PUT",
-        body: JSON.stringify({ isDeload: newState }),
-        headers: { "Content-Type": "application/json" }
-      });
-      if (res.ok) {
-        toast.success(newState ? "Marked as deload" : "Unmarked as deload");
-        navigate(window.location.pathname);
-      } else {
-        setIsDeload(!newState);
-        toast.error("Failed to update status");
-      }
-    } catch (e) {
-      console.error(e);
+    const { error } = await actions.workout.updateSession({
+      id: log.id,
+      isDeload: newState
+    });
+    if (!error) {
+      toast.success(newState ? "Marked as deload" : "Unmarked as deload");
+      navigate(window.location.pathname);
+    } else {
       setIsDeload(!newState);
-      toast.error("Error updating status");
+      toast.error("Failed to update status");
     }
   };
 
@@ -96,19 +90,12 @@ export const HistoryDetailHeader = ({
   );
 
   const handleDelete = async () => {
-    try {
-      const res = await fetch(`/api/workout-logs/${log.id}`, {
-        method: "DELETE"
-      });
-      if (res.ok) {
-        toast.success("Log deleted");
-        navigate("/history");
-      } else {
-        toast.error("Failed to delete log");
-      }
-    } catch (e) {
-      console.error(e);
-      toast.error("Error deleting log");
+    const { error } = await actions.workout.delete({ id: log.id });
+    if (!error) {
+      toast.success("Log deleted");
+      navigate("/history");
+    } else {
+      toast.error("Failed to delete log");
     }
   };
 
@@ -141,20 +128,15 @@ export const HistoryDetailHeader = ({
         }
       }
 
-      const payload: any = {
-        createdAt: newCreatedAt.toISOString()
+      const payload = {
+        id: log.id,
+        createdAt: newCreatedAt.toISOString(),
+        finishedAt: newFinishedAt ? newFinishedAt.toISOString() : undefined
       };
-      if (newFinishedAt) {
-        payload.finishedAt = newFinishedAt.toISOString();
-      }
 
-      const res = await fetch(`/api/workout-logs/${log.id}`, {
-        method: "PUT",
-        body: JSON.stringify(payload),
-        headers: { "Content-Type": "application/json" }
-      });
+      const { error } = await actions.workout.updateSession(payload);
 
-      if (res.ok) {
+      if (!error) {
         toast.success("Date updated");
         setIsEditDateOpen(false);
         navigate(window.location.pathname);

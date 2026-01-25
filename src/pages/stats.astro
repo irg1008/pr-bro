@@ -1,10 +1,9 @@
 ---
 import { StatsView } from "@/components/StatsView";
 import BaseLayout from "@/layouts/BaseLayout.astro";
-import { GET } from "./api/stats";
+import { StatsService } from "@/services/stats-service";
 
-const response = await GET(Astro);
-const stats = await response.json();
+const stats = await StatsService.getGlobalStats();
 ---
 
 <BaseLayout title="Statistics">

@@ -5,96 +5,16 @@ import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeloadBadge } from "@/components/ui/DeloadBadge";
 import BaseLayout from "@/layouts/BaseLayout.astro";
+import { WorkoutService } from "@/services/workout-service";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import type {
-	Routine,
-	RoutineGroup,
-	WorkoutLog,
-} from "prisma/generated/client";
-import { GET } from "./api/workout-logs";
-
-const response = await GET(Astro);
-type WorkoutLogWithRoutine = WorkoutLog & {
-	routine: Routine & { group: RoutineGroup };
-};
-const allLogs: WorkoutLogWithRoutine[] = await response.json();
-const logs = allLogs.filter((log) => log.finishedAt);
 
 // Pagination settings
 const PageSize = 5;
 const pageParam = Astro.url.searchParams.get("page");
 const currentPage = pageParam ? parseInt(pageParam) : 1;
 
-// Grouping Logic
-// Grouping Logic
-type CycleKey = string; // "${routineGroupId}-${cycleNumber}"
-
-interface Cycle {
-	id: string; // key
-	groupName: string;
-	cycleNumber: number;
-	logs: WorkoutLogWithRoutine[];
-	startDate: Date;
-	endDate: Date;
-	durationDays: number;
-	lastLogDate: Date; // For sorting cycles
-}
-
-const cyclesMap = new Map<CycleKey, Cycle>();
-
-logs.forEach((log) => {
-	const groupName = log.routine.group.name;
-	const cycleNum = (log as any).cycleNumber || 1; // Cast to any to avoid TS error if types aren't fully synced
-	const key = `${log.routine.group.id}-${cycleNum}`;
-
-	if (!cyclesMap.has(key)) {
-		cyclesMap.set(key, {
-			id: key,
-			groupName,
-			cycleNumber: cycleNum,
-			logs: [],
-			startDate: new Date(log.createdAt),
-			endDate: new Date(log.createdAt),
-			durationDays: 0,
-			lastLogDate: new Date(log.createdAt),
-		});
-	}
-
-	const cycle = cyclesMap.get(key)!;
-	cycle.logs.push(log);
-
-	const logDate = new Date(log.createdAt);
-	if (logDate < cycle.startDate) cycle.startDate = logDate;
-	if (logDate > cycle.endDate) cycle.endDate = logDate;
-	if (logDate > cycle.lastLogDate) cycle.lastLogDate = logDate;
-});
-
-// Finalize Cycle Metadata
-const cycles = Array.from(cyclesMap.values()).map((cycle) => {
-	// Sort logs within cycle descending (newest first)
-	cycle.logs.sort(
-		(a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-	);
-
-	// Calculate duration properly
-	const diffTime = Math.abs(
-		cycle.endDate.getTime() - cycle.startDate.getTime(),
-	);
-	cycle.durationDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Inclusive
-	if (cycle.durationDays < 1) cycle.durationDays = 1;
-
-	return cycle;
-});
-
-// Sort cycles to show newest activity first
-cycles.sort((a, b) => b.lastLogDate.getTime() - a.lastLogDate.getTime());
-
-// 4. Paginate
-const totalPages = Math.ceil(cycles.length / PageSize);
-const paginatedCycles = cycles.slice(
-	(currentPage - 1) * PageSize,
-	currentPage * PageSize,
-);
+const { paginatedCycles, totalPages, totalCycles } =
+	await WorkoutService.getHistoryPageData(currentPage, PageSize);
 ---
 
 <BaseLayout title="Workout History">
@@ -141,7 +61,7 @@ const paginatedCycles = cycles.slice(
 												<div>
 													<CardTitle className="font-bold text-base capitalize flex items-center gap-2 text-foreground">
 														{log.routine.name}
-														{(log as any).isDeload && <DeloadBadge />}
+														{log.isDeload && <DeloadBadge />}
 													</CardTitle>
 													<p class="text-xs text-muted-foreground mt-1">
 														<LogDateDisplay
@@ -181,7 +101,7 @@ const paginatedCycles = cycles.slice(
 			}
 
 			{
-				cycles.length === 0 && (
+				totalCycles === 0 && (
 					<div class="text-center py-12 px-4 text-muted-foreground border-2 border-dashed rounded-lg bg-muted/20">
 						<p class="text-lg mb-2 font-medium">No history available yet</p>
 						<p class="text-sm">Complete your first workout to see it here!</p>

@@ -1,4 +1,5 @@
 import { db as prisma } from "@/lib/db";
+import type { WorkoutSet } from "@/lib/progressive-overload";
 import type { APIRoute } from "astro";
 
 export const GET: APIRoute = async ({ params }) => {
@@ -51,7 +52,7 @@ export const GET: APIRoute = async ({ params }) => {
     const supersets: Record<string, boolean> = {};
 
     lastLog.entries.forEach((entry) => {
-      sets[entry.exerciseId] = entry.sets as any[];
+      sets[entry.exerciseId] = entry.sets as unknown as WorkoutSet[];
       if (entry.note) notes[entry.exerciseId] = entry.note;
       if (entry.isSuperset) supersets[entry.exerciseId] = true;
     });

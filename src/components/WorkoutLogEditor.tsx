@@ -20,7 +20,9 @@ import { Input } from "@/components/ui/input";
 import { InputWarning } from "@/components/ui/InputWarning";
 import { Textarea } from "@/components/ui/textarea";
 import { useInputVerification } from "@/hooks/useInputVerification";
+import type { WorkoutSet } from "@/lib/progressive-overload";
 import { cn } from "@/lib/utils";
+import { actions } from "astro:actions";
 import { navigate } from "astro:transitions/client";
 import { ArrowDown, ArrowUp, Check, MessageSquareText, MoreVertical, X, Zap } from "lucide-react";
 import type { Exercise, Routine, RoutineExercise, WorkoutLogEntry } from "prisma/generated/client";
@@ -40,7 +42,9 @@ export interface WorkoutLogEditorProps {
 }
 
 // Helper type since sets are JSON in Prisma but we use them as objects here
-type WorkoutLogEntryButSetsAny = Omit<WorkoutLogEntryWithExercise, "sets"> & { sets: any[] };
+type WorkoutLogEntryButSetsFixed = Omit<WorkoutLogEntryWithExercise, "sets"> & {
+  sets: WorkoutSet[];
+};
 
 export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
   logId,
@@ -49,8 +53,8 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
   reorderMode,
   setReorderMode
 }) => {
-  const [entries, setEntries] = useState<WorkoutLogEntryButSetsAny[]>(
-    initialEntries.map((e) => ({ ...e, sets: e.sets as any[] }))
+  const [entries, setEntries] = useState<WorkoutLogEntryButSetsFixed[]>(
+    initialEntries.map((e) => ({ ...e, sets: e.sets as unknown as WorkoutSet[] }))
   );
   // Removed local reorderMode state
   const { inputWarnings, verifyInput, clearWarning } = useInputVerification();
@@ -94,11 +98,10 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
     setEntries(newEntries);
 
     // Immediate save to DB
-    fetch(`/api/workout-logs/${logId}/reorder`, {
-      method: "POST",
-      body: JSON.stringify({ exerciseIds: newEntries.map((e) => e.exerciseId) }),
-      headers: { "Content-Type": "application/json" }
-    }).catch((e) => console.error("Reorder failed", e));
+    actions.workout.updateSession({
+      id: logId,
+      exerciseOrder: newEntries.map((e) => e.exerciseId)
+    });
   };
 
   useEffect(() => {
@@ -131,15 +134,12 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
       supersetStatus[entry.exerciseId] = entry.isSuperset;
     });
 
-    await fetch(`/api/workout-logs/${logId}`, {
-      method: "PUT",
-      body: JSON.stringify({
-        entries: entriesPayload,
-        sessionNotes,
-        supersetStatus,
-        exerciseOrder: entries.map((e) => e.exerciseId)
-      }),
-      headers: { "Content-Type": "application/json" }
+    await actions.workout.updateSession({
+      id: logId,
+      entries: entriesPayload,
+      sessionNotes,
+      supersetStatus,
+      exerciseOrder: entries.map((e) => e.exerciseId)
     });
     navigate("/history");
   };
@@ -153,7 +153,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
       {entries.map((entry, entryIdx) => (
         <Card
           key={entry.id}
-          ref={(el: any) => {
+          ref={(el) => {
             if (el) itemsRef.current.set(entryIdx, el);
             else itemsRef.current.delete(entryIdx);
           }}
@@ -194,9 +194,9 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                   <div className="bg-muted text-muted-foreground mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold">
                     {entryIdx + 1}
                   </div>
-                  {(entry.exercise as any).imageUrl && (
+                  {entry.exercise.imageUrl && (
                     <img
-                      src={(entry.exercise as any).imageUrl}
+                      src={entry.exercise.imageUrl}
                       alt={entry.exercise.name}
                       className="h-12 w-12 shrink-0 rounded border object-cover"
                     />
@@ -204,7 +204,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                   <div className="min-w-0 flex-1">
                     <h3 className="line-clamp-1 flex items-center gap-2 text-sm leading-none font-bold capitalize sm:text-base">
                       {entry.exercise.name}
-                      <ExerciseInfoModal exercise={entry.exercise as any} />
+                      <ExerciseInfoModal exercise={entry.exercise} />
                     </h3>
                     <div className="mt-1 flex flex-wrap items-center gap-1">
                       <span className="bg-secondary text-secondary-foreground rounded px-1.5 py-0.5 text-[10px] capitalize">
@@ -252,7 +252,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                           <TargetDisplay
                             targetSets={re.targetSets}
                             targetReps={re.targetReps}
-                            targetType={(re as any).targetType}
+                            targetType={re.targetType}
                             targetRepsToFailure={re.targetRepsToFailure}
                             incrementValue={re.incrementValue}
                             className="mb-1.5"
@@ -331,7 +331,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
               )}
 
               {/* Sets List */}
-              {entry.sets.map((set: any, setIdx: number) => (
+              {entry.sets.map((set, setIdx) => (
                 <div
                   key={setIdx}
                   className={`grid items-center gap-2 ${entry.exercise.type === "CARDIO" ? "grid-cols-[auto_1fr_1fr_1fr_auto]" : "grid-cols-[auto_1fr_1fr_auto]"}`}
@@ -441,7 +441,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                       if (entry.sets.length <= 1) return;
                       const newEntries = [...entries];
                       newEntries[entryIdx].sets = newEntries[entryIdx].sets.filter(
-                        (_: any, i: number) => i !== setIdx
+                        (_, i) => i !== setIdx
                       );
                       setEntries(newEntries);
                     }}

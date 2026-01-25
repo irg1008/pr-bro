@@ -15,6 +15,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
+import { actions } from "astro:actions";
 import { navigate } from "astro:transitions/client";
 import { MoreVertical, Trash2 } from "lucide-react";
 import { useState } from "react";
@@ -26,27 +27,19 @@ export const DeleteHistoryButton = () => {
 
   const handleDelete = async () => {
     setLoading(true);
-    try {
-      const res = await fetch("/api/workout-logs/all", {
-        method: "DELETE"
-      });
+    const { error } = await actions.workout.deleteAllLogs();
+    setLoading(false);
+    setAlertOpen(false);
 
-      if (!res.ok) throw new Error("Failed to delete history");
-
-      toast.success("History Cleared", {
+    if (!error) {
+      toast.success("History cleared", {
         description: "All workout logs have been permanently deleted."
       });
-
-      // Refresh the page to show empty state
       navigate("/history");
-    } catch (error) {
-      console.error(error);
+    } else {
       toast.error("Error", {
         description: "Failed to delete history. Please try again."
       });
-    } finally {
-      setLoading(false);
-      setAlertOpen(false);
     }
   };
 

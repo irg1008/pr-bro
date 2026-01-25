@@ -2,7 +2,7 @@
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { RoutineManagement } from "../../components/RoutineManagement";
 import { Button } from "@/components/ui/button";
-import { GET } from "../api/groups/[id]";
+import { RoutineService } from "@/services/routine-service";
 
 export const prerender = false;
 
@@ -12,21 +12,13 @@ if (!groupId) {
 	return Astro.redirect("/routines");
 }
 
-const response = await GET({ ...Astro, params: { id: groupId } });
+const group = await RoutineService.getGroupById(groupId);
 
-if (response.status === 404) {
+if (!group) {
 	return Astro.redirect("/404");
 }
 
-import type { RoutineGroup, Routine, Exercise } from "prisma/generated/client";
-type RoutineGroupWithRoutines = RoutineGroup & {
-	routines: (Routine & { exercises: Exercise[] })[];
-};
-const group: RoutineGroupWithRoutines = await response.json();
-
-type RoutineWithCount = Routine & { exerciseCount: number };
-
-const routines: RoutineWithCount[] = group.routines.map((r) => ({
+const routines = group.routines.map((r) => ({
 	...r,
 	exerciseCount: r.exercises.length,
 }));
@@ -62,6 +54,7 @@ const routines: RoutineWithCount[] = group.routines.map((r) => ({
 	</div>
 
 	<script>
+		import { actions } from "astro:actions";
 		import { navigate } from "astro:transitions/client";
 
 		document.addEventListener("astro:page-load", () => {
@@ -69,12 +62,9 @@ const routines: RoutineWithCount[] = group.routines.map((r) => ({
 			if (btn) {
 				btn.addEventListener("click", async () => {
 					const groupId = btn.dataset.groupId;
-					const res = await fetch("/api/groups/active", {
-						method: "POST",
-						body: JSON.stringify({ groupId }),
-						headers: { "Content-Type": "application/json" },
-					});
-					if (res.ok) {
+					if (!groupId) return;
+					const { error } = await actions.routine.setActiveGroup({ groupId });
+					if (!error) {
 						navigate(location.pathname);
 					}
 				});

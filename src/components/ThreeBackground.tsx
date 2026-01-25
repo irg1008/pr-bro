@@ -91,12 +91,12 @@ export const ThreeBackground = () => {
 
     window.addEventListener("mousemove", handleMouseMove);
     if (window.DeviceOrientationEvent) {
-      window.addEventListener("deviceorientation", handleOrientation as any);
+      window.addEventListener("deviceorientation", handleOrientation);
     }
 
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("deviceorientation", handleOrientation as any);
+      window.removeEventListener("deviceorientation", handleOrientation);
     };
   }, []);
 

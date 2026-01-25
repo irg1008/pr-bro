@@ -1,5 +1,6 @@
 import { db } from "@/lib/db";
 import type { APIRoute } from "astro";
+import type { ExerciseScalarFieldEnum } from "prisma/generated/internal/prismaNamespace";
 
 export const GET: APIRoute = async ({ request }) => {
   const url = new URL(request.url);
@@ -18,7 +19,7 @@ export const GET: APIRoute = async ({ request }) => {
     // effectively: distinct: [field], select: { [field]: true }
 
     const values = await db.exercise.findMany({
-      distinct: [field as any],
+      distinct: [field as ExerciseScalarFieldEnum],
       select: {
         [field]: true
       },

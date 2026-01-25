@@ -24,24 +24,22 @@ export function CalendarPicker({
 
   return (
     <Popover open={open} onOpenChange={setOpen} modal>
-      <PopoverTrigger
-        render={
-          <Button id="date" variant={variant} className="w-48 justify-between font-normal">
-            {props.mode === "single" && (date ? date.toLocaleDateString() : "Select date")}
+      <PopoverTrigger asChild>
+        <Button id="date" variant={variant} className="w-48 justify-between font-normal">
+          {props.mode === "single" && (date ? date.toLocaleDateString() : "Select date")}
 
-            {props.mode === "range" &&
-              (dateRange
-                ? `${dateRange.from?.toLocaleDateString()} - ${dateRange.to?.toLocaleDateString()}`
-                : "Select date range")}
+          {props.mode === "range" &&
+            (dateRange
+              ? `${dateRange.from?.toLocaleDateString()} - ${dateRange.to?.toLocaleDateString()}`
+              : "Select date range")}
 
-            {props.mode === "multiple" &&
-              (dateMulti && dateMulti.length > 0
-                ? dateMulti.map((d) => d.toLocaleDateString()).join(", ")
-                : "Select dates")}
-            <ChevronDownIcon />
-          </Button>
-        }
-      />
+          {props.mode === "multiple" &&
+            (dateMulti && dateMulti.length > 0
+              ? dateMulti.map((d) => d.toLocaleDateString()).join(", ")
+              : "Select dates")}
+          <ChevronDownIcon />
+        </Button>
+      </PopoverTrigger>
       <PopoverContent align="start" className="w-auto overflow-hidden p-0">
         {props.mode === "single" && (
           <Calendar

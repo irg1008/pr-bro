@@ -1,4 +1,5 @@
 import { db as prisma } from "@/lib/db";
+import type { WorkoutSet } from "@/lib/progressive-overload";
 import type { APIRoute } from "astro";
 
 export const GET: APIRoute = async () => {
@@ -19,7 +20,7 @@ export const GET: APIRoute = async () => {
 
       ex.logEntries.forEach((log) => {
         const date = new Date(log.createdAt).toISOString().split("T")[0];
-        const sets = log.sets as any[];
+        const sets = log.sets as unknown as WorkoutSet[];
 
         if (!Array.isArray(sets)) return;
 

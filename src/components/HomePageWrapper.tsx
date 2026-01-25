@@ -12,6 +12,7 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { actions } from "astro:actions";
 import { navigate } from "astro:transitions/client";
 import { X } from "lucide-react";
 import type { Exercise, Routine, RoutineExercise, WorkoutLog } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
@@ -55,22 +56,15 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
     if (!nextRoutine) return;
 
     const now = new Date().toISOString();
-    try {
-      const res = await fetch("/api/workout-logs", {
-        method: "POST",
-        body: JSON.stringify({
-          routineId: nextRoutine.id,
-          createdAt: now
-        }),
-        headers: { "Content-Type": "application/json" }
-      });
+    const { data, error } = await actions.workout.start({
+      routineId: nextRoutine.id,
+      createdAt: now
+    });
 
-      if (res.ok) {
-        const log = await res.json();
-        navigate(`/workout?id=${log.id}`);
-      }
-    } catch (e) {
-      console.error("Failed to start workout", e);
+    if (!error && data) {
+      navigate(`/workout?id=${data.id}`);
+    } else {
+      console.error("Failed to start workout", error);
       alert("Failed to start workout. Please try again.");
     }
   };
@@ -83,18 +77,14 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
 
   const handleCancelWorkout = async () => {
     if (!activeLogId) return;
-    try {
-      const res = await fetch(`/api/workout-logs/${activeLogId}`, {
-        method: "DELETE"
-      });
+    const { error } = await actions.workout.cancel({ id: activeLogId });
 
-      if (res.ok) {
-        setActiveLogId(null);
-        setActiveLogDetails(null);
-        setCancelAlertOpen(false);
-      }
-    } catch (e) {
-      console.error("Failed to cancel workout", e);
+    if (!error) {
+      setActiveLogId(null);
+      setActiveLogDetails(null);
+      setCancelAlertOpen(false);
+    } else {
+      console.error("Failed to cancel workout", error);
     }
   };
 

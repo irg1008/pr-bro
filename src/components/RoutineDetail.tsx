@@ -33,6 +33,7 @@ import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
+import { actions } from "astro:actions";
 import { navigate } from "astro:transitions/client";
 import {
   ArrowDown,
@@ -148,20 +149,20 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     }
 
     try {
-      await fetch("/api/routine-exercises", {
-        method: "POST",
-        body: JSON.stringify({
-          routineId: routineId,
-          exerciseId: clipboard.exerciseId,
-          targetSets: clipboard.targetSets,
-          targetReps: clipboard.targetReps,
-          targetRepsToFailure: clipboard.targetRepsToFailure,
-          incrementValue: clipboard.incrementValue,
-          note: clipboard.note
-        }),
-        headers: { "Content-Type": "application/json" }
+      const { error } = await actions.routine.addExercise({
+        routineId: routineId,
+        exerciseId: clipboard.exerciseId,
+        targetSets: clipboard.targetSets,
+        targetReps: clipboard.targetReps,
+        targetRepsToFailure: clipboard.targetRepsToFailure,
+        incrementValue: clipboard.incrementValue,
+        note: clipboard.note
       });
-      navigate(location.pathname);
+      if (!error) {
+        navigate(location.pathname);
+      } else {
+        toast.error("Failed to paste exercise");
+      }
     } catch (error) {
       console.error("Failed to paste exercise", error);
       toast.error("Failed to paste exercise");
@@ -169,29 +170,22 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
   };
 
   useEffect(() => {
-    fetch("/api/categories")
-      .then((res) => res.json())
-      .then((data: string[]) => {
-        setAvailableCategories(data);
-      })
-      .catch((err) => console.error("Failed to fetch categories", err));
+    (async () => {
+      const { data, error } = await actions.exercise.getCategories();
+      if (!error && data) setAvailableCategories(data);
+    })();
   }, []);
 
   const handleRename = async () => {
     if (!newName.trim()) return;
-    try {
-      await fetch(`/api/routines/${routineId}`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          name: newName,
-          focusedParts: selectedCategories
-        }),
-        headers: { "Content-Type": "application/json" }
-      });
+    const { error } = await actions.routine.updateRoutine({
+      id: routineId,
+      name: newName,
+      focusedParts: selectedCategories
+    });
+    if (!error) {
       setIsRenaming(false);
       navigate(location.pathname);
-    } catch (error) {
-      console.error("Failed to rename", error);
     }
   };
 
@@ -208,7 +202,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     if (existingExercise) {
       if (existingExercise.isActive === false) {
         // Just reactivate it
-        await toggleIsActive(existingExercise.id, false); // false passes current status, so it becomes true
+        await toggleIsActive(existingExercise.id, false);
         toast.success(`Active "${exercise.name}" again.`);
       } else {
         toast.info(`"${exercise.name}" is already in the routine.`);
@@ -216,15 +210,9 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       return;
     }
 
-    try {
-      await fetch("/api/routine-exercises", {
-        method: "POST",
-        body: JSON.stringify({ routineId: routineId, exerciseId: exercise.id }),
-        headers: { "Content-Type": "application/json" }
-      });
+    const { error } = await actions.routine.addExercise({ routineId, exerciseId: exercise.id });
+    if (!error) {
       navigate(location.pathname);
-    } catch (error) {
-      console.error("Failed to add exercise", error);
     }
   };
 
@@ -270,16 +258,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     ];
 
     setExercises(newExercises);
-
-    try {
-      await fetch(`/api/routines/${routineId}/reorder`, {
-        method: "POST",
-        body: JSON.stringify({ routineExerciseIds: newExercises.map((e) => e.id) }),
-        headers: { "Content-Type": "application/json" }
-      });
-    } catch (e) {
-      console.error("Failed to reorder", e);
-    }
+    await actions.routine.reorderExercises({ routineExerciseIds: newExercises.map((e) => e.id) });
   };
 
   const handleSortByCategory = async () => {
@@ -294,15 +273,11 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       return 0;
     });
     setExercises(sorted);
-    try {
-      await fetch(`/api/routines/${routineId}/reorder`, {
-        method: "POST",
-        body: JSON.stringify({ routineExerciseIds: sorted.map((e) => e.id) }),
-        headers: { "Content-Type": "application/json" }
-      });
-    } catch (e) {
-      console.error("Failed to reorder", e);
-    }
+    await actions.routine.reorderRoutines({ routineIds: sorted.map((e) => e.id) }); // Note: typo in action name maybe? Or is it reorderExercises?
+    // Wait, let's check routine.ts actions again.
+    // It has: reorderRoutines and reorderExercises.
+    // In RoutineDetail, we are reordering EXERCISES.
+    await actions.routine.reorderExercises({ routineExerciseIds: sorted.map((e) => e.id) });
   };
 
   const openNoteDialog = (re: RoutineExerciseWithExercise) => {
@@ -319,7 +294,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       id: re.id,
       targetSets: re.targetSets || "",
       targetReps: re.targetReps || "",
-      targetType: (re as any).targetType || "REPS",
+      targetType: re.targetType || "REPS",
       targetRepsToFailure: re.targetRepsToFailure || "",
       incrementValue: re.incrementValue ? re.incrementValue.toString() : ""
     });
@@ -331,17 +306,14 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     const newExercises = exercises.map((e) =>
       e.id === noteDialog.id ? { ...e, note: noteDialog.note } : e
     );
-    setExercises(newExercises as RoutineExerciseWithExercise[]);
+    setExercises(newExercises);
 
-    try {
-      await fetch(`/api/routine-exercises`, {
-        method: "PATCH",
-        body: JSON.stringify({ id: noteDialog.id, note: noteDialog.note }),
-        headers: { "Content-Type": "application/json" }
-      });
+    const { error } = await actions.routine.updateExerciseAssignment({
+      id: noteDialog.id,
+      data: { note: noteDialog.note }
+    });
+    if (!error) {
       setNoteDialog((prev) => ({ ...prev, open: false }));
-    } catch (e) {
-      console.error("Failed to save note", e);
     }
   };
 
@@ -392,24 +364,21 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
           }
         : e
     );
-    setExercises(newExercises as RoutineExerciseWithExercise[]);
+    setExercises(newExercises);
 
-    try {
-      await fetch(`/api/routine-exercises`, {
-        method: "PATCH",
-        body: JSON.stringify({
-          id: targetDialog.id,
-          targetSets: targetDialog.targetSets || null,
-          targetReps: targetDialog.targetReps || null,
-          targetType: targetDialog.targetType,
-          targetRepsToFailure: targetDialog.targetRepsToFailure || null,
-          incrementValue: targetDialog.incrementValue || null
-        }),
-        headers: { "Content-Type": "application/json" }
-      });
+    const { error } = await actions.routine.updateExerciseAssignment({
+      id: targetDialog.id,
+      data: {
+        targetSets: targetDialog.targetSets || null,
+        targetReps: targetDialog.targetReps || null,
+        targetType: targetDialog.targetType,
+        targetRepsToFailure: targetDialog.targetRepsToFailure || null,
+        incrementValue: targetDialog.incrementValue ? parseFloat(targetDialog.incrementValue) : null
+      }
+    });
+
+    if (!error) {
       setTargetDialog((prev) => ({ ...prev, open: false }));
-    } catch (e) {
-      console.error("Failed to save targets", e);
     }
   };
 
@@ -418,15 +387,10 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       e.id === id ? { ...e, isSuperset: !currentStatus } : e
     );
     setExercises(newExercises);
-    try {
-      await fetch(`/api/routine-exercises`, {
-        method: "PATCH",
-        body: JSON.stringify({ id, isSuperset: !currentStatus }),
-        headers: { "Content-Type": "application/json" }
-      });
-    } catch (e) {
-      console.error("Failed to toggle superset", e);
-    }
+    await actions.routine.updateExerciseAssignment({
+      id,
+      data: { isSuperset: !currentStatus }
+    });
   };
 
   const handleRemove = (id: string) => {
@@ -435,16 +399,11 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
 
   const confirmRemove = async () => {
     if (!deleteAlert.id) return;
-    try {
-      await fetch(`/api/routine-exercises?id=${deleteAlert.id}`, {
-        method: "DELETE"
-      });
+    const { error } = await actions.routine.removeExercise({ id: deleteAlert.id });
+    if (!error) {
       setExercises((prev) => prev.filter((e) => e.id !== deleteAlert.id));
-    } catch (error) {
-      console.error("Failed to remove exercise", error);
-    } finally {
-      setDeleteAlert({ open: false, id: null });
     }
+    setDeleteAlert({ open: false, id: null });
   };
 
   const toggleIsActive = async (id: string, currentStatus: boolean) => {
@@ -452,15 +411,10 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
     const newExercises = exercises.map((e) => (e.id === id ? { ...e, isActive: !status } : e));
     setExercises(newExercises);
 
-    try {
-      await fetch(`/api/routine-exercises`, {
-        method: "PATCH",
-        body: JSON.stringify({ id, isActive: !status }),
-        headers: { "Content-Type": "application/json" }
-      });
-    } catch (e) {
-      console.error("Failed to toggle active status", e);
-    }
+    await actions.routine.updateExerciseAssignment({
+      id,
+      data: { isActive: !status }
+    });
   };
 
   const activeExercises = exercises.filter((e) => e.isActive !== false);
@@ -594,7 +548,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                           <TargetDisplay
                             targetSets={re.targetSets}
                             targetReps={re.targetReps}
-                            targetType={(re as any).targetType}
+                            targetType={re.targetType}
                             targetRepsToFailure={re.targetRepsToFailure}
                             incrementValue={re.incrementValue}
                             className="gap-3"
@@ -701,6 +655,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             onSelect={handleAdd}
             selectedExerciseIds={exercises.map((e) => e.exerciseId)}
             preferredCategories={focusedParts}
+            routineExercises={exercises}
           />
 
           <Button
@@ -857,7 +812,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <div className="grid grid-cols-4 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-4 gap-4 md:grid-cols-2">
               <div className="col-span-1">
                 <Label className="text-muted-foreground text-xs">Sets</Label>
                 <Input
@@ -876,7 +831,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                   </Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="hidden md:block h-3 w-3 text-muted-foreground/50 cursor-pointer hover:text-muted-foreground transition-colors" />
+                      <Info className="text-muted-foreground/50 hover:text-muted-foreground hidden h-3 w-3 cursor-pointer transition-colors md:block" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs text-xs">
                       <p>

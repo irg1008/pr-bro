@@ -3,7 +3,7 @@ import { parse } from "csv-parse/sync";
 import fs from "fs";
 import path from "path";
 import { loadEnv } from "vite";
-import { PrismaClient } from "./generated/client";
+import { ExerciseType, PrismaClient } from "./generated/client";
 
 const { DATABASE_URL } = loadEnv("", process.cwd(), "");
 
@@ -62,7 +62,7 @@ async function main() {
 
         const imageUrl = `/gifs/${gifId}.gif`;
         const category = bodyPart ? bodyPart.toUpperCase() : "OTHER";
-        const type = category === "CARDIO" ? "CARDIO" : "WEIGHT";
+        const type: ExerciseType = category === "CARDIO" ? "CARDIO" : "WEIGHT";
 
         return {
           name,
@@ -73,7 +73,7 @@ async function main() {
           instructions,
           imageUrl,
           category,
-          type: type as any
+          type
         };
       });
 
