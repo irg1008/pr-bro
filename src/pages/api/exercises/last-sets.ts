@@ -24,6 +24,7 @@ export const GET: APIRoute = async ({ request }) => {
         exerciseId,
         workoutLog: {
           finishedAt: { not: null },
+          isDeload: false,
           ...(excludeLogId ? { id: { not: excludeLogId } } : {})
         }
       },

@@ -44,7 +44,7 @@ export const DELETE: APIRoute = async ({ params }) => {
 export const PATCH: APIRoute = async ({ params, request }) => {
   const { id } = params;
   const body = await request.json();
-  const { name, description, focusedParts, exercises } = body; // exercises: { id: string, isActive: boolean, order?: number }[]
+  const { name, description, focusedParts, exercises, isDeload } = body; // exercises: { id: string, isActive: boolean, order?: number }[]
 
   if (!id) {
     return new Response("Missing ID", { status: 400 });
@@ -55,6 +55,7 @@ export const PATCH: APIRoute = async ({ params, request }) => {
     if (name !== undefined) updateData.name = name;
     if (description !== undefined) updateData.description = description;
     if (focusedParts !== undefined) updateData.focusedParts = focusedParts;
+    if (isDeload !== undefined) updateData.isDeload = isDeload;
 
     // 1. Update basic details
     if (Object.keys(updateData).length > 0) {

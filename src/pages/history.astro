@@ -1,7 +1,9 @@
 ---
 import { DeleteHistoryButton } from "@/components/DeleteHistoryButton";
+import { LogDateDisplay } from "@/components/LogDateDisplay";
 import { Button } from "@/components/ui/button";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
+import { DeloadBadge } from "@/components/ui/DeloadBadge";
 import BaseLayout from "@/layouts/BaseLayout.astro";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import type {
@@ -139,26 +141,14 @@ const paginatedCycles = cycles.slice(
 												<div>
 													<CardTitle className="font-bold text-base capitalize flex items-center gap-2 text-foreground">
 														{log.routine.name}
+														{(log as any).isDeload && <DeloadBadge />}
 													</CardTitle>
 													<p class="text-xs text-muted-foreground mt-1">
-														{new Date(log.createdAt).toLocaleDateString()}{" "}
-														&bull;{" "}
-														{new Date(log.createdAt).toLocaleTimeString([], {
-															hour: "2-digit",
-															minute: "2-digit",
-														})}
-														{log.finishedAt && (
-															<span>
-																{" - "}
-																{new Date(log.finishedAt).toLocaleTimeString(
-																	[],
-																	{
-																		hour: "2-digit",
-																		minute: "2-digit",
-																	},
-																)}
-															</span>
-														)}
+														<LogDateDisplay
+															client:load
+															createdAt={log.createdAt}
+															finishedAt={log.finishedAt}
+														/>
 													</p>
 												</div>
 												<div class="text-right">

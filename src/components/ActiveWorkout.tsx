@@ -29,9 +29,12 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { InputWarning } from "@/components/ui/InputWarning";
 import { Textarea } from "@/components/ui/textarea";
 import { useHaptic } from "@/hooks/useHaptic";
+import { useInputVerification } from "@/hooks/useInputVerification";
 import { applyProgressiveOverload } from "@/lib/progressive-overload";
+import { cn } from "@/lib/utils";
 import type { SetType } from "@/types/set-types";
 import { navigate } from "astro:transitions/client";
 import {
@@ -54,6 +57,7 @@ import {
   Target,
   Timer,
   Trash2,
+  TrendingDown,
   TrendingUp,
   Waves,
   X,
@@ -65,6 +69,7 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SetTypeSelector } from "./SetTypeSelector";
 import { TargetDisplay } from "./TargetDisplay";
+import { DeloadBadge } from "./ui/DeloadBadge";
 
 const CARDIO_OPTIONS = [
   { name: "Running", icon: Footprints },
@@ -116,6 +121,7 @@ export interface ActiveWorkoutProps {
   exercises: ActiveWorkoutExercise[]; // Updated type
   initialSupersetStatus?: Record<string, boolean>;
   routineExercisesList?: { exerciseId: string; isActive?: boolean | null; exercise: Exercise }[]; // Full list from routine
+  isDeload?: boolean;
 }
 
 export const ActiveWorkout = ({
@@ -127,7 +133,8 @@ export const ActiveWorkout = ({
   routineExerciseIds,
   exercises: initialExercises,
   initialSupersetStatus = {},
-  routineExercisesList = []
+  routineExercisesList = [],
+  isDeload: initialIsDeload = false
 }: ActiveWorkoutProps) => {
   // ... (rest of component)
   // Carousel state removed
@@ -137,6 +144,7 @@ export const ActiveWorkout = ({
 
   // Dynamic Exercise State
   const [activeExercises, setActiveExercises] = useState<ActiveWorkoutExercise[]>(initialExercises);
+  const { inputWarnings, verifyInput, clearWarning } = useInputVerification();
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<"add" | "replace">("add");
   const [targetExerciseIndex, setTargetExerciseIndex] = useState<number>(-1); // For replace/delete context if needed
@@ -165,7 +173,26 @@ export const ActiveWorkout = ({
   // Workout completion state
   const [congratsModalOpen, setCongratsModalOpen] = useState(false);
   const [incompleteFinishAlertOpen, setIncompleteFinishAlertOpen] = useState(false);
+
   const congratsShownRef = useRef(false);
+
+  const [isDeload, setIsDeload] = useState(initialIsDeload);
+
+  const toggleDeload = async () => {
+    const newState = !isDeload;
+    setIsDeload(newState);
+    try {
+      await fetch(`/api/routines/${routineId}`, {
+        method: "PATCH",
+        body: JSON.stringify({ isDeload: newState }),
+        headers: { "Content-Type": "application/json" }
+      });
+      toast.success(newState ? "Deload mode activated" : "Deload mode disabled");
+    } catch (e) {
+      toast.error("Failed to update deload status");
+      setIsDeload(!newState);
+    }
+  };
 
   // Helper: Check if all sets for a specific exercise are completed
   const isExerciseComplete = (exerciseId: string): boolean => {
@@ -520,6 +547,8 @@ export const ActiveWorkout = ({
     setSets({ ...sets, [exerciseId]: newSets });
   };
 
+  // verifyInput function removed (replaced by hook)
+
   const addSet = (exerciseId: string) => {
     if (!exerciseId) return;
 
@@ -747,14 +776,15 @@ export const ActiveWorkout = ({
           entries: stateRef.current.sets,
           supersetStatus: stateRef.current.supersetStatus,
           notes: stateRef.current.sessionNotes,
-          finishedAt: new Date().toISOString()
+          finishedAt: new Date().toISOString(),
+          isDeload
         }),
         headers: { "Content-Type": "application/json" }
       });
 
       if (res.ok) {
         haptic.success();
-        toast.success("Workout completed! 💪");
+        toast.success("Workout completed!");
         navigate(`/history/${logId}`);
       } else {
         throw new Error("Failed to finish");
@@ -907,6 +937,7 @@ export const ActiveWorkout = ({
             <span className="text-foreground font-semibold">{routineName}</span>
             <span>Started at {startTimeDisplay}</span>
           </div>
+          {isDeload && <DeloadBadge className="py-1 text-xs" />}
         </div>
 
         <DropdownMenu>
@@ -930,6 +961,10 @@ export const ActiveWorkout = ({
               <History className="mr-2 h-4 w-4" />
               Load last run
             </DropdownMenuItem>
+            <DropdownMenuItem onClick={toggleDeload}>
+              <TrendingDown className="mr-2 h-4 w-4" />
+              {isDeload ? "Disable deload" : "Enable deload"}
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
               className="text-destructive focus:text-destructive"
@@ -950,15 +985,17 @@ export const ActiveWorkout = ({
       </div>
 
       {/* Double Progression Button - Full Width */}
-      <Button
-        variant="accent"
-        size="lg"
-        onClick={() => handleApplyDoubleProgression()}
-        className="w-full shadow-md transition-all"
-      >
-        <TrendingUp className="mr-2 h-5 w-5" />
-        Apply progressive overload
-      </Button>
+      {!isDeload && (
+        <Button
+          variant="accent"
+          size="lg"
+          onClick={() => handleApplyDoubleProgression()}
+          className="w-full shadow-md transition-all"
+        >
+          <TrendingUp className="mr-2 h-5 w-5" />
+          Apply progressive overload
+        </Button>
+      )}
 
       <div className="text-muted-foreground bg-muted/30 flex items-center justify-center rounded-lg border border-dashed p-2 text-center text-xs">
         Tap set number to toggle between set types
@@ -1117,7 +1154,7 @@ export const ActiveWorkout = ({
                           <History className="mr-2 h-4 w-4" />
                           Load last run
                         </DropdownMenuItem>
-                        {routineExerciseIds.includes(ex.id) && (
+                        {routineExerciseIds.includes(ex.id) && !isDeload && (
                           <DropdownMenuItem onClick={() => handleApplyDoubleProgression(ex.id)}>
                             <TrendingUp className="mr-2 h-4 w-4" />
                             Apply overload
@@ -1265,34 +1302,64 @@ export const ActiveWorkout = ({
                     </>
                   ) : (
                     <>
-                      <Input
-                        type="number"
-                        value={set.weight === "" ? "" : set.weight}
-                        onChange={(e) =>
-                          updateSet(
-                            ex.id,
-                            idx,
-                            "weight",
-                            e.target.value === "" ? "" : Number(e.target.value)
-                          )
-                        }
-                        className="text-center"
-                        placeholder="0"
-                      />
-                      <Input
-                        type="number"
-                        value={set.reps === "" ? "" : set.reps}
-                        onChange={(e) =>
-                          updateSet(
-                            ex.id,
-                            idx,
-                            "reps",
-                            e.target.value === "" ? "" : Number(e.target.value)
-                          )
-                        }
-                        className="text-center"
-                        placeholder="0"
-                      />
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          value={set.weight === "" ? "" : set.weight}
+                          onChange={(e) => {
+                            clearWarning(`${ex.id}`, idx, "weight");
+                            updateSet(
+                              ex.id,
+                              idx,
+                              "weight",
+                              e.target.value === "" ? "" : Number(e.target.value)
+                            );
+                          }}
+                          onBlur={(e) => {
+                            const val = e.target.value === "" ? 0 : Number(e.target.value);
+                            if (val > 0 && sets[ex.id])
+                              verifyInput(sets[ex.id], idx, val, "weight", ex.id);
+                          }}
+                          className={cn(
+                            "text-center transition-colors",
+                            inputWarnings[`${ex.id}-${idx}-weight`] &&
+                              "border-amber-500 focus-visible:ring-amber-500"
+                          )}
+                          placeholder="0"
+                        />
+                        {inputWarnings[`${ex.id}-${idx}-weight`] && (
+                          <InputWarning message={inputWarnings[`${ex.id}-${idx}-weight`]} />
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          value={set.reps === "" ? "" : set.reps}
+                          onChange={(e) => {
+                            clearWarning(`${ex.id}`, idx, "reps");
+                            updateSet(
+                              ex.id,
+                              idx,
+                              "reps",
+                              e.target.value === "" ? "" : Number(e.target.value)
+                            );
+                          }}
+                          onBlur={(e) => {
+                            const val = e.target.value === "" ? 0 : Number(e.target.value);
+                            if (val > 0 && sets[ex.id])
+                              verifyInput(sets[ex.id], idx, val, "reps", ex.id);
+                          }}
+                          className={cn(
+                            "text-center transition-colors",
+                            inputWarnings[`${ex.id}-${idx}-reps`] &&
+                              "border-amber-500 focus-visible:ring-amber-500"
+                          )}
+                          placeholder="0"
+                        />
+                        {inputWarnings[`${ex.id}-${idx}-reps`] && (
+                          <InputWarning message={inputWarnings[`${ex.id}-${idx}-reps`]} />
+                        )}
+                      </div>
                     </>
                   )}
 

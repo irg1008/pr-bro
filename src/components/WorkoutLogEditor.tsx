@@ -17,7 +17,10 @@ import {
   DropdownMenuTrigger
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
+import { InputWarning } from "@/components/ui/InputWarning";
 import { Textarea } from "@/components/ui/textarea";
+import { useInputVerification } from "@/hooks/useInputVerification";
+import { cn } from "@/lib/utils";
 import { navigate } from "astro:transitions/client";
 import { ArrowDown, ArrowUp, Check, MessageSquareText, MoreVertical, X, Zap } from "lucide-react";
 import type { Exercise, Routine, RoutineExercise, WorkoutLogEntry } from "prisma/generated/client";
@@ -50,6 +53,7 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
     initialEntries.map((e) => ({ ...e, sets: e.sets as any[] }))
   );
   // Removed local reorderMode state
+  const { inputWarnings, verifyInput, clearWarning } = useInputVerification();
   const itemsRef = useRef<Map<number, HTMLDivElement>>(new Map());
   const lastMovedIndexRef = useRef<number | null>(null);
 
@@ -370,34 +374,62 @@ export const WorkoutLogEditor: React.FC<WorkoutLogEditorProps> = ({
                     </>
                   ) : (
                     <>
-                      <Input
-                        type="number"
-                        value={set.weight === "" ? "" : set.weight}
-                        onChange={(e) =>
-                          updateSet(
-                            entryIdx,
-                            setIdx,
-                            "weight",
-                            e.target.value === "" ? "" : Number(e.target.value)
-                          )
-                        }
-                        className="text-center"
-                        placeholder="0"
-                      />
-                      <Input
-                        type="number"
-                        value={set.reps === "" ? "" : set.reps}
-                        onChange={(e) =>
-                          updateSet(
-                            entryIdx,
-                            setIdx,
-                            "reps",
-                            e.target.value === "" ? "" : Number(e.target.value)
-                          )
-                        }
-                        className="text-center"
-                        placeholder="0"
-                      />
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          value={set.weight === "" ? "" : set.weight}
+                          onChange={(e) => {
+                            clearWarning(entry.id, setIdx, "weight");
+                            updateSet(
+                              entryIdx,
+                              setIdx,
+                              "weight",
+                              e.target.value === "" ? "" : Number(e.target.value)
+                            );
+                          }}
+                          onBlur={(e) => {
+                            const val = e.target.value === "" ? 0 : Number(e.target.value);
+                            if (val > 0) verifyInput(entry.sets, setIdx, val, "weight", entry.id);
+                          }}
+                          className={cn(
+                            "text-center transition-colors",
+                            inputWarnings[`${entry.id}-${setIdx}-weight`] &&
+                              "border-amber-500 focus-visible:ring-amber-500"
+                          )}
+                          placeholder="0"
+                        />
+                        {inputWarnings[`${entry.id}-${setIdx}-weight`] && (
+                          <InputWarning message={inputWarnings[`${entry.id}-${setIdx}-weight`]} />
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          value={set.reps === "" ? "" : set.reps}
+                          onChange={(e) => {
+                            clearWarning(entry.id, setIdx, "reps");
+                            updateSet(
+                              entryIdx,
+                              setIdx,
+                              "reps",
+                              e.target.value === "" ? "" : Number(e.target.value)
+                            );
+                          }}
+                          onBlur={(e) => {
+                            const val = e.target.value === "" ? 0 : Number(e.target.value);
+                            if (val > 0) verifyInput(entry.sets, setIdx, val, "reps", entry.id);
+                          }}
+                          className={cn(
+                            "text-center transition-colors",
+                            inputWarnings[`${entry.id}-${setIdx}-reps`] &&
+                              "border-amber-500 focus-visible:ring-amber-500"
+                          )}
+                          placeholder="0"
+                        />
+                        {inputWarnings[`${entry.id}-${setIdx}-reps`] && (
+                          <InputWarning message={inputWarnings[`${entry.id}-${setIdx}-reps`]} />
+                        )}
+                      </div>
                     </>
                   )}
 

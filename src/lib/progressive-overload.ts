@@ -82,18 +82,59 @@ export function applyProgressiveOverload(
     };
   }
 
-  // Parse target reps (e.g., "8-12" or "10")
-  const targetParts = exercise.targetReps.split("-").map((s) => parseInt(s.trim()));
-  const maxReps = targetParts.length > 1 ? targetParts[1] : targetParts[0];
-  const minReps = targetParts[0];
+  // Parse target reps (e.g., "8-12", "10", or "8,5,3")
+  let targetPattern: number[] = [];
+  let isRange = false;
+
+  if (exercise.targetReps.includes(",")) {
+    // Comma-separated list
+    targetPattern = exercise.targetReps.split(",").map((s) => parseInt(s.trim()));
+  } else if (exercise.targetReps.includes("-")) {
+    // Range
+    isRange = true;
+    const parts = exercise.targetReps.split("-").map((s) => parseInt(s.trim()));
+    // For range, we just track min/max for validation, but pattern is effectively "max" for all sets check
+    targetPattern = [parts.length > 1 ? parts[1] : parts[0]];
+  } else {
+    // Single number
+    targetPattern = [parseInt(exercise.targetReps.trim())];
+  }
+
+  const minReps = isRange
+    ? parseInt(exercise.targetReps.split("-")[0].trim())
+    : targetPattern[targetPattern.length - 1]; // Use last value as fallback min? Or just use pattern logic.
 
   // Separate sets by type
   const normalSets = lastSets.filter((s) => !s.type || s.type === "NORMAL");
   const warmupSets = lastSets.filter((s) => s.type === "WARMUP");
-  // Other types (FAILURE, DROPSET, PAIN, etc.) are intentionally excluded
 
-  // Check if all normal sets hit the target
-  const allNormalSetsHitTarget = normalSets.every((s) => s.reps >= maxReps);
+  // VALIDATION Logic
+  let allNormalSetsHitTarget = false;
+
+  if (exercise.targetReps.includes(",")) {
+    // Comma logic: Check each set against its corresponding target
+    // If we have 3 targets "8,5,3" and 3 sets, we compare index 0 to 8, 1 to 5, 2 to 3.
+    // If more sets than targets, cycle the last target? Or just fail? Let's assume repeat last target for now or just check existing.
+    // Actually, usually RPT (Reverse Pyramid Training) has specific targets per set.
+
+    // We only check the sets we have targets for. If sets < targets, we can't fully validate, but let's assume we check what we have.
+    // Spec: "those will only overload on weights". Implies we just check if they hit the rep target for that set index.
+
+    if (normalSets.length === 0) {
+      allNormalSetsHitTarget = false;
+    } else {
+      allNormalSetsHitTarget = normalSets.every((set, index) => {
+        // Get target for this set index. If index exceeds pattern, use last pattern value.
+        const targetForSet = targetPattern[Math.min(index, targetPattern.length - 1)];
+        return set.reps >= targetForSet;
+      });
+    }
+  } else {
+    // Standard logic
+    const maxReps = targetPattern[0];
+    allNormalSetsHitTarget = normalSets.every((s) => s.reps >= maxReps);
+  }
+
   const lastNormalWeight = normalSets[0]?.weight;
 
   // Build new sets array
@@ -115,11 +156,20 @@ export function applyProgressiveOverload(
     const nextWeight = Number(lastNormalWeight) + increment;
 
     // Add overloaded normal sets
-    normalSets.forEach(() => {
+    normalSets.forEach((s, index) => {
+      // Determine target reps for this new set
+      let nextTargetReps = minReps; // Default for range/single
+
+      if (exercise.targetReps?.includes(",")) {
+        // For comma pattern, we keep the same rep target pattern for the next workout
+        // e.g. if we did 8,5,3 @ 100kg -> next is 8,5,3 @ 102.5kg
+        nextTargetReps = targetPattern[Math.min(index, targetPattern.length - 1)];
+      }
+
       newExSets.push({
         ...createEmptySet(exercise.type),
         weight: nextWeight,
-        reps: minReps,
+        reps: nextTargetReps,
         type: "NORMAL"
       });
     });
@@ -131,10 +181,18 @@ export function applyProgressiveOverload(
       if (!isNaN(targetSetCount) && currentNormalCount < targetSetCount) {
         const diff = targetSetCount - currentNormalCount;
         for (let k = 0; k < diff; k++) {
+          // For new empty sets, determine reps.
+          // If comma pattern, continue the pattern based on NEW total index
+          const totalIndex = currentNormalCount + k;
+          let fillReps = minReps;
+          if (exercise.targetReps?.includes(",")) {
+            fillReps = targetPattern[Math.min(totalIndex, targetPattern.length - 1)];
+          }
+
           newExSets.push({
             ...createEmptySet(exercise.type),
             weight: nextWeight,
-            reps: minReps,
+            reps: fillReps,
             type: "NORMAL"
           });
         }
@@ -146,20 +204,25 @@ export function applyProgressiveOverload(
       diff: {
         exerciseName: exercise.name,
         oldWeight: Number(lastNormalWeight),
-        oldReps: maxReps,
+        oldReps: targetPattern[0], // approximate for display
         newWeight: nextWeight,
-        newReps: minReps,
+        newReps: targetPattern[0], // approximate for display
         type: "PROMOTION"
       },
       applied: true
     };
   } else if (lastNormalWeight) {
-    // RESET: Keep weight, set reps to MIN reps
-    normalSets.forEach((s) => {
+    // RESET: Keep weight, set reps to Target (min reps or pattern)
+    normalSets.forEach((s, index) => {
+      let nextTargetReps = minReps;
+      if (exercise.targetReps?.includes(",")) {
+        nextTargetReps = targetPattern[Math.min(index, targetPattern.length - 1)];
+      }
+
       newExSets.push({
         ...createEmptySet(exercise.type),
         weight: s.weight,
-        reps: minReps,
+        reps: nextTargetReps,
         type: "NORMAL"
       });
     });
@@ -171,10 +234,15 @@ export function applyProgressiveOverload(
       if (!isNaN(targetSetCount) && currentNormalCount < targetSetCount) {
         const diff = targetSetCount - currentNormalCount;
         for (let k = 0; k < diff; k++) {
+          const totalIndex = currentNormalCount + k;
+          let fillReps = minReps;
+          if (exercise.targetReps?.includes(",")) {
+            fillReps = targetPattern[Math.min(totalIndex, targetPattern.length - 1)];
+          }
           newExSets.push({
             ...createEmptySet(exercise.type),
             weight: lastNormalWeight,
-            reps: minReps,
+            reps: fillReps,
             type: "NORMAL"
           });
         }
@@ -192,10 +260,10 @@ export function applyProgressiveOverload(
         type: "RESET"
       },
       applied: true,
-      failureReason: `Did not hit max reps (${maxReps}) on all sets`
+      failureReason: `Did not hit target reps on all sets`
     };
   } else {
-    // Fallback: copy warmups + normal sets with weights but no reps
+    // Fallback
     normalSets.forEach((s) => {
       newExSets.push({
         ...createEmptySet(exercise.type),

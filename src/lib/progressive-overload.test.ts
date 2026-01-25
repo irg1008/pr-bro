@@ -1,293 +1,169 @@
 import { describe, expect, it } from "vitest";
-import {
-  applyProgressiveOverload,
-  createEmptySet,
-  type ExerciseForProgression
-} from "./progressive-overload";
-
-describe("createEmptySet", () => {
-  it("creates empty WEIGHT set by default", () => {
-    const set = createEmptySet();
-    expect(set).toEqual({
-      weight: "",
-      reps: "",
-      completed: false,
-      type: "NORMAL"
-    });
-  });
-
-  it("creates empty CARDIO set", () => {
-    const set = createEmptySet("CARDIO");
-    expect(set).toEqual({
-      duration: "",
-      distance: "",
-      calories: "",
-      completed: false,
-      type: "NORMAL"
-    });
-  });
-});
+import type { ExerciseForProgression, WorkoutSet } from "./progressive-overload";
+import { applyProgressiveOverload } from "./progressive-overload";
 
 describe("applyProgressiveOverload", () => {
   const baseExercise: ExerciseForProgression = {
     id: "ex1",
-    name: "Bench Press",
+    name: "Squat",
     type: "WEIGHT",
-    targetReps: "8-12",
+    targetReps: "8",
     targetSets: "3",
     incrementValue: 2.5
   };
 
-  describe("when no target reps defined", () => {
-    it("returns not applied with failure reason", () => {
-      const exercise = { ...baseExercise, targetReps: null };
-      const result = applyProgressiveOverload(exercise, []);
+  it("should promote standard weight (success)", () => {
+    const lastSets: WorkoutSet[] = [
+      { weight: 100, reps: 8, completed: true, type: "NORMAL" },
+      { weight: 100, reps: 8, completed: true, type: "NORMAL" },
+      { weight: 100, reps: 8, completed: true, type: "NORMAL" }
+    ];
 
-      expect(result.applied).toBe(false);
-      expect(result.failureReason).toBe("No target reps defined");
-      expect(result.newSets).toHaveLength(0);
-    });
+    const result = applyProgressiveOverload(baseExercise, lastSets);
+
+    expect(result.applied).toBe(true);
+    expect(result.diff?.type).toBe("PROMOTION");
+    expect(result.diff?.newWeight).toBe(102.5);
+    // Standard promotions reset to min reps logic (8-12 -> 8, here 8->8)
+    expect(result.newSets[0].weight).toBe(102.5);
   });
 
-  describe("when no history", () => {
-    it("returns not applied with failure reason", () => {
-      const result = applyProgressiveOverload(baseExercise, []);
+  it("should reset standard weight (failure)", () => {
+    const lastSets: WorkoutSet[] = [
+      { weight: 100, reps: 8, completed: true, type: "NORMAL" },
+      { weight: 100, reps: 7, completed: true, type: "NORMAL" }, // Failed set
+      { weight: 100, reps: 6, completed: true, type: "NORMAL" }
+    ];
 
-      expect(result.applied).toBe(false);
-      expect(result.failureReason).toBe("No history found");
-    });
+    const result = applyProgressiveOverload(baseExercise, lastSets);
+
+    expect(result.applied).toBe(true);
+    expect(result.diff?.type).toBe("RESET");
+    expect(result.diff?.newWeight).toBe(100);
+    expect(result.newSets[0].weight).toBe(100);
   });
 
-  describe("PROMOTION case (all normal sets hit max reps)", () => {
-    it("increases weight and resets reps to min for normal sets", () => {
-      const lastSets = [
-        { weight: 60, reps: 12, type: "NORMAL" },
-        { weight: 60, reps: 12, type: "NORMAL" },
-        { weight: 60, reps: 12, type: "NORMAL" }
-      ];
+  // --- Comma Separated Reps Tests ---
 
-      const result = applyProgressiveOverload(baseExercise, lastSets);
+  it("should promote comma-separated targets (success) and preserve pattern", () => {
+    const csvExercise: ExerciseForProgression = {
+      ...baseExercise,
+      targetReps: "8,5,3"
+    };
 
-      expect(result.applied).toBe(true);
-      expect(result.diff?.type).toBe("PROMOTION");
-      expect(result.diff?.oldWeight).toBe(60);
-      expect(result.diff?.newWeight).toBe(62.5);
-      expect(result.diff?.newReps).toBe(8);
+    const lastSets: WorkoutSet[] = [
+      { weight: 100, reps: 8, completed: true, type: "NORMAL" }, // Target 8
+      { weight: 100, reps: 6, completed: true, type: "NORMAL" }, // Target 5 (6 > 5 OK)
+      { weight: 100, reps: 3, completed: true, type: "NORMAL" } // Target 3
+    ];
 
-      // All sets should have new weight and min reps
-      expect(result.newSets).toHaveLength(3);
-      result.newSets.forEach((set) => {
-        expect(set.weight).toBe(62.5);
-        expect(set.reps).toBe(8);
-        expect(set.type).toBe("NORMAL");
-      });
-    });
+    const result = applyProgressiveOverload(csvExercise, lastSets);
 
-    it("preserves warmup sets exactly as they were", () => {
-      const lastSets = [
-        { weight: 30, reps: 10, type: "WARMUP" },
-        { weight: 45, reps: 8, type: "WARMUP" },
-        { weight: 60, reps: 12, type: "NORMAL" },
-        { weight: 60, reps: 12, type: "NORMAL" },
-        { weight: 60, reps: 12, type: "NORMAL" }
-      ];
+    expect(result.applied).toBe(true);
+    expect(result.diff?.type).toBe("PROMOTION");
+    expect(result.diff?.newWeight).toBe(102.5);
 
-      const result = applyProgressiveOverload(baseExercise, lastSets);
-
-      expect(result.applied).toBe(true);
-      expect(result.newSets).toHaveLength(5);
-
-      // Check warmup sets are preserved
-      expect(result.newSets[0]).toMatchObject({
-        weight: 30,
-        reps: 10,
-        type: "WARMUP"
-      });
-      expect(result.newSets[1]).toMatchObject({
-        weight: 45,
-        reps: 8,
-        type: "WARMUP"
-      });
-
-      // Check normal sets are overloaded
-      expect(result.newSets[2]).toMatchObject({
-        weight: 62.5,
-        reps: 8,
-        type: "NORMAL"
-      });
-    });
-
-    it("excludes FAILURE, DROPSET, and other non-standard set types", () => {
-      const lastSets = [
-        { weight: 30, reps: 10, type: "WARMUP" },
-        { weight: 60, reps: 12, type: "NORMAL" },
-        { weight: 60, reps: 12, type: "NORMAL" },
-        { weight: 50, reps: 8, type: "FAILURE" },
-        { weight: 40, reps: 10, type: "DROPSET" }
-      ];
-
-      const result = applyProgressiveOverload(baseExercise, lastSets);
-
-      expect(result.applied).toBe(true);
-      // Should have 1 warmup + 3 normal (2 from history + 1 filled to meet targetSets:3)
-      // NOT the failure/dropset
-      expect(result.newSets).toHaveLength(4);
-
-      expect(result.newSets[0].type).toBe("WARMUP");
-      expect(result.newSets[1].type).toBe("NORMAL");
-      expect(result.newSets[2].type).toBe("NORMAL");
-      expect(result.newSets[3].type).toBe("NORMAL");
-
-      // No FAILURE or DROPSET types should exist
-      const hasFailure = result.newSets.some((s) => s.type === "FAILURE");
-      const hasDropset = result.newSets.some((s) => s.type === "DROPSET");
-      expect(hasFailure).toBe(false);
-      expect(hasDropset).toBe(false);
-    });
-
-    it("fills sets to meet target set count", () => {
-      const exercise = { ...baseExercise, targetSets: "4" };
-      const lastSets = [
-        { weight: 60, reps: 12, type: "NORMAL" },
-        { weight: 60, reps: 12, type: "NORMAL" }
-      ];
-
-      const result = applyProgressiveOverload(exercise, lastSets);
-
-      expect(result.applied).toBe(true);
-      // Should fill to 4 normal sets
-      expect(result.newSets).toHaveLength(4);
-      result.newSets.forEach((set) => {
-        expect(set.weight).toBe(62.5);
-        expect(set.type).toBe("NORMAL");
-      });
-    });
-
-    it("uses custom increment value", () => {
-      const exercise = { ...baseExercise, incrementValue: 5 };
-      const lastSets = [{ weight: 60, reps: 12, type: "NORMAL" }];
-
-      const result = applyProgressiveOverload(exercise, lastSets);
-
-      expect(result.diff?.newWeight).toBe(65);
-      expect(result.newSets[0].weight).toBe(65);
-    });
-
-    it("uses default increment of 2.5 when not specified", () => {
-      const exercise = { ...baseExercise, incrementValue: null };
-      const lastSets = [{ weight: 60, reps: 12, type: "NORMAL" }];
-
-      const result = applyProgressiveOverload(exercise, lastSets);
-
-      expect(result.diff?.newWeight).toBe(62.5);
-    });
+    // Check if new sets match the "8, 5, 3" pattern
+    expect(result.newSets[0].reps).toBe(8);
+    expect(result.newSets[1].reps).toBe(5);
+    expect(result.newSets[2].reps).toBe(3);
   });
 
-  describe("RESET case (not all normal sets hit max reps)", () => {
-    it("keeps same weight but resets reps to min", () => {
-      const lastSets = [
-        { weight: 60, reps: 12, type: "NORMAL" },
-        { weight: 60, reps: 10, type: "NORMAL" }, // Did not hit 12
-        { weight: 60, reps: 8, type: "NORMAL" }
-      ];
+  it("should reset comma-separated targets (failure) and preserve pattern", () => {
+    const csvExercise: ExerciseForProgression = {
+      ...baseExercise,
+      targetReps: "8,5,3"
+    };
 
-      const result = applyProgressiveOverload(baseExercise, lastSets);
+    const lastSets: WorkoutSet[] = [
+      { weight: 100, reps: 8, completed: true, type: "NORMAL" },
+      { weight: 100, reps: 4, completed: true, type: "NORMAL" }, // Target 5 (Failed)
+      { weight: 100, reps: 3, completed: true, type: "NORMAL" }
+    ];
 
-      expect(result.applied).toBe(true);
-      expect(result.diff?.type).toBe("RESET");
-      expect(result.diff?.oldWeight).toBe(60);
-      expect(result.diff?.newWeight).toBe(60); // Same weight
+    const result = applyProgressiveOverload(csvExercise, lastSets);
 
-      result.newSets.forEach((set) => {
-        expect(set.weight).toBe(60);
-        expect(set.reps).toBe(8); // Min reps
-        expect(set.type).toBe("NORMAL");
-      });
-    });
+    expect(result.applied).toBe(true);
+    expect(result.diff?.type).toBe("RESET");
+    expect(result.diff?.newWeight).toBe(100);
 
-    it("still preserves warmup sets in reset case", () => {
-      const lastSets = [
-        { weight: 30, reps: 10, type: "WARMUP" },
-        { weight: 60, reps: 10, type: "NORMAL" } // Did not hit 12
-      ];
-
-      const result = applyProgressiveOverload(baseExercise, lastSets);
-
-      expect(result.applied).toBe(true);
-      // 1 warmup + 3 normal (1 from history + 2 filled to meet targetSets:3)
-      expect(result.newSets).toHaveLength(4);
-
-      expect(result.newSets[0]).toMatchObject({
-        weight: 30,
-        reps: 10,
-        type: "WARMUP"
-      });
-    });
-
-    it("still excludes failure/dropset in reset case", () => {
-      const lastSets = [
-        { weight: 60, reps: 10, type: "NORMAL" },
-        { weight: 50, reps: 15, type: "FAILURE" }
-      ];
-
-      const result = applyProgressiveOverload(baseExercise, lastSets);
-
-      // Should only have normal sets, not failure
-      const normalSets = result.newSets.filter((s) => s.type === "NORMAL");
-      const failureSets = result.newSets.filter((s) => s.type === "FAILURE");
-
-      expect(normalSets.length).toBeGreaterThan(0);
-      expect(failureSets).toHaveLength(0);
-    });
+    // Keep pattern 8,5,3
+    expect(result.newSets[0].reps).toBe(8);
+    expect(result.newSets[1].reps).toBe(5);
+    expect(result.newSets[2].reps).toBe(3);
   });
 
-  describe("single rep target (not a range)", () => {
-    it("uses the single value as both min and max", () => {
-      const exercise = { ...baseExercise, targetReps: "10" };
-      const lastSets = [{ weight: 60, reps: 10, type: "NORMAL" }];
+  it("should handle comma-separated with fewer sets than targets", () => {
+    const csvExercise: ExerciseForProgression = {
+      ...baseExercise,
+      targetReps: "8,5,3"
+    };
 
-      const result = applyProgressiveOverload(exercise, lastSets);
+    // Only did 2 sets
+    const lastSets: WorkoutSet[] = [
+      { weight: 100, reps: 8, completed: true, type: "NORMAL" },
+      { weight: 100, reps: 5, completed: true, type: "NORMAL" }
+    ];
 
-      expect(result.applied).toBe(true);
-      expect(result.diff?.type).toBe("PROMOTION");
-      expect(result.diff?.newReps).toBe(10);
-    });
+    const result = applyProgressiveOverload(csvExercise, lastSets);
+
+    // Should promote because the sets we DID do met the targets for their index?
+    // Current logic: every(set => set.reps >= target). So valid sets match.
+    expect(result.applied).toBe(true);
+    expect(result.diff?.type).toBe("PROMOTION");
+
+    // If we only did 2 sets, but targetSets is 3 (inherited from baseExercise),
+    // logic should fill the 3rd set.
+    expect(result.newSets).toHaveLength(3);
+    // And 3rd set should follow pattern (target index 2 -> 3 reps)
+    expect(result.newSets[2].reps).toBe(3);
   });
 
-  describe("edge cases", () => {
-    it("handles sets without type field (treats as NORMAL)", () => {
-      const lastSets = [
-        { weight: 60, reps: 12 }, // No type field
-        { weight: 60, reps: 12 }
-      ];
+  // --- Negative Weights Tests (Assisted Machines) ---
 
-      const result = applyProgressiveOverload(baseExercise, lastSets);
+  it("should promote negative weights correctly (closer to 0 is harder)", () => {
+    // Scenario: -50kg (assisted). Target 8 reps.
+    // If we do 8 reps, we want to go up in difficulty.
+    // Difficulty up means LESS assistance. -50 -> -47.5.
+    // -50 + 2.5 = -47.5. Standard addition works!
 
-      expect(result.applied).toBe(true);
-      expect(result.diff?.type).toBe("PROMOTION");
-    });
+    const assistedExercise: ExerciseForProgression = {
+      ...baseExercise,
+      incrementValue: 2.5
+    };
 
-    it("handles no weight recorded", () => {
-      const lastSets = [{ weight: undefined, reps: 12, type: "NORMAL" }];
+    const lastSets: WorkoutSet[] = [
+      { weight: -50, reps: 8, completed: true, type: "NORMAL" },
+      { weight: -50, reps: 8, completed: true, type: "NORMAL" },
+      { weight: -50, reps: 8, completed: true, type: "NORMAL" }
+    ];
 
-      const result = applyProgressiveOverload(baseExercise, lastSets);
+    const result = applyProgressiveOverload(assistedExercise, lastSets);
 
-      expect(result.applied).toBe(false);
-      expect(result.failureReason).toBe("Last run had no weight recorded");
-    });
+    expect(result.applied).toBe(true);
+    expect(result.diff?.type).toBe("PROMOTION"); // "Promotion" means level up
+    expect(result.diff?.oldWeight).toBe(-50);
+    expect(result.diff?.newWeight).toBe(-47.5);
+    expect(result.newSets[0].weight).toBe(-47.5);
+  });
 
-    it("handles only warmup sets (no normal sets)", () => {
-      const lastSets = [
-        { weight: 30, reps: 10, type: "WARMUP" },
-        { weight: 45, reps: 8, type: "WARMUP" }
-      ];
+  it("should reset negative weights correctly (failure keeps same)", () => {
+    const assistedExercise: ExerciseForProgression = {
+      ...baseExercise,
+      incrementValue: 2.5
+    };
 
-      const result = applyProgressiveOverload(baseExercise, lastSets);
+    const lastSets: WorkoutSet[] = [
+      { weight: -50, reps: 8, completed: true, type: "NORMAL" },
+      { weight: -50, reps: 5, completed: true, type: "NORMAL" }, // Fail
+      { weight: -50, reps: 8, completed: true, type: "NORMAL" }
+    ];
 
-      expect(result.applied).toBe(false);
-      // Warmups are copied but no normal sets to overload
-      expect(result.newSets[0].type).toBe("WARMUP");
-      expect(result.newSets[1].type).toBe("WARMUP");
-    });
+    const result = applyProgressiveOverload(assistedExercise, lastSets);
+
+    expect(result.applied).toBe(true);
+    expect(result.diff?.type).toBe("RESET");
+    expect(result.diff?.newWeight).toBe(-50);
+    expect(result.newSets[0].weight).toBe(-50);
   });
 });

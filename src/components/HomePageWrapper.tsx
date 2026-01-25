@@ -16,6 +16,7 @@ import { navigate } from "astro:transitions/client";
 import { X } from "lucide-react";
 import type { Exercise, Routine, RoutineExercise, WorkoutLog } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
 import React, { useEffect, useState } from "react";
+import { DeloadBadge } from "./ui/DeloadBadge";
 
 // Define the composite type for the joined query result
 export type RoutineWithExercises = Routine & {
@@ -144,8 +145,9 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
           <div className="from-primary/5 pointer-events-none absolute inset-0 bg-linear-to-br via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover/card:opacity-100" />
           <CardHeader className="border-b pb-3">
             <div className="space-y-1">
-              <CardTitle className="text-foreground text-lg font-semibold tracking-tight capitalize">
+              <CardTitle className="text-foreground flex items-center justify-between text-lg font-semibold tracking-tight capitalize">
                 {nextRoutine.name}
+                {nextRoutine.isDeload && <DeloadBadge />}
               </CardTitle>
               <p className="text-muted-foreground text-sm">
                 {nextRoutine.description || "Time to lift heavy things."}
@@ -185,8 +187,12 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
                 {!nextRoutine.exercises || nextRoutine.exercises.length === 0
                   ? "Add exercises to start"
                   : activeLogId
-                    ? "Resume workout"
-                    : "Start workout"}
+                    ? activeLogDetails?.isDeload
+                      ? "Resume deload"
+                      : "Resume workout"
+                    : nextRoutine.isDeload
+                      ? "Start deload"
+                      : "Start workout"}
               </Button>
               {activeLogId && (
                 <Button
