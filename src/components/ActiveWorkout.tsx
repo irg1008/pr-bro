@@ -32,6 +32,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useHaptic } from "@/hooks/useHaptic";
 import { applyProgressiveOverload } from "@/lib/progressive-overload";
+import { cn } from "@/lib/utils";
 import type { SetType } from "@/types/set-types";
 import { navigate } from "astro:transitions/client";
 import {
@@ -65,6 +66,12 @@ import { useEffect, useRef, useState } from "react";
 import { toast } from "sonner";
 import { SetTypeSelector } from "./SetTypeSelector";
 import { TargetDisplay } from "./TargetDisplay";
+
+const InputWarning = ({ message }: { message: string }) => (
+  <div className="absolute top-full left-0 right-0 z-10 mx-auto mt-1 w-max max-w-[200px] rounded bg-amber-100 px-2 py-1 text-xs text-amber-700 shadow-sm dark:bg-amber-900/30 dark:text-amber-400">
+    {message}
+  </div>
+);
 
 const CARDIO_OPTIONS = [
   { name: "Running", icon: Footprints },
@@ -137,6 +144,7 @@ export const ActiveWorkout = ({
 
   // Dynamic Exercise State
   const [activeExercises, setActiveExercises] = useState<ActiveWorkoutExercise[]>(initialExercises);
+  const [inputWarnings, setInputWarnings] = useState<Record<string, string>>({}); // Key: "exID-setIdx-field"
   const [pickerOpen, setPickerOpen] = useState(false);
   const [pickerMode, setPickerMode] = useState<"add" | "replace">("add");
   const [targetExerciseIndex, setTargetExerciseIndex] = useState<number>(-1); // For replace/delete context if needed
@@ -518,6 +526,50 @@ export const ActiveWorkout = ({
     const newSets = [...currentExSets];
     newSets[idx] = { ...newSets[idx], [field]: value };
     setSets({ ...sets, [exerciseId]: newSets });
+  };
+
+  const verifyInput = (exerciseId: string, idx: number, val: number, field: "weight" | "reps") => {
+    const currentSets = sets[exerciseId];
+    if (!currentSets) return;
+
+    // Helper to set warning
+    const warn = (msg: string) => {
+      setInputWarnings((prev) => ({ ...prev, [`${exerciseId}-${idx}-${field}`]: msg }));
+    };
+
+    // Check Previous Set
+    if (idx > 0) {
+      const prevSet = currentSets[idx - 1];
+      const prevVal = Number(prevSet[field]);
+      if (prevVal > 0 && val > 0) {
+        const increase = (val - prevVal) / prevVal;
+        if (increase > 0.5) {
+          warn(`+${Math.round(increase * 100)}% jump vs Set ${idx} (${prevVal})`);
+          return;
+        }
+      }
+    }
+
+    // Check Next Set
+    if (idx < currentSets.length - 1) {
+      const nextSet = currentSets[idx + 1];
+      const nextVal = Number(nextSet[field]);
+
+      if (nextVal > 0 && val > 0) {
+        const min = Math.min(val, nextVal);
+        const max = Math.max(val, nextVal);
+        if (min > 0) {
+          const increase = (max - min) / min;
+          if (increase > 0.5) {
+            if (val > nextVal) {
+              warn(`Huge vs Set ${idx + 2} (${nextVal})`);
+            } else {
+              warn(`Tiny vs Set ${idx + 2} (${nextVal})`);
+            }
+          }
+        }
+      }
+    }
   };
 
   const addSet = (exerciseId: string) => {
@@ -1265,34 +1317,70 @@ export const ActiveWorkout = ({
                     </>
                   ) : (
                     <>
-                      <Input
-                        type="number"
-                        value={set.weight === "" ? "" : set.weight}
-                        onChange={(e) =>
-                          updateSet(
-                            ex.id,
-                            idx,
-                            "weight",
-                            e.target.value === "" ? "" : Number(e.target.value)
-                          )
-                        }
-                        className="text-center"
-                        placeholder="0"
-                      />
-                      <Input
-                        type="number"
-                        value={set.reps === "" ? "" : set.reps}
-                        onChange={(e) =>
-                          updateSet(
-                            ex.id,
-                            idx,
-                            "reps",
-                            e.target.value === "" ? "" : Number(e.target.value)
-                          )
-                        }
-                        className="text-center"
-                        placeholder="0"
-                      />
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          value={set.weight === "" ? "" : set.weight}
+                          onChange={(e) => {
+                            if (inputWarnings[`${ex.id}-${idx}-weight`]) {
+                              const newWarnings = { ...inputWarnings };
+                              delete newWarnings[`${ex.id}-${idx}-weight`];
+                              setInputWarnings(newWarnings);
+                            }
+                            updateSet(
+                              ex.id,
+                              idx,
+                              "weight",
+                              e.target.value === "" ? "" : Number(e.target.value)
+                            );
+                          }}
+                          onBlur={(e) => {
+                            const val = e.target.value === "" ? 0 : Number(e.target.value);
+                            if (val > 0) verifyInput(ex.id, idx, val, "weight");
+                          }}
+                          className={cn(
+                            "text-center transition-colors",
+                            inputWarnings[`${ex.id}-${idx}-weight`] &&
+                              "border-amber-500 focus-visible:ring-amber-500"
+                          )}
+                          placeholder="0"
+                        />
+                        {inputWarnings[`${ex.id}-${idx}-weight`] && (
+                          <InputWarning message={inputWarnings[`${ex.id}-${idx}-weight`]} />
+                        )}
+                      </div>
+                      <div className="relative">
+                        <Input
+                          type="number"
+                          value={set.reps === "" ? "" : set.reps}
+                          onChange={(e) => {
+                            if (inputWarnings[`${ex.id}-${idx}-reps`]) {
+                              const newWarnings = { ...inputWarnings };
+                              delete newWarnings[`${ex.id}-${idx}-reps`];
+                              setInputWarnings(newWarnings);
+                            }
+                            updateSet(
+                              ex.id,
+                              idx,
+                              "reps",
+                              e.target.value === "" ? "" : Number(e.target.value)
+                            );
+                          }}
+                          onBlur={(e) => {
+                            const val = e.target.value === "" ? 0 : Number(e.target.value);
+                            if (val > 0) verifyInput(ex.id, idx, val, "reps");
+                          }}
+                          className={cn(
+                            "text-center transition-colors",
+                            inputWarnings[`${ex.id}-${idx}-reps`] &&
+                              "border-amber-500 focus-visible:ring-amber-500"
+                          )}
+                          placeholder="0"
+                        />
+                        {inputWarnings[`${ex.id}-${idx}-reps`] && (
+                          <InputWarning message={inputWarnings[`${ex.id}-${idx}-reps`]} />
+                        )}
+                      </div>
                     </>
                   )}
 
