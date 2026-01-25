@@ -22,6 +22,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { navigate } from "astro:transitions/client";
 import { Pencil, Trash2 } from "lucide-react";
 import type { RoutineGroup } from "prisma/generated/client";
@@ -38,6 +39,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
   // Edit State
   const [editingGroup, setEditingGroup] = useState<RoutineGroup | null>(null);
   const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
 
   const handleCreate = async () => {
     if (newGroupName.trim()) {
@@ -54,7 +56,8 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
     if (!editingGroup || !editName.trim()) return;
     const { error } = await actions.routine.updateGroup({
       id: editingGroup.id,
-      name: editName
+      name: editName,
+      description: editDescription
     });
     if (!error) {
       setEditingGroup(null);
@@ -66,6 +69,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
     e.stopPropagation();
     setEditingGroup(group);
     setEditName(group.name);
+    setEditDescription(group.description || "");
   };
 
   const handleDelete = async (groupId: string) => {
@@ -166,8 +170,10 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
       <Dialog open={!!editingGroup} onOpenChange={(open) => !open && setEditingGroup(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit group name</DialogTitle>
-            <DialogDescription>Enter a new name for this routine group.</DialogDescription>
+            <DialogTitle>Edit group details</DialogTitle>
+            <DialogDescription>
+              Update the name and description for this routine group.
+            </DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -179,6 +185,18 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
                 className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-start gap-4">
+              <Label htmlFor="edit-desc" className="mt-2 text-right">
+                Description
+              </Label>
+              <Textarea
+                id="edit-desc"
+                value={editDescription}
+                onChange={(e) => setEditDescription(e.target.value)}
+                className="col-span-3 resize-none"
+                placeholder="Optional description"
               />
             </div>
           </div>
@@ -261,7 +279,9 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
                 </div>
               </div>
               {group.description && (
-                <p className="text-muted-foreground mt-2 text-sm">{group.description}</p>
+                <p className="text-muted-foreground mt-2 line-clamp-2 text-sm">
+                  {group.description}
+                </p>
               )}
             </CardHeader>
           </Card>

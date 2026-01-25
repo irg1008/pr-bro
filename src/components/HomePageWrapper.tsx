@@ -11,16 +11,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { actions } from "astro:actions";
 import { navigate } from "astro:transitions/client";
 import { X } from "lucide-react";
 import type { Exercise, Routine, RoutineExercise, WorkoutLog } from "prisma/generated/client"; // Ensure these exist or use "prisma/client" if generated is there
 import React, { useEffect, useState } from "react";
+import { LogDateDisplay } from "./LogDateDisplay";
 import { DeloadBadge } from "./ui/DeloadBadge";
 
 // Define the composite type for the joined query result
 export type RoutineWithExercises = Routine & {
+  isDeload: boolean;
   exercises: (RoutineExercise & {
     exercise: Exercise;
   })[];
@@ -134,14 +136,23 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
         <Card className="group/card ring-primary/5 hover:ring-primary/20 relative overflow-hidden border shadow-sm ring-1 transition-all duration-300 hover:shadow-md">
           <div className="from-primary/5 pointer-events-none absolute inset-0 bg-linear-to-br via-transparent to-transparent opacity-0 transition-opacity duration-500 group-hover/card:opacity-100" />
           <CardHeader className="border-b pb-3">
-            <div className="space-y-1">
-              <CardTitle className="text-foreground flex items-center justify-between text-lg font-semibold tracking-tight capitalize">
-                {nextRoutine.name}
-                {nextRoutine.isDeload && <DeloadBadge />}
-              </CardTitle>
-              <p className="text-muted-foreground text-sm">
-                {nextRoutine.description || "Time to lift heavy things."}
-              </p>
+            <div className="flex shrink-0 items-center justify-between lg:px-0">
+              <div className="flex max-w-[85%] flex-col gap-1">
+                <span className="text-foreground text-lg font-semibold tracking-tight capitalize">
+                  {nextRoutine.name}
+                </span>
+                <div className="flex items-center gap-2">
+                  {activeLogDetails && (
+                    <span className="text-muted-foreground flex items-center gap-1 text-xs">
+                      Started at <LogDateDisplay createdAt={nextRoutine.createdAt} />
+                    </span>
+                  )}
+                  {nextRoutine.isDeload && <DeloadBadge className="py-0.5 text-[10px]" />}
+                </div>
+                <p className="text-muted-foreground text-sm">
+                  {nextRoutine.description || "Time to lift heavy things."}
+                </p>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
@@ -177,12 +188,8 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
                 {!nextRoutine.exercises || nextRoutine.exercises.length === 0
                   ? "Add exercises to start"
                   : activeLogId
-                    ? activeLogDetails?.isDeload
-                      ? "Resume deload"
-                      : "Resume workout"
-                    : nextRoutine.isDeload
-                      ? "Start deload"
-                      : "Start workout"}
+                    ? "Resume workout"
+                    : "Start workout"}
               </Button>
               {activeLogId && (
                 <Button

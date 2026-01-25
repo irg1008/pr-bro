@@ -19,7 +19,6 @@ import { navigate } from "astro:transitions/client";
 import { ArrowDown, ArrowLeft, ArrowRight, ArrowUp, Pencil, Trash2 } from "lucide-react";
 import type { Routine } from "prisma/generated/client";
 import React, { useEffect, useState } from "react";
-import { DeloadBadge } from "./ui/DeloadBadge";
 import { Badge } from "./ui/badge";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "./ui/dialog";
 
@@ -365,8 +364,6 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
               <div className="text-muted-foreground mt-4 text-xs font-medium">
                 {routine.exerciseCount} Exercises
               </div>
-
-              {routine.isDeload && <DeloadBadge className="absolute top-2 right-2" />}
             </CardContent>
           </Card>
         ))}

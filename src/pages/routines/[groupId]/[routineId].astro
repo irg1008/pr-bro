@@ -51,6 +51,7 @@ const routine: RoutineWithExercises = await response.json();
 			client:load
 			routineId={routine.id}
 			routineName={routine.name}
+			routineDescription={routine.description}
 			initialExercises={routine.exercises}
 			focusedParts={routine.focusedParts || []}
 		/>
