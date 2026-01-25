@@ -1,3 +1,4 @@
+import { LogDateDisplay } from "@/components/LogDateDisplay";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -149,20 +150,7 @@ export const HistoryDetailHeader = ({
         <h1 className="text-3xl font-bold">{log.routine.name}</h1>
         <p className="text-muted-foreground">{log.routine.group.name}</p>
         <p className="text-muted-foreground mt-1">
-          {new Date(log.createdAt).toLocaleDateString()} &bull;{" "}
-          {new Date(log.createdAt).toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit"
-          })}
-          {log.finishedAt && (
-            <span>
-              {" - "}
-              {new Date(log.finishedAt).toLocaleTimeString([], {
-                hour: "2-digit",
-                minute: "2-digit"
-              })}
-            </span>
-          )}
+          <LogDateDisplay createdAt={log.createdAt} finishedAt={log.finishedAt} />
         </p>
       </div>
 
