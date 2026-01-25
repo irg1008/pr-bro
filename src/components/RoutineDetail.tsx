@@ -857,7 +857,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <div className="grid grid-cols-4 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-4 gap-4 md:grid-cols-2">
               <div className="col-span-1">
                 <Label className="text-muted-foreground text-xs">Sets</Label>
                 <Input
@@ -876,7 +876,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                   </Label>
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <Info className="hidden md:block h-3 w-3 text-muted-foreground/50 cursor-pointer hover:text-muted-foreground transition-colors" />
+                      <Info className="text-muted-foreground/50 hover:text-muted-foreground hidden h-3 w-3 cursor-pointer transition-colors md:block" />
                     </TooltipTrigger>
                     <TooltipContent className="max-w-xs text-xs">
                       <p>

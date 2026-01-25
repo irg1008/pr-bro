@@ -485,7 +485,7 @@ export const RoutineManagement: React.FC<RoutineManagementProps> = ({
               <div className="grid gap-1.5 leading-none">
                 <Label
                   htmlFor="edit-is-deload"
-                  className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                  className="text-sm leading-none font-medium peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
                 >
                   Deload mode
                 </Label>

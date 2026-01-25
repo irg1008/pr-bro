@@ -236,7 +236,7 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
             className="group hover:bg-card/50 relative cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99]"
             onClick={() => handleSelectGroup(group.id)}
           >
-            <CardHeader className="pb-10 pt-2">
+            <CardHeader className="pt-2 pb-10">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-base font-bold tracking-tight">{group.name}</CardTitle>
