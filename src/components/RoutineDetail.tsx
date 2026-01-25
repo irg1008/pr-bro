@@ -41,6 +41,7 @@ import {
   ClipboardPaste,
   Eye,
   EyeOff,
+  Info,
   ListOrdered,
   MoreVertical,
   Pencil,
@@ -55,6 +56,8 @@ import React, { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { TargetDisplay } from "./TargetDisplay";
 import { Badge } from "./ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 type RoutineExerciseWithExercise = RoutineExercise & { exercise: Exercise };
 
@@ -347,21 +350,30 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
 
     // Validation
     if (targetDialog.targetReps && targetDialog.targetReps.trim() !== "") {
-      // Regex: 'X' or 'X-Y' where X,Y are numbers.
-      const isValid = /^\d+(-\d+)?$/.test(targetDialog.targetReps.trim());
+      // Allow: Single number ("8"), Range ("8-12"), or Comma-separated list ("8,5,3")
+      // We already restrict input chars in the UI, so here we mostly check format structure
+      // New regex: sequence of (number or range), separated by optional comma/space
+      const isValid = /^[\d\s,-]+$/.test(targetDialog.targetReps.trim());
+
       if (!isValid) {
         toast.error(
-          "Invalid Reps format. Use a single number (e.g. '8') or a range (e.g. '8-12')."
+          "Invalid Reps format. Use numbers (e.g. '8'), ranges ('8-12'), or lists ('8, 5, 3')."
         );
         return;
       }
 
-      // Range check: Min <= Max
+      // Range check: Min <= Max for any ranges found
       if (targetDialog.targetReps.includes("-")) {
-        const parts = targetDialog.targetReps.split("-").map((p) => parseInt(p.trim()));
-        if (parts[0] > parts[1]) {
-          toast.error("Invalid Reps range. Min must be <= Max (e.g. '8-12').");
-          return;
+        // Split by comma first to handle each part
+        const groups = targetDialog.targetReps.split(",");
+        for (const group of groups) {
+          if (group.includes("-")) {
+            const parts = group.split("-").map((p) => parseInt(p.trim()));
+            if (!isNaN(parts[0]) && !isNaN(parts[1]) && parts[0] > parts[1]) {
+              toast.error(`Invalid Reps range '${group.trim()}'. Min must be <= Max.`);
+              return;
+            }
+          }
         }
       }
     }
@@ -845,8 +857,8 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             </DialogTitle>
           </DialogHeader>
           <div className="py-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
+            <div className="grid grid-cols-4 md:grid-cols-2 gap-4">
+              <div className="col-span-1">
                 <Label className="text-muted-foreground text-xs">Sets</Label>
                 <Input
                   value={targetDialog.targetSets}
@@ -857,50 +869,61 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                   className="mt-1"
                 />
               </div>
-              <div>
-                <Label className="text-muted-foreground text-xs">
-                  {targetDialog.targetType === "DURATION" ? "Seconds" : "Reps"}
-                </Label>
-                <div className="mt-1 flex gap-2">
+              <div className="col-span-3 md:col-span-1">
+                <div className="flex items-center gap-1.5">
+                  <Label className="text-muted-foreground text-xs">
+                    {targetDialog.targetType === "DURATION" ? "Seconds" : "Reps"}
+                  </Label>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Info className="hidden md:block h-3 w-3 text-muted-foreground/50 cursor-pointer hover:text-muted-foreground transition-colors" />
+                    </TooltipTrigger>
+                    <TooltipContent className="max-w-xs text-xs">
+                      <p>
+                        {targetDialog.targetType === "DURATION"
+                          ? "Only numbers allowed for duration."
+                          : "For Reps: Set a range (e.g. 8-12) or specific reps per set separated by commas (e.g. 8,5,3)."}
+                      </p>
+                    </TooltipContent>
+                  </Tooltip>
+                </div>
+                <div className="mt-1 flex items-center gap-2">
                   <Input
                     value={targetDialog.targetReps}
-                    onChange={(e) =>
-                      setTargetDialog((prev) => ({ ...prev, targetReps: e.target.value }))
-                    }
-                    placeholder={targetDialog.targetType === "DURATION" ? "30" : "8-12"}
-                    className="flex-1"
-                  />
-                  <div className="flex shrink-0 overflow-hidden rounded-md border">
-                    <button
-                      type="button"
-                      className={cn(
-                        "px-2 py-1 text-xs font-medium transition-colors",
-                        targetDialog.targetType === "REPS"
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-muted bg-transparent"
-                      )}
-                      onClick={() => setTargetDialog((prev) => ({ ...prev, targetType: "REPS" }))}
-                    >
-                      Reps
-                    </button>
-                    <button
-                      type="button"
-                      className={cn(
-                        "border-l px-2 py-1 text-xs font-medium transition-colors",
-                        targetDialog.targetType === "DURATION"
-                          ? "bg-primary text-primary-foreground"
-                          : "text-muted-foreground hover:bg-muted bg-transparent"
-                      )}
-                      onClick={() =>
-                        setTargetDialog((prev) => ({ ...prev, targetType: "DURATION" }))
+                    onChange={(e) => {
+                      const val = e.target.value;
+                      if (targetDialog.targetType === "DURATION") {
+                        // Only numbers
+                        if (/^\d*$/.test(val)) {
+                          setTargetDialog((prev) => ({ ...prev, targetReps: val }));
+                        }
+                      } else {
+                        // Numbers, commas, hyphens, spaces
+                        if (/^[\d,\-\s]*$/.test(val)) {
+                          setTargetDialog((prev) => ({ ...prev, targetReps: val }));
+                        }
                       }
-                    >
-                      Secs
-                    </button>
-                  </div>
+                    }}
+                    placeholder={targetDialog.targetType === "DURATION" ? "30" : "8-12 or 8,5,3"}
+                    className="flex-1 basis-1/3"
+                  />
+                  <Select
+                    value={targetDialog.targetType}
+                    onValueChange={(v) =>
+                      setTargetDialog((prev) => ({ ...prev, targetType: v as "REPS" | "DURATION" }))
+                    }
+                  >
+                    <SelectTrigger className="h-9 text-xs">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="REPS">Reps</SelectItem>
+                      <SelectItem value="DURATION">Seconds</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
-              <div>
+              <div className="col-span-2 md:col-span-1">
                 <Label className="text-muted-foreground text-xs">Increment (kg)</Label>
                 <Input
                   value={targetDialog.incrementValue}
@@ -911,7 +934,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                   className="mt-1"
                 />
               </div>
-              <div>
+              <div className="col-span-2 md:col-span-1">
                 <Label className="text-muted-foreground text-xs">RIF</Label>
                 <Input
                   value={targetDialog.targetRepsToFailure}

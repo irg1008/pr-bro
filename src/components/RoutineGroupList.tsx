@@ -236,13 +236,13 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
             className="group hover:bg-card/50 relative cursor-pointer shadow-sm transition-all hover:scale-[1.01] active:scale-[0.99]"
             onClick={() => handleSelectGroup(group.id)}
           >
-            <CardHeader className="p-6">
-              <div className="flex items-start justify-between">
+            <CardHeader className="pb-10 pt-2">
+              <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <CardTitle className="text-base font-bold tracking-tight">{group.name}</CardTitle>
                   {group.isActive && <Badge className="bg-accent">Active</Badge>}
                 </div>
-                <div className="absolute top-4 right-4 flex gap-1">
+                <div className="flex gap-1">
                   <Button
                     variant="ghost"
                     size="icon"

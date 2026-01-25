@@ -754,7 +754,7 @@ export const ActiveWorkout = ({
 
       if (res.ok) {
         haptic.success();
-        toast.success("Workout completed! 💪");
+        toast.success("Workout completed!");
         navigate(`/history/${logId}`);
       } else {
         throw new Error("Failed to finish");
