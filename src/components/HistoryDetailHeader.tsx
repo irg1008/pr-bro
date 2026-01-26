@@ -33,6 +33,7 @@ import {
   ArrowUpDown,
   BatteryCharging,
   Calendar as CalendarIcon,
+  Check,
   Clock,
   MoreVertical,
   Pencil,
@@ -41,6 +42,7 @@ import {
 import type { Routine, RoutineGroup, WorkoutLog } from "prisma/generated/client";
 import { useState } from "react";
 import { toast } from "sonner";
+import { LogDateDisplay } from "./LogDateDisplay";
 import { DeloadBadge } from "./ui/DeloadBadge";
 
 interface HistoryDetailHeaderProps {
@@ -179,14 +181,7 @@ export const HistoryDetailHeader = ({
             {isDeload && <DeloadBadge className="py-0.5 text-xs" />}
           </div>
           <p className="text-muted-foreground text-sm">
-            Started at{" "}
-            {new Date(log.createdAt).toLocaleString(undefined, {
-              day: "numeric",
-              month: "numeric",
-              year: "numeric",
-              hour: "2-digit",
-              minute: "2-digit"
-            })}
+            <LogDateDisplay createdAt={log.createdAt} finishedAt={log.finishedAt} />
           </p>
           <p className="text-muted-foreground text-sm capitalize">{log.routine.group.name}</p>
         </div>
@@ -201,7 +196,11 @@ export const HistoryDetailHeader = ({
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end">
           <DropdownMenuItem onClick={() => setReorderMode(!reorderMode)}>
-            <ArrowUpDown className="mr-2 h-4 w-4" />
+            {reorderMode ? (
+              <Check className="mr-2 h-4 w-4" />
+            ) : (
+              <ArrowUpDown className="mr-2 h-4 w-4" />
+            )}
             {reorderMode ? "Done reordering" : "Reorder exercises"}
           </DropdownMenuItem>
           <DropdownMenuItem onClick={handleToggleDeload}>

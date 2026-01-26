@@ -197,30 +197,27 @@ export const RoutineGroupList: React.FC<{ groups: RoutineGroup[] }> = ({ groups 
             <DialogDescription>Update the details for this routine group.</DialogDescription>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-name" className="text-right">
-                Name
-              </Label>
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="edit-name">Name</Label>
               <Input
                 id="edit-name"
                 value={editName}
                 onChange={(e) => setEditName(e.target.value)}
-                className="col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="edit-desc" className="text-right">
-                Description
-              </Label>
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="edit-desc">Description</Label>
               <Input
                 id="edit-desc"
                 value={editDesc}
                 onChange={(e) => setEditDesc(e.target.value)}
-                className="col-span-3"
               />
             </div>
           </div>
           <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingGroup(null)}>
+              Cancel
+            </Button>
             <Button onClick={handleEdit}>Save changes</Button>
           </DialogFooter>
         </DialogContent>

@@ -746,58 +746,46 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
             <DialogTitle>Edit routine</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="name" className="text-right">
-                Name
-              </Label>
-              <Input
-                id="name"
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                className="col-span-3"
-              />
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="name">Name</Label>
+              <Input id="name" value={newName} onChange={(e) => setNewName(e.target.value)} />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">
-                Description
-              </Label>
+            <div className="grid w-full items-center gap-1.5">
+              <Label htmlFor="description">Description</Label>
               <Input
                 id="description"
                 value={newDescription}
                 onChange={(e) => setNewDescription(e.target.value)}
-                className="col-span-3"
               />
             </div>
-            <div className="grid grid-cols-4 items-start gap-4">
-              <Label className="mt-2 text-right">Categories</Label>
-              <div className="col-span-3 space-y-3">
-                <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
-                  {availableCategories.length === 0 && (
-                    <span className="text-muted-foreground text-sm">Loading categories...</span>
-                  )}
-                  {availableCategories.map((cat) => (
-                    <label
-                      key={cat}
-                      className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 capitalize transition-colors"
-                    >
-                      <Checkbox
-                        checked={selectedCategories.includes(cat)}
-                        onCheckedChange={() => toggleCategory(cat)}
-                      />
-                      <span className="text-sm leading-none font-medium">{cat}</span>
-                    </label>
+            <div className="grid w-full items-center gap-1.5">
+              <Label>Categories</Label>
+              <div className="max-h-48 space-y-2 overflow-y-auto rounded-md border p-3">
+                {availableCategories.length === 0 && (
+                  <span className="text-muted-foreground text-sm">Loading categories...</span>
+                )}
+                {availableCategories.map((cat) => (
+                  <label
+                    key={cat}
+                    className="hover:bg-muted/50 flex cursor-pointer items-center gap-3 rounded-md px-2 py-1.5 capitalize transition-colors"
+                  >
+                    <Checkbox
+                      checked={selectedCategories.includes(cat)}
+                      onCheckedChange={() => toggleCategory(cat)}
+                    />
+                    <span className="text-sm leading-none font-medium">{cat}</span>
+                  </label>
+                ))}
+              </div>
+              {selectedCategories.length > 0 && (
+                <div className="mt-1 flex flex-wrap gap-1">
+                  {selectedCategories.map((cat) => (
+                    <Badge key={cat} variant="secondary" className="text-xs capitalize">
+                      {cat}
+                    </Badge>
                   ))}
                 </div>
-                {selectedCategories.length > 0 && (
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {selectedCategories.map((cat) => (
-                      <Badge key={cat} variant="secondary" className="text-xs capitalize">
-                        {cat}
-                      </Badge>
-                    ))}
-                  </div>
-                )}
-              </div>
+              )}
             </div>
           </div>
           <DialogFooter>

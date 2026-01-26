@@ -77,11 +77,13 @@ const cycles = Array.from(cyclesMap.values()).map((cycle) => {
 	);
 
 	// Calculate duration properly
-	const diffTime = Math.abs(
-		cycle.endDate.getTime() - cycle.startDate.getTime(),
-	);
+	const start = new Date(cycle.startDate);
+	start.setHours(0, 0, 0, 0);
+	const end = new Date(cycle.endDate);
+	end.setHours(0, 0, 0, 0);
+
+	const diffTime = Math.abs(end.getTime() - start.getTime());
 	cycle.durationDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1; // Inclusive
-	if (cycle.durationDays < 1) cycle.durationDays = 1;
 
 	return cycle;
 });

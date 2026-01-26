@@ -44,6 +44,7 @@ import {
   ArrowRight,
   ArrowUp,
   ArrowUpDown,
+  BatteryCharging,
   Bike,
   Check,
   Dumbbell,
@@ -57,7 +58,6 @@ import {
   Target,
   Timer,
   Trash2,
-  TrendingDown,
   TrendingUp,
   Waves,
   X,
@@ -969,7 +969,7 @@ export const ActiveWorkout = ({
               Load last run
             </DropdownMenuItem>
             <DropdownMenuItem onClick={toggleDeload}>
-              <TrendingDown className="mr-2 h-4 w-4" />
+              <BatteryCharging className="mr-2 h-4 w-4" />
               {isDeload ? "Disable deload" : "Enable deload"}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
