@@ -73,6 +73,6 @@ const { title, description, ogImage } = Astro.props;
 			</main>
 			<Footer client:load />
 		</div>
-		<Toaster client:load transition:persist />
+		<Toaster client:load transition:persist="toaster" />
 	</body>
 </html>
