@@ -31,7 +31,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Textarea } from "@/components/ui/textarea";
+
 import { cn } from "@/lib/utils";
 import { navigate } from "astro:transitions/client";
 import {
@@ -57,6 +57,7 @@ import { toast } from "sonner";
 import { TargetDisplay } from "./TargetDisplay";
 import { Badge } from "./ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
+import { Textarea } from "./ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "./ui/tooltip";
 
 type RoutineExerciseWithExercise = RoutineExercise & { exercise: Exercise };
@@ -64,6 +65,7 @@ type RoutineExerciseWithExercise = RoutineExercise & { exercise: Exercise };
 interface RoutineDetailProps {
   routineId: string;
   routineName: string;
+  routineDescription?: string | null;
   initialExercises: RoutineExerciseWithExercise[];
   focusedParts?: string[];
 }
@@ -71,12 +73,14 @@ interface RoutineDetailProps {
 export const RoutineDetail: React.FC<RoutineDetailProps> = ({
   routineId,
   routineName,
+  routineDescription,
   initialExercises,
   focusedParts = []
 }) => {
   const [exercises, setExercises] = useState<RoutineExerciseWithExercise[]>(initialExercises);
   const [isRenaming, setIsRenaming] = useState(false);
   const [newName, setNewName] = useState(routineName);
+  const [newDescription, setNewDescription] = useState(routineDescription || "");
   const [availableCategories, setAvailableCategories] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>(focusedParts);
   const [deleteAlert, setDeleteAlert] = useState<{ open: boolean; id: string | null }>({
@@ -184,6 +188,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
         method: "PATCH",
         body: JSON.stringify({
           name: newName,
+          description: newDescription,
           focusedParts: selectedCategories
         }),
         headers: { "Content-Type": "application/json" }
@@ -738,7 +743,7 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
       <Dialog open={isRenaming} onOpenChange={setIsRenaming}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Rename routine</DialogTitle>
+            <DialogTitle>Edit routine</DialogTitle>
           </DialogHeader>
           <div className="grid gap-4 py-4">
             <div className="grid grid-cols-4 items-center gap-4">
@@ -749,6 +754,17 @@ export const RoutineDetail: React.FC<RoutineDetailProps> = ({
                 id="name"
                 value={newName}
                 onChange={(e) => setNewName(e.target.value)}
+                className="col-span-3"
+              />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="description" className="text-right">
+                Description
+              </Label>
+              <Input
+                id="description"
+                value={newDescription}
+                onChange={(e) => setNewDescription(e.target.value)}
                 className="col-span-3"
               />
             </div>

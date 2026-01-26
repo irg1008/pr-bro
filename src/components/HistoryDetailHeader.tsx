@@ -1,4 +1,3 @@
-import { LogDateDisplay } from "@/components/LogDateDisplay";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -72,7 +71,6 @@ export const HistoryDetailHeader = ({
       });
       if (res.ok) {
         toast.success(newState ? "Marked as deload" : "Unmarked as deload");
-        navigate(window.location.pathname);
       } else {
         setIsDeload(!newState);
         toast.error("Failed to update status");
@@ -173,12 +171,25 @@ export const HistoryDetailHeader = ({
         <a href="/history" className="text-muted-foreground mb-2 block text-sm hover:underline">
           ← Back to history
         </a>
-        <h1 className="text-3xl font-bold">{log.routine.name}</h1>
-        <p className="text-muted-foreground">{log.routine.group.name}</p>
-        <p className="text-muted-foreground mt-1 flex items-center gap-2">
-          <LogDateDisplay createdAt={log.createdAt} finishedAt={log.finishedAt} />
-          {isDeload && <DeloadBadge />}
-        </p>
+        <div className="flex flex-col gap-1 pr-2">
+          <div className="flex items-center gap-2">
+            <h1 className="text-foreground text-lg font-semibold tracking-tight capitalize">
+              {log.routine.name}
+            </h1>
+            {isDeload && <DeloadBadge className="py-0.5 text-xs" />}
+          </div>
+          <p className="text-muted-foreground text-sm">
+            Started at{" "}
+            {new Date(log.createdAt).toLocaleString(undefined, {
+              day: "numeric",
+              month: "numeric",
+              year: "numeric",
+              hour: "2-digit",
+              minute: "2-digit"
+            })}
+          </p>
+          <p className="text-muted-foreground text-sm capitalize">{log.routine.group.name}</p>
+        </div>
       </div>
 
       <DropdownMenu>

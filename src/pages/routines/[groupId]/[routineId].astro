@@ -48,11 +48,12 @@ const routine: RoutineWithExercises = await response.json();
 			>
 		</div>
 		<RoutineDetail
-			client:load
+			client:only="react"
 			routineId={routine.id}
 			routineName={routine.name}
+			routineDescription={routine.description}
 			initialExercises={routine.exercises}
-			focusedParts={routine.focusedParts || []}
+			focusedParts={routine.focusedParts}
 		/>
 	</div>
 </BaseLayout>

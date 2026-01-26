@@ -115,6 +115,7 @@ export interface ActiveWorkoutProps {
   logId: string;
   initialStartTime: string;
   routineName: string;
+  routineDescription?: string | null;
   routineId: string;
   routineGroupId: string;
   routineExerciseIds: string[];
@@ -128,6 +129,7 @@ export const ActiveWorkout = ({
   logId,
   initialStartTime,
   routineName,
+  routineDescription,
   routineId,
   routineGroupId,
   routineExerciseIds,
@@ -182,13 +184,13 @@ export const ActiveWorkout = ({
     const newState = !isDeload;
     setIsDeload(newState);
     try {
-      await fetch(`/api/routines/${routineId}`, {
-        method: "PATCH",
+      await fetch(`/api/workout-logs/${logId}`, {
+        method: "PUT",
         body: JSON.stringify({ isDeload: newState }),
         headers: { "Content-Type": "application/json" }
       });
       toast.success(newState ? "Deload mode activated" : "Deload mode disabled");
-    } catch (e) {
+    } catch {
       toast.error("Failed to update deload status");
       setIsDeload(!newState);
     }
@@ -433,19 +435,19 @@ export const ActiveWorkout = ({
     useState<Record<string, boolean>>(initialSupersetStatus);
 
   // State refs for auto-save on unmount
-  const stateRef = useRef({ sets, activeExercises, supersetStatus, sessionNotes });
+  const stateRef = useRef({ sets, activeExercises, supersetStatus, sessionNotes, isDeload });
   const isFinishingRef = useRef(false);
 
   useEffect(() => {
-    stateRef.current = { sets, activeExercises, supersetStatus, sessionNotes };
-  }, [sets, activeExercises, supersetStatus, sessionNotes]);
+    stateRef.current = { sets, activeExercises, supersetStatus, sessionNotes, isDeload };
+  }, [sets, activeExercises, supersetStatus, sessionNotes, isDeload]);
 
   // Auto-save on unmount
   useEffect(() => {
     return () => {
       if (isFinishingRef.current) return;
 
-      const { sets, activeExercises, supersetStatus, sessionNotes } = stateRef.current;
+      const { sets, activeExercises, supersetStatus, sessionNotes, isDeload } = stateRef.current;
 
       // Replicate logic from sanitizeSets but inside cleanup
       const completeSets: Record<string, WorkoutSet[]> = {};
@@ -471,7 +473,8 @@ export const ActiveWorkout = ({
         body: JSON.stringify({
           entries: completeSets,
           supersetStatus,
-          sessionNotes
+          sessionNotes,
+          isDeload
           // No finishedAt for auto-save
         }),
         headers: { "Content-Type": "application/json" },
@@ -862,7 +865,7 @@ export const ActiveWorkout = ({
     pendingSaveRef.current = false;
 
     // Use stateRef to get the LATEST state at save time
-    const { sets, activeExercises, supersetStatus, sessionNotes } = stateRef.current;
+    const { sets, activeExercises, supersetStatus, sessionNotes, isDeload } = stateRef.current;
 
     const completeSets: Record<string, WorkoutSet[]> = {};
     activeExercises.forEach((ex) => {
@@ -886,7 +889,9 @@ export const ActiveWorkout = ({
           entries: completeSets,
           supersetStatus,
           sessionNotes,
-          exerciseOrder: activeExercises.map((e) => e.id)
+          exercises: activeExercises.map((e) => ({ ...e, isActive: undefined })), // Optional: sync full exercise list if needed
+          exerciseOrder: activeExercises.map((e) => e.id),
+          isDeload
         }),
         headers: { "Content-Type": "application/json" }
       });
@@ -932,12 +937,14 @@ export const ActiveWorkout = ({
     <div className="mx-auto flex max-w-md flex-col gap-6 px-4 py-6 pb-12">
       {/* Header */}
       <div className="flex shrink-0 items-center justify-between lg:px-0">
-        <div className="flex max-w-[85%] flex-wrap items-center gap-2">
-          <div className="text-muted-foreground bg-muted/50 flex flex-wrap items-center gap-x-2 rounded-full border px-3 py-1 text-sm leading-tight font-medium">
-            <span className="text-foreground font-semibold">{routineName}</span>
-            <span>Started at {startTimeDisplay}</span>
+        <div className="flex max-w-[85%] flex-col gap-1">
+          <div className="flex items-center gap-2">
+            <h1 className="text-foreground text-lg font-semibold tracking-tight capitalize">
+              {routineName}
+            </h1>
+            {isDeload && <DeloadBadge className="py-0.5 text-xs" />}
           </div>
-          {isDeload && <DeloadBadge className="py-1 text-xs" />}
+          <p className="text-muted-foreground text-sm">Started at {startTimeDisplay}</p>
         </div>
 
         <DropdownMenu>
