@@ -134,7 +134,6 @@ export const HomePageWrapper: React.FC<HomePageWrapperProps> = ({
         <div className="flex flex-col gap-1">
           <h1 className="text-xl font-semibold tracking-tight">Today's workout</h1>
           <p className="text-muted-foreground flex items-center gap-2 text-sm font-medium">
-            Cycle:{" "}
             <Badge variant="outline" className="font-normal capitalize">
               {activeGroupName}
             </Badge>
