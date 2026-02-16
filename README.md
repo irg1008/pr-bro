@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="public/imgs/logo-md.png" alt="PR Bro Logo" width="500" />
+  <img src="./public/imgs/logo-md.png" alt="PR Bro Logo" width="500" />
 
 > This code was made with 100% AI slop and should not be taken seriously. I didn't even turn on the computer.
 
